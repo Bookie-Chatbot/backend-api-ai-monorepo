@@ -1,6 +1,5 @@
 # Backend-ai
-Backend service leveraging Langchain and OpenAI API for advanced NLP and dynamic chatbot interactions, with strong context retention independent of the reservation system.
-
+Backend service dedicated to RAG chatbot functionalities using Langchain and OpenAI API
 # backend-ai 코랩 연동 가이드
 
 팀 프로젝트 협업을 위해, 코랩에서 [jinjja-fun-trip](https://github.com/jinjja-fun-trip) 조직의 **backend-ai** 리포지토리를 클론(clone)하고, 원하는 브랜치에 코드 커밋 및 푸쉬하는 방법에 대한 리드미입니다.
