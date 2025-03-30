@@ -7,8 +7,9 @@ from app import config
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
+from app .prompts import DEFAULT_PROMPT
 
-def create_rag_chain(retriever,prompt):
+def create_rag_chain(retriever,prompt=DEFAULT_PROMPT):
  llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
 
