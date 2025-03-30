@@ -54,13 +54,16 @@ def merge_pdf_and_sql1(question, pdf_context, pdf_answer, sql_answer):
     return merged_text
 
 
-
 def merge_pdf_and_sql2(question, pdf_context, pdf_answer, sql_answer):
-    # 추가 LLM PromptTemplate
+    """
+    PDF 응답(pdf_answer) + SQL 응답(sql_answer)을 통합하는 LLM 프롬프트.
+    사용자 질문(question)의 본래 의도(목적)을 절대 잊지 말도록 강조.
+    """
     merge_prompt = PromptTemplate(
         input_variables=["pdf_answer", "sql_answer", "question"],
         template="""
-사용자의 질문: {question}
+사용자의 질문:
+{question}
 
 [PDF 기반 응답]
 {pdf_answer}
@@ -68,13 +71,15 @@ def merge_pdf_and_sql2(question, pdf_context, pdf_answer, sql_answer):
 [SQL 기반 응답]
 {sql_answer}
 
-위 두 정보를 종합하여, 하나의 일관된 답변을 작성하세요.
+위 두 정보를 종합하여, 질문자가 궁극적으로 알고자 하는 목표를 절대 놓치지 마세요.
+
+- 사용자 질문에 '가장 저렴한 방'과 같이 가격 관련 요구가 있다면, 반드시 가격정보를 포함하세요.
+- '호텔 정책'처럼 DB 범위를 넘어서는 정보는 PDF 응답을 참고하여 보강하세요.
+- 중복되거나 모호한 표현은 피하고, 사용자 의도에 꼭 맞춘 구체적 답변을 작성하세요.
 """
     )
-    # LLM + RunnableSequence 
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     
-    # 단순 runnableSequence 없이, llm.invoke()
     final_merged = llm.invoke(
         merge_prompt.format(
             pdf_answer=pdf_answer,
