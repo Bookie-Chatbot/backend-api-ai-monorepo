@@ -25,7 +25,7 @@ def handle_question(question, classification_key, rag_chain, db_data, sql_summar
         sql_answer = sql_summary_chain.invoke({"sql_result": str(sql_raw_result)})
 
         # 3. PDF + SQL 결과를 통합하여 최종 답변 생성
-        final_answer = merge_pdf_and_sql1(question, pdf_context, pdf_answer, sql_answer)
+        final_answer = merge_pdf_and_sql2(question, pdf_context, pdf_answer, sql_answer)
     else:
         # SQL로 분류되지 않았다면, PDF만 사용
         final_answer = pdf_answer
