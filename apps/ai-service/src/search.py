@@ -38,6 +38,7 @@ def main():
     ############################################################################
     # [질문 1] 예시
     ############################################################################
+    '''
     question1 = "가장 저렴한 방이 있는지 확인하고 싶어요."
     print(f"\n[User Question 1] {question1}")
 
@@ -48,10 +49,12 @@ def main():
     final_answer_1 = handle_question(question1, classification_key_1, rag_chain, db_data, sql_summary_chain, retriever)
     print("\n=== Final Answer 1 ===")
     print(final_answer_1)
+    '''
 
     ############################################################################
     # [질문 2] 예시
     ############################################################################
+    '''
     question2 = "호텔 예약 취소 정책은 어떻게 되나요?"
     print(f"\n[User Question 2] {question2}")
 
@@ -61,7 +64,20 @@ def main():
 
     final_answer_2 = handle_question(question2, classification_key_2, rag_chain, db_data, sql_summary_chain, retriever)
     print("\n=== Final Answer 2 ===")
-    print(final_answer_2)
+    print(final_answer_2)'
+    '''
+
+    ############################################################################
+    # [질문 3] 예시
+    ############################################################################
+    question3 = "저는 user1인데, 제가 예약한 비행기의 도착 시간을 알고 싶어요."
+    print(f"\n[User Question 3] {question3}")
+    result = classification_chain.invoke({"question": question3})
+    classification_key_3 = result.strip()
+    print(f"[Classification Key 3] {classification_key_3}")
+    final_answer_3 = handle_question(question3, classification_key_3, rag_chain, db_data, sql_summary_chain, retriever)
+    print("\n=== Final Answer 3 ===")
+    print(final_answer_3)
 
 if __name__ == "__main__":
     main()
