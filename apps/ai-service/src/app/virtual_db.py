@@ -20,5 +20,5 @@ def load_virtual_db():
     db["Flight"] = load_json_file("flight.json")
     db["Reservation"] = load_json_file("reservation.json")
     db["QueryLog"] = load_json_file("querylog.json")
-    db["AdminSettings"] = load_json_file("adminsettings.json")
+    db["AdminSettings"] = load_json_file("admin.json")
     return db

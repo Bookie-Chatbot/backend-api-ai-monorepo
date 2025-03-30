@@ -28,7 +28,8 @@ def main():
     print("RAG chain created")
     # 6. 예시 질문 실행 (RAG 기반)
     question = "호텔 예약 가능한 객실은 어떤 것들이 있나요?"
-    context_docs = retriever.get_relevant_documents(question)
+    #context_docs = retriever.get_relevant_documents(question)
+    context_docs = retriever.invoke(question)
     context = utils.format_docs(context_docs)
     answer = rag_chain.invoke(question)
     
