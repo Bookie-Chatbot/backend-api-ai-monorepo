@@ -29,7 +29,7 @@ def main():
     question = "호텔 예약 가능한 객실은 어떤 것들이 있나요?"
     context_docs = retriever.get_relevant_documents(question)
     context = utils.format_docs(context_docs)
-    answer = rag_chain.run(question)
+    answer = rag_chain.invoke(question)
     
     print("=== PDF 기반 RAG 체인 ===")
     print("Question:", question)
