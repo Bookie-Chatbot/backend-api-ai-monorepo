@@ -56,7 +56,7 @@ def main():
         input_variables=["context", "question"]
     )
    # llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
-    llm = ChatOllama(model="gemma2")
+    llm = ChatOllama(model="ollama3")
 
     prompt_text = prompt_template.format(context=hotel_context, question=question2)
     answer2 = llm.invoke(prompt_text)

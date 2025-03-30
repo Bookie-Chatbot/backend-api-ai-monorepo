@@ -1,4 +1,5 @@
- # 프롬프트 템플릿 관련 코드
+# src/app/prompts.py
+# 프롬프트 템플릿 관련 코드
 from langchain.prompts import PromptTemplate
 
 DEFAULT_PROMPT = PromptTemplate(

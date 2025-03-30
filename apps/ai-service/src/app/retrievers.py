@@ -1,3 +1,4 @@
+# src/app/retrievers.py
 # 문서 검색(Retriever) 생성 함수
 def create_retriever(vectorstore, k: int = 3):
     """
