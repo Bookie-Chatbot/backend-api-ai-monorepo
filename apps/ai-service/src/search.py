@@ -1,8 +1,8 @@
 # search.py
-from app import retrievers, chains, utils, virtual_db, embeddings
-from langchain.prompts import PromptTemplate
-#from langchain_openai import ChatOpenAI
-from langchain_community.chat_models import ChatOllama
+from app import config, retrievers, prompts, chains, utils, virtual_db, embeddings
+from langchain_openai import ChatOpenAI
+import os
+#from langchain_community.chat_models import ChatOllama
 
 def main():
     # 1. 저장된 FAISS 벡터스토어 로드
@@ -12,9 +12,10 @@ def main():
     # 2. Retriever 생성: 상위 k개의 문서를 검색
     retriever = retrievers.create_retriever(vectorstore, k=3)
     print("Retriever created")
-    
+
+    prompt = prompts.create_prompt()
     # 3. RAG 체인 생성: 질문-답변 체인 구성
-    rag_chain = chains.create_rag_chain(retriever)
+    rag_chain = chains.create_rag_chain(retriever, prompt)
     print("RAG chain created")
     
     # 4. 예시 질문 실행 (PDF 기반)
@@ -39,11 +40,14 @@ def main():
         ]
     )
     question2 = "현재 예약 가능한 호텔은 어디인가요?"
-    prompt_template = PromptTemplate(
+    prompt_template = prompts.create_prompt(
         template="호텔 정보:\n{context}\n\n질문: {question}\n\n답변:",
         input_variables=["context", "question"]
     )
-    llm = ChatOllama(model="ollama3")
+    # llm = ChatOllama(model="ollama3")
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+    print(f"[API KEY]\n{os.environ['OPENAI_API_KEY']}")
+
     prompt_text = prompt_template.format(context=hotel_context, question=question2)
     answer2 = llm.invoke(prompt_text)
     
