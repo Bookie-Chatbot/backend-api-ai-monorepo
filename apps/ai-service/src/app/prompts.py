@@ -10,47 +10,62 @@ from app.sql_queries import sql_query_map
 
 def create_prompt():
     """
-    분류용 RunnableSequence 체인을 생성해 반환.
-    사용자 질문을 입력받아, 아래 옵션 중 하나(예: available_rooms, pdf_only 등)를 정확히 판단.
+    DB 구조/필드 정보를 프롬프트에 포함, 사용자 질문이 DB로 해결 가능한지 좀 더 세밀하게 판단하도록 유도.
     """
     classification_prompt = PromptTemplate(
         input_variables=["question"],
         template="""
-다음은 사용자 질문입니다:
+다음은 호텔·항공 예약 시스템의 DB 스키마 개요입니다:
 
-"{question}"
+[User] 테이블
+- id, name, email, password, created_at
+- 특정 사용자의 ID(예: user_id=1)가 여기서 할당됩니다.
 
-사용자의 질문을 토대로, 아래 주어진 SQL 쿼리 유형 옵션 중 하나를 고르거나,
-만약 SQL로 처리할 수 없는(문서 내 정보가 필요하거나, SQL 범위를 벗어나는) 경우에는 "pdf_only"라고만 출력하세요.
+[Flight] 테이블
+- id, airline, departure, arrival, departure_time, arrival_time, price, available_seats, last_updated
+- 항공편 정보(출발지/도착지, 출발/도착 시간 등)가 저장됩니다.
 
-아래는 선택 가능한 SQL 옵션과 구체적인 사용 예시입니다:
+[Reservation] 테이블
+- id, airline, departure, arrival, departure_time, arrival_time, price, available_seats, last_updated
+- 사용자 예약 내역을 이 테이블에 저장합니다 (실제론 user_id 등이 필요하지만, 가상 예시임).
 
+[Hotel] 테이블
+- id, name, location, price, available_rooms, last_updated
+- 호텔 관련 정보(가격, 가용 객실 수 등).
+
+기타 테이블(Hotel, QueryLog, AdminSettings 등)은 생략.
+
+[사용 가능한 SQL 옵션]
 1) available_rooms
-   - 예: "예약 가능한 방이 몇 개인가요?", "가장 저렴한 방이 있나요?", "현재 어떤 객실이 비어있나요?"
-   - 가격(Price) 필드가 DB에 존재. 방의 개수나 가격을 확인할 때 유용.
+   - 예: "예약 가능한 방이 몇 개인가요?", "가장 저렴한 방이 있나요?"
+   - Hotel의 price, available_rooms를 조회
 2) upcoming_reservations
-   - 예: "다가오는 예약 일정이 어떻게 되나요?", "조만간 진행될 예약 목록을 보고 싶어요."
-   - 주로 예약 날짜, 예약 상태 등 DB에서 확인할 때 유용.
+   - 예: "다가오는 예약 일정이 어떻게 되나요?"
+   - Reservation, Flight의 departure_time/arrival_time 등
 3) customer_reservation
-   - 예: "특정 고객(홍길동)의 예약 내역을 알려주세요."
-   - 고객별 예약 조회가 필요할 때 사용.
+   - 예: "특정 고객(홍길동)이 예약한 항공편, 도착 시간을 알고 싶어요."
+   - Reservation or Flight에서 user_id 혹은 customer_name을 기준 조회
 4) revenue_summary
-   - 예: "이번 달(또는 올해)의 예약 총 매출은 얼마인가요?", "수익 요약을 알고 싶어요."
-   - 수익(가격 합산)을 계산할 때.
+   - 예: "이번 달 예약 총 매출은 얼마인가요?"
+   - price 필드 합산
 5) reservation_details
-   - 예: "예약 번호 1234에 대한 상세 정보를 알려주세요."
-   - 특정 예약 번호에 대한 자세한 내용(체크인, 체크아웃 등)이 필요할 때.
+   - 예: "예약 번호 1234의 상세 정보를 알려주세요."
+   - Reservation 테이블에서 특정 id 조회
 
 6) pdf_only
-   - 위 SQL 옵션으로 해결이 안 되거나, PDF 문서(이용약관, 예약 취소 정책 등)를 참고해야 하는 경우.
-   - 예: "취소 정책이 어떻게 되나요?", "호텔 이용 규정 알려주세요."
+   - 위 SQL 옵션으로 해결이 안 되거나, DB 테이블에 없는 정보(예: 취소 정책, 호텔 규정)는 PDF 문서를 참고.
 
-주의사항:
-- 사용자가 "가장 저렴한 방" 등 가격 정보를 묻는 경우, DB의 price 필드를 
-- 사용자가 "취소 정책", "규정" 등 DB에 없는 정보를 요청하면 "pdf_only".
-- 반환은 오직 위 6가지 중 하나로만 작성하십시오 (다른 문구나 설명 없이).
+사용자 질문이 DB로 해결 가능하면 적절한 SQL 옵션을 고르세요.
+- 단, 규정·약관·정책 등 DB에 없는 정보면 pdf_only.
 
-User Question: {question}
+규칙:
+- 오직 아래 6가지 중 하나를 답으로 내놓으세요 (기타 설명 없이).
+- user1 같은 특정 사용자가 예약한 항공편 정보를 묻는 경우라면 "customer_reservation" 선택이 유력.
+- "가장 저렴한 방"이면 "available_rooms".
+- "호텔 취소 정책"이면 "pdf_only".
+
+User Question:
+{question}
 """
     )
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
