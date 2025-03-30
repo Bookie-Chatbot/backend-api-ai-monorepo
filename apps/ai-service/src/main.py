@@ -1,7 +1,8 @@
 # 애플리케이션 실행 진입점 (챗봇 실행)
 from app import config, loaders, splitters, embeddings, retrievers, chains, utils, virtual_db
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
+#from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOllama
 
 def main():
     # 1. PDF 파일 로드 (호텔 예약 정보)
@@ -54,8 +55,8 @@ def main():
         template="호텔 정보:\n{context}\n\n질문: {question}\n\n답변:",
         input_variables=["context", "question"]
     )
-    # HuggingFaceHub LLM 사용 (config에서 설정된 모델 사용)
-    llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+   # llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+    llm = ChatOllama(model="gemma2")
 
     prompt_text = prompt_template.format(context=hotel_context, question=question2)
     answer2 = llm.invoke(prompt_text)
