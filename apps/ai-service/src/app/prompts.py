@@ -6,9 +6,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence, RunnablePassthrough
 from app.sql_queries import sql_query_map
 
-###############################################################################
 # 1) SQL vs. PDF 분류 프롬프트 체인 (RunnableSequence 사용, 구체적 지시문 추가)
-###############################################################################
 
 def create_prompt():
     """
@@ -67,33 +65,47 @@ User Question: {question}
     return chain
 
 # 2) SQL 결과 요약 프롬프트 체인 (RunnableSequence 사용)
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableSequence, RunnablePassthrough
+from langchain_openai import ChatOpenAI
 
 def create_sql_summary_prompt():
     """
-    SQL 실행 결과를 입력받아,
-    자연어로 요약한 답변을 생성하는 RunnableSequence 체인을 생성
+    SQL 실행 결과와 사용자 원본 질문(user_question)을 입력받아,
+    자연어로 요약한 답변을 생성하는 RunnableSequence 체인을 생성.
     """
     summary_prompt = PromptTemplate(
-        input_variables=["sql_result"],
+        # user_question도 input_variables에 추가
+        input_variables=["sql_result", "user_question"],
         template="""
-다음은 가상 DB에서 조회된 결과입니다:
+사용자가 다음과 같은 질문을 했습니다:
+"{user_question}"
 
+그리고 아래는 가상 DB에서 조회된 결과입니다:
 {sql_result}
 
-이 정보를 바탕으로, 사용자의 질문에 대한 친절하고 정확한 답변을 작성하세요.
-가격 관련 정보가 포함되어 있다면 가격도 함께 명확히 안내하세요.
+위 정보를 종합하여, 사용자의 질문 의도를 놓치지 말고 친절하고 정확한 답변을 작성하세요.
+
+만약 가격(price) 관련 정보가 있으면, 구체적인 금액을 명확히 안내하세요.
+또한 사용자가 묻고자 하는 최종 목적(예: 가장 저렴한 방, 특정 예약 정보 등)을
+간과하지 말고, 그 목적에 맞게 답변을 보완하세요.
 """
     )
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     output_parser = StrOutputParser()
     
     chain = RunnableSequence(
-        {"sql_result": RunnablePassthrough()}
+        {
+            "sql_result": RunnablePassthrough(),
+            "user_question": RunnablePassthrough()
+        }
         | summary_prompt
         | llm
         | output_parser
     )
     return chain
+
 
 # 3) PDF RAG용 기본 프롬프트 
 
