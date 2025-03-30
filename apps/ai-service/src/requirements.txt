@@ -1,1 +1,10 @@
-# 필요한 패키지 목록
+langchain
+huggingface_hub
+python-dotenv
+pytest
+langchain_community
+langchain-text-splitters
+faiss-cpu
+langchain-huggingface
+langchain-openai
+pypdf
