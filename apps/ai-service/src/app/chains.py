@@ -8,7 +8,7 @@ def create_rag_chain(retriever):
     """
     HuggingFaceHub LLM과 retriever를 이용해 RetrievalQA 체인을 생성
     """
-    llm = OllamaLLM(model="llama3")
+    llm = OllamaLLM(model="gemma2")
 
     chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
     return chain
