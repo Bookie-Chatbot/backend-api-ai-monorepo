@@ -1,0 +1,16 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime
+from database import Base
+from datetime import datetime
+
+class Flight(Base):
+    __tablename__ = 'flights'
+
+    id = Column(Integer, primary_key=True, index=True)
+    airline = Column(String, nullable=False)
+    departure = Column(String, nullable=False)
+    arrival = Column(String, nullable=False)
+    departure_time = Column(DateTime, nullable=False)
+    arrival_time = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+    available_seats = Column(Integer, nullable=False)
+    last_updated = Column(DateTime, default=datetime.utcnow)
