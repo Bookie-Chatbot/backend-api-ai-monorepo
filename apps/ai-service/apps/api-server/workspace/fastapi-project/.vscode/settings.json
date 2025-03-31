@@ -1,0 +1,6 @@
+{
+    "files.exclude": {
+        "env": true
+    },
+    "git.ignoreLimitWarning": true
+}
