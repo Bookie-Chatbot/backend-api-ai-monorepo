@@ -1,7 +1,6 @@
 # Backend-ai
 Backend service dedicated to RAG chatbot functionalities using Langchain and OpenAI API
 
-아래는 해당 프로젝트에 대한 README 예시입니다.
 
 ---
 
