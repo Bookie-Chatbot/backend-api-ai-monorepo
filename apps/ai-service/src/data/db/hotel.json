@@ -1,0 +1,6 @@
+[
+    {"id": 1, "name": "Grand Hotel", "location": "New York", "price": 250.0, "available_rooms": 15, "last_updated": "2025-03-29T12:00:00"},
+    {"id": 2, "name": "Ocean View Resort", "location": "Los Angeles", "price": 300.0, "available_rooms": 10, "last_updated": "2025-03-28T09:30:00"},
+    {"id": 3, "name": "Mountain Inn", "location": "Denver", "price": 180.0, "available_rooms": 20, "last_updated": "2025-03-27T15:45:00"}
+  ]
+  

@@ -1,0 +1,11 @@
+langchain
+huggingface_hub
+python-dotenv
+pytest
+langchain_community
+langchain-text-splitters
+faiss-cpu
+langchain-huggingface
+langchain-openai
+pypdf
+langchain-ollama
