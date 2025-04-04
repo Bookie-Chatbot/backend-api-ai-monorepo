@@ -25,7 +25,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     │   ├── processed
     │   └── raw
     │       └── // 비정형 데이터 추가 
-    ├── experiments 폴더 (emtpy 폴더)
+    ├── evaluations 폴더 (emtpy 폴더)
     ├── main_preprocess.py // 승철님 전처리 메인 플로우 실행 폴더 (empty파일)
     ├── requirements.txt (여기다가 실행 시 필요한 패키지 목록들 추가하기)
     ├── main_service.py
