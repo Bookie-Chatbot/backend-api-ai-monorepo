@@ -35,9 +35,9 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ```
 
-**구조 설명**
+## **구조 설명**
 
-**src/app 폴더**
+### **src/app 폴더**
 
 - preprocess 폴더 (승철님이 채워나갈 파일)
     - 임베딩, 벡터스토어 생성, 청킹, 문서 로드등 전처리 단계를 담당
@@ -70,7 +70,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ---
 
-**src/data 폴더**
+### **src/data 폴더**
 
 - **db 폴더**
     - **역할:** 가상 DB 데이터 파일들이 위치합니다.
@@ -91,7 +91,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ---
 
-**기타 주요 파일**
+### **기타 주요 파일**
 
 - **experiments 폴더  (공용)**
     - **역할:** 다양한 실험적 시도나 프로토타입 코드가 위치하는 디렉토리입니다.
@@ -110,7 +110,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ---
 
-**설치 및 실행 방법**
+## **설치 및 실행 방법**
 
 1.  파이썬 가상환경 생성 및 활성화
 - 가상환경 생성
