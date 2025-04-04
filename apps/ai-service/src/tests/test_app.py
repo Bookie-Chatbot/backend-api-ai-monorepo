@@ -1,7 +1,8 @@
-# 각 모듈에 대한 단위 테스트
+# 각 모듈에 대한 단위 테스트 - Just a sample
 # tests/test_app.py
 import unittest
-from app import loaders, splitters, utils, virtual_db
+from app import loaders, splitters, virtual_db
+from app.service.utils import utils
 
 class TestLoaders(unittest.TestCase):
     def test_load_pdf(self):

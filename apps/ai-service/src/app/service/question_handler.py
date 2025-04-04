@@ -1,10 +1,10 @@
 # app/question_handler.py
 
-from app.prompts import sql_query_map
+from app.service.prompts import sql_query_map
 from app.sql_executor import pseudo_execute_sql
-from app import utils
+from app.service.utils import utils
 from langchain_openai import ChatOpenAI
-from app.prompts import PromptTemplate
+from app.service.prompts import PromptTemplate
 
 def handle_question(question, classification_key, rag_chain, db_data, sql_summary_chain, retriever):
     """

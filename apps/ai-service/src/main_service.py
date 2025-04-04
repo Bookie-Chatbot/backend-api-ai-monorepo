@@ -1,18 +1,18 @@
-# search.py
-
 import os
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-from app import retrievers, chains, utils, embeddings, config
+from app import embeddings, config
+from app.service import chains, retrievers
+from app.service.utils import utils
 from app.virtual_db import load_virtual_db
-from app.prompts import (
+from app.service.prompts import (
     create_prompt, 
     create_sql_summary_prompt,
 )
 from app.sql_queries import sql_query_map
 from app.sql_executor import pseudo_execute_sql
-from app.question_handler import handle_question
+from app.service.question_handler import handle_question
 
 def main():
     # 1. PDF 벡터스토어 로드 (PDF RAG용)
