@@ -6,9 +6,9 @@ class Flight(Base):
     __tablename__ = 'flights'
 
     id = Column(Integer, primary_key=True, index=True)
-    airline = Column(String, nullable=False)
-    departure = Column(String, nullable=False)
-    arrival = Column(String, nullable=False)
+    airline = Column(String(100), nullable=False)
+    departure = Column(String(50), nullable=False)
+    arrival = Column(String(50), nullable=False)
     departure_time = Column(DateTime, nullable=False)
     arrival_time = Column(DateTime, nullable=False)
     price = Column(Float, nullable=False)

@@ -9,7 +9,7 @@ class Reservation(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
     hotel_id = Column(Integer, ForeignKey('hotels.id'), nullable=True)
     flight_id = Column(Integer, ForeignKey('flights.id'), nullable=True)
-    status = Column(String, nullable=False)
+    status = Column(String(50), nullable=False)
     reservation_date = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

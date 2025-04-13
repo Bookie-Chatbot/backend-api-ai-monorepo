@@ -6,7 +6,7 @@ class AdminSettings(Base):
     __tablename__ = 'admin_settings'
 
     id = Column(Integer, primary_key=True, index=True)
-    key = Column(String, unique=True, nullable=False)
-    value = Column(String, nullable=False)
-    description = Column(String, nullable=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(String(255), nullable=False)
+    description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
