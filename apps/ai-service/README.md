@@ -12,8 +12,8 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     │   └── virtual_db.py // 백 연동용 가상 db 중첩 객체
         └── sql_executor.py
         └── sql_queries.py
-    │   └── service // 폴더 - 저 작업 폴더 
-    │   └── preprocess // 폴더 - 승철님 작업 폴더 (emtpy 폴더) 
+    │   └── service // 폴더 - 지인 
+    │   └── preprocess // 폴더 - 승철
     ├── data 
     │   ├── db - 백엔드 연동 전에 테스트 위해 사용할 가상 db (도의님이 업데이트하는 db에 맞춰서 변경하기)
     │   │   ├── admin.json
@@ -25,11 +25,11 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     │   ├── processed
     │   └── raw
     │       └── // 비정형 데이터 추가 
-    ├── evaluations 폴더 (emtpy 폴더)
-    ├── main_preprocess.py // 승철님 전처리 메인 플로우 실행 폴더 (empty파일)
+    ├── evaluations 폴더 
+    ├── main_preprocess.py // 전처리 메인 플로우 실행 폴더
     ├── requirements.txt (여기다가 실행 시 필요한 패키지 목록들 추가하기)
     ├── main_service.py
-    └── tests 폴더 (emtpy 폴더)
+    └── tests 폴더
         └── 
 -- .env // 깃에 올리지 않을 예정 - 각자 로컬에서 생성해서 토큰 변수 저장하기
 
@@ -39,9 +39,9 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ### **src/app 폴더**
 
-- preprocess 폴더 (승철님이 채워나갈 파일)
+- preprocess 폴더
     - 임베딩, 벡터스토어 생성, 청킹, 문서 로드등 전처리 단계를 담당
-- service 폴더 (제가 작업할 파일)
+- service 폴더
     - 체인, 프롬프트, 리트리벌 등의 검색 영역
 - **init.py(공용)**
     - **역할:** `app` 패키지를 초기화합니다.
@@ -95,11 +95,11 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 - **experiments 폴더  (공용)**
     - **역할:** 다양한 실험적 시도나 프로토타입 코드가 위치하는 디렉토리입니다.
-- **main_preprocess.py (승철님)**
+- **main_preprocess.py**
     - **역할:** PDF 문서를 로드, 텍스트 청크 분할, 임베딩 생성 및  벡터스토어 저장 과정을 실행하는 전처리 파이프라인을 구현합니다. - 전처리 메인 플로우 실행 파일
 - **requirements.txt  (공용)**
     - **역할:** 프로젝트에 필요한 Python 패키지들의 목록을 제공합니다.
-- **main_service.py (저)**
+- **main_service.py**
     - **역할:** 전처리된 벡터스토어를 로드하고, retriever와 체인들을 생성하여 사용자 질문을 처리하고 최종 답변을 출력하는 메인 실행 스크립트입니다. - 검색 메인 플로우 실행 파일
 - **tests  (공용)**
     - **역할:** 각 모듈에 대한 단위 테스트를 포함합니다.
@@ -155,7 +155,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
         - langsmith
         - openai
         
-        **그냥 샘플로 넣어놓은 것 (승철님이 결정하신걸로 마구마구 삭제 바꾸기 가능)**
+        **변동 가능**
         
         - huggingface_hub (임시로 허깅페이시 임베딩 지정해서 추가함)
         - pypdf
