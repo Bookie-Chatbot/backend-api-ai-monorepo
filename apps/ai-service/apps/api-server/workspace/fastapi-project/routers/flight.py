@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from amadeus import Client, ResponseError
+import os
+from amadeus_client import amadeus
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import flight as models
@@ -26,19 +29,7 @@ def create_flight(flight: schemas.FlightCreate, db: Session = Depends(get_db)):
     db.refresh(db_flight)
     return db_flight
 
-# Read All Flights
-@router.get("/", response_model=List[schemas.FlightResponse])
-def read_flights(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    flights = db.query(models.Flight).offset(skip).limit(limit).all()
-    return flights
 
-# Read Single Flight
-@router.get("/{flight_id}", response_model=schemas.FlightResponse)
-def read_flight(flight_id: int, db: Session = Depends(get_db)):
-    db_flight = db.query(models.Flight).filter(models.Flight.id == flight_id).first()
-    if db_flight is None:
-        raise HTTPException(status_code=404, detail="Flight not found")
-    return db_flight
 
 # Update Flight
 @router.put("/{flight_id}", response_model=schemas.FlightResponse)
@@ -64,3 +55,23 @@ def delete_flight(flight_id: int, db: Session = Depends(get_db)):
     db.delete(db_flight)
     db.commit()
     return {"message": "Flight deleted successfully"}
+
+# Search Flight (amadeus API)
+# Amadeus API: Flight Offers Search
+@router.get("/search")
+def search_flights(
+    origin: str = Query(...),
+    destination: str = Query(...),
+    departure_date: str = Query(...),
+    adults: int = Query(1)
+):
+    try:
+        response = amadeus.shopping.flight_offers_search.get(
+            originLocationCode=origin,
+            destinationLocationCode=destination,
+            departureDate=departure_date,
+            adults=adults
+        )
+        return response.data
+    except ResponseError as error:
+        raise HTTPException(status_code=500, detail=str(error))
