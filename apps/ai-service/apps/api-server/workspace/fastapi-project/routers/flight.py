@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from models import flight as models
 from schemas import flight as schemas
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(
     prefix="/flights",
@@ -63,14 +63,34 @@ def search_flights(
     origin: str = Query(...),
     destination: str = Query(...),
     departure_date: str = Query(...),
-    adults: int = Query(1)
+    return_date: Optional[str] = Query(None),
+    adults: int = Query(1),
+    children: Optional[int] = Query(None),
+    infants: Optional[int] = Query(None),
+    travel_class: Optional[str] = Query(None),
+    included_airline_codes: Optional[str] = Query(None),
+    excluded_airline_codes: Optional[str] = Query(None),
+    non_stop: Optional[bool] = Query(None),
+    currency_code: Optional[str] = Query(None),
+    max_price: Optional[int] = Query(None),
+    max: Optional[int] = Query(None)
 ):
     try:
         response = amadeus.shopping.flight_offers_search.get(
             originLocationCode=origin,
             destinationLocationCode=destination,
             departureDate=departure_date,
-            adults=adults
+            returnDate=return_date,
+            adults=adults,
+            children=children,
+            infants=infants,
+            travelClass=travel_class,
+            includedAirlineCodes=included_airline_codes,
+            excludedAirlineCodes=excluded_airline_codes,
+            nonStop=non_stop,
+            currencyCode=currency_code,
+            maxPrice=max_price,
+            max=max
         )
         return response.data
     except ResponseError as error:
