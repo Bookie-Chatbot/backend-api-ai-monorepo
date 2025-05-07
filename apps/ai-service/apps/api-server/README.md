@@ -27,7 +27,7 @@ source env/bin/activate  # Windows는 .\env\Scripts\activate
 
 ### 2. 필요한 패키지 설치
 ```bash
-pip install fastapi sqlalchemy pydantic alembic uvicorn pymysql
+pip install -r requirements.txt
 ```
 
 ### 3. FastAPI 서버 실행하기
@@ -74,3 +74,6 @@ http://127.0.0.1:8000/docs
 - FastAPI의 자동 문서화 기능 사용
 - Swagger UI에서 모든 API 확인 가능 (`http://127.0.0.1:8000/docs`)
 
+## ✈️ Amadeus API 연동
+- `GET /flights/search` 엔드포인트를 통해 실제 항공권 검색 수행
+- Amadeus SDK 기반으로 구성되어 있으며 쿼리 파라미터 입력을 통해 결과 반환
