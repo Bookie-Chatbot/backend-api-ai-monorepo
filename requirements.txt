@@ -1,0 +1,15 @@
+fastapi
+uvicorn==0.22.0
+sqlalchemy==2.0.40
+pydantic
+python-dotenv
+amadeus==12.0.0
+langchain
+huggingface-hub
+faiss-cpu
+langchain-huggingface
+langchain-openai
+pypdf
+numpy==1.26.2
+langsmith
+openai
