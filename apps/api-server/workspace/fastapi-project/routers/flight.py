@@ -67,31 +67,42 @@ def search_flights(
     adults: int = Query(1),
     children: Optional[int] = Query(None),
     infants: Optional[int] = Query(None),
-    travel_class: Optional[str] = Query(None),
-    included_airline_codes: Optional[str] = Query(None),
+    travel_class: str = Query(None, enum=["ECONOMY", "PREMIUM_ECONOMY", "BUSINESS", "FIRST"]),
+    included_airline_codes: Optional[str] = Query(None),        # excluded 이랑 같이 사용 못함
     excluded_airline_codes: Optional[str] = Query(None),
     non_stop: Optional[bool] = Query(None),
+    max: Optional[int] = Query(None),
     currency_code: Optional[str] = Query(None),
-    max_price: Optional[int] = Query(None),
-    max: Optional[int] = Query(None)
 ):
     try:
-        response = amadeus.shopping.flight_offers_search.get(
-            originLocationCode=origin,
-            destinationLocationCode=destination,
-            departureDate=departure_date,
-            returnDate=return_date,
-            adults=adults,
-            children=children,
-            infants=infants,
-            travelClass=travel_class,
-            includedAirlineCodes=included_airline_codes,
-            excludedAirlineCodes=excluded_airline_codes,
-            nonStop=non_stop,
-            currencyCode=currency_code,
-            maxPrice=max_price,
-            max=max
-        )
+        params = {
+            "originLocationCode": origin,
+            "destinationLocationCode": destination,
+            "departureDate": departure_date,
+            "adults": adults,
+            
+        }
+        
+        if return_date:
+            params["returnDate"] = return_date
+        if children is not None:
+            params["children"] = children
+        if infants is not None:
+            params["infants"] = infants
+        if travel_class:
+            params["travelClass"] = travel_class
+        if included_airline_codes:
+            params["includedAirlineCodes"] = included_airline_codes
+        if excluded_airline_codes:
+            params["excludedAirlineCodes"] = excluded_airline_codes
+        if non_stop is not None:
+            params["nonStop"] = "true" if non_stop else "false"
+        if max is not None:
+            params["max"] = max
+        if currency_code:
+            params["currencyCode"] = currency_code
+
+        response = amadeus.shopping.flight_offers_search.get(**params)
         return response.data
     except ResponseError as error:
         raise HTTPException(status_code=500, detail=str(error))

@@ -4,7 +4,7 @@
 - **주제:** 챗봇을 활용한 호텔 및 항공 서비스 예약 관리 시스템
 - **진행 기간:** 2025년 3월 ~ 6월
 - **팀 구성:** 총 4명 (백엔드 담당: 김도의)
-- **사용 기술:** FastAPI, SQLAlchemy, Pydantic, MySQL, Uvicorn
+- **사용 기술:** FastAPI, SQLAlchemy, Pydantic, MySQL, Uvicorn, amadeus
 
 
 ## ✅ 프로젝트 구조
@@ -27,7 +27,7 @@ source env/bin/activate  # Windows는 .\env\Scripts\activate
 
 ### 2. 필요한 패키지 설치
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt #fastapi-project 디렉토리 안에서 실행
 ```
 
 ### 3. FastAPI 서버 실행하기
