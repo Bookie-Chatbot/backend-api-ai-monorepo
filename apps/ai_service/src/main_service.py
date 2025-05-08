@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+import os
+import sys
+
+# ─── 1) 루트 경로 세팅 ───────────────────────────────
+# 이 파일이 있는 디렉터리: .../apps/ai_service/src
+ROOT = os.path.dirname(os.path.abspath(__file__))
+
+#  a) 앱 내부 src/ 를 파이썬 모듈 최상위로 추가 → 'import app.…' 가능
+sys.path.insert(0, ROOT)
+
+#  b) monorepo/packages/ 를 추가 → 'import core_backend.…' 가능
+sys.path.insert(0, os.path.abspath(os.path.join(ROOT, "../../../packages")))
+
+# ─── 2) 나머지 임포트 ───────────────────────────────
+import json
+from dotenv import load_dotenv
+from typing import Dict, Any
+
+from packages.core_backend.amadeus_client import get_client
+from app.service.answer_prompt import build_answer
+
+# intent 라우터
+from app.service.intent_router import classify, regex_fallback
+
+
+
+# 여러분이 만든 파라미터 변환기
+from app.service.service_utils.amadeus_params import to_amadeus_params
+
+
+# ─── 3) 초기화 ───────────────────────────────────────
+load_dotenv()
+AMA = get_client()
+
+
+
+def search_price(slots: Dict[str, Any]) -> Dict[str, Any]:
+   def search_price(slots: Dict[str, Any]) -> Dict[str, Any]:
+    # ① LLM → Amadeus 변환
+    params = to_amadeus_params(slots)
+
+    # 👉 디버그 로그
+    print("\n[DEBUG] Amadeus params ▶", json.dumps(params, indent=2), "\n")
+
+    # ② 실제 호출
+    try:
+        rsp = AMA.shopping.flight_offers_search.get(**params, max=3)
+    except Exception as e:
+        # 2-단계 에러 정보까지 출력
+        if hasattr(e, "response") and hasattr(e.response, "body"):
+            print("[Amadeus-RAW-Error] ", e.response.body.decode())
+        raise                 # 그대로 다시 예외를 올려서 stack-trace 유지
+
+    if not rsp.data:
+        return {"error": "No flight offers"}
+    cheapest = min(rsp.data, key=lambda x: float(x["price"]["grandTotal"]))
+    it = cheapest["itineraries"][0]["segments"][0]
+    return {
+        "route": f'{it["departure"]["iataCode"]}-{it["arrival"]["iataCode"]}',
+        "carrier": it["carrierCode"],
+        "departure": it["departure"]["at"],
+        "arrival": it["arrival"]["at"],
+        "price": float(cheapest["price"]["grandTotal"]),
+        "currency": cheapest["price"]["currency"],
+        "offer_id": cheapest["id"],
+    }
+    return summary
+
+def reply_json(question: str) -> Dict[str, Any]:
+    # ① intent/slots 추출
+    fc = classify(question)
+    if not fc["intent"]:
+        fc = regex_fallback(question)
+
+    if fc["intent"] != "price_search":
+        return {"intent": "unhandled", "message": "지원하지 않는 요청입니다."}
+
+    # ② Amadeus 파라미터 변환 → 최저가 조회
+    try:
+        result = search_price(fc["arguments"])
+    except Exception as e:
+        return {"intent": "price_search", "error": str(e)}
+
+    # ③ GPT에게 “대화용 답변” 작성 요청
+    answer = build_answer(question, result)
+
+    return {
+        "intent":   "price_search",
+        "arguments": fc["arguments"],
+        "result":    result,
+        "answer":    answer,   # 프런트는 이 문자열만 표시해도 OK
+    }
+
+def main():
+    print("✈️  AI Flight Assistant ― CTRL-C 이면 종료\n")
+    print(get_client())
+    while True:
+        q = input("🗨  질문: ").strip()
+        if not q:
+            break
+        print(json.dumps(reply_json(q), indent=2, ensure_ascii=False), "\n")
+
+if __name__ == "__main__":
+    main()

@@ -1,9 +1,9 @@
-fastapi 
-sqlalchemy 
-pydantic 
-alembic 
-uvicorn 
-pymysql 
+fastapi
+sqlalchemy
+pydantic
+alembic
+uvicorn
+pymysql
 python-dotenv
 amadeus
 
@@ -16,3 +16,4 @@ numpy==1.26.2
 langsmith
 openai
 langgraph
+python-dateutil
