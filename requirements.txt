@@ -1,15 +1,18 @@
-fastapi
-uvicorn==0.22.0
-sqlalchemy==2.0.40
-pydantic
+fastapi 
+sqlalchemy 
+pydantic 
+alembic 
+uvicorn 
+pymysql 
 python-dotenv
-amadeus==12.0.0
+amadeus
+
+# --- AI/RAG 쪽 ---
 langchain
-huggingface-hub
-faiss-cpu
-langchain-huggingface
+huggingface_hub
 langchain-openai
 pypdf
 numpy==1.26.2
 langsmith
 openai
+langgraph

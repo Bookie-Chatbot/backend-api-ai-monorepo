@@ -1,28 +1,10 @@
-from fastapi import FastAPI
-from database import engine, Base
-from models import user, hotel, flight, reservation, admin_settings
-from routers import user_router, hotel_router, flight_router, reservation_router
-import logging
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-app = FastAPI()
+SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root@localhost/fastapi_project"
 
-@app.on_event("startup")
-def on_startup():
-    try:
-        Base.metadata.create_all(bind=engine)
-        logging.info("✔︎ DB 초기화 성공")
-    except Exception as e:
-        logging.error(f"❌ DB 초기화 실패 (계속 진행): {e}")
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 데이터베이스 초기화
-# Base.metadata.create_all(bind=engine)
-
-# 라우터 등록
-app.include_router(user_router)
-app.include_router(hotel_router)
-app.include_router(flight_router)
-app.include_router(reservation_router)
-
-@app.get("/")
-def read_root():
-    return {"message": "FastAPI 프로젝트 성공!"}
+Base = declarative_base()

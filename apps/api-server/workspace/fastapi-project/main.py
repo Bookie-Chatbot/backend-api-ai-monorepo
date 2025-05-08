@@ -2,11 +2,20 @@ from fastapi import FastAPI
 from database import engine, Base
 from models import user, hotel, flight, reservation, admin_settings
 from routers import user_router, hotel_router, flight_router, reservation_router
+import logging
 
 app = FastAPI()
 
+@app.on_event("startup")
+def on_startup():
+    try:
+        Base.metadata.create_all(bind=engine)
+        logging.info("✔︎ DB 초기화 성공")
+    except Exception as e:
+        logging.error(f"❌ DB 초기화 실패 (계속 진행): {e}")
+
 # 데이터베이스 초기화
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 # 라우터 등록
 app.include_router(user_router)
