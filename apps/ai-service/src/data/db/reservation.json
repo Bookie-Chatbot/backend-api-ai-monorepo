@@ -1,0 +1,6 @@
+[
+    {"id": 1, "airline": "Delta Air Lines", "departure": "New York", "arrival": "Los Angeles", "departure_time": "2025-04-01T08:00:00", "arrival_time": "2025-04-01T11:00:00", "price": 150.0, "available_seats": 50, "last_updated": "2025-03-29T08:00:00"},
+    {"id": 2, "airline": "United Airlines", "departure": "Chicago", "arrival": "San Francisco", "departure_time": "2025-04-02T09:30:00", "arrival_time": "2025-04-02T12:30:00", "price": 200.0, "available_seats": 40, "last_updated": "2025-03-29T10:00:00"},
+    {"id": 3, "airline": "Southwest Airlines", "departure": "Houston", "arrival": "Las Vegas", "departure_time": "2025-04-03T07:00:00", "arrival_time": "2025-04-03T09:00:00", "price": 120.0, "available_seats": 60, "last_updated": "2025-03-29T11:00:00"}
+  ]
+  
