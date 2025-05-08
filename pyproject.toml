@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "backend-api-ai-monorepo"
+version = "0.1.0"
+description = "Monorepo for API server and AI service"
+
+[tool.poetry.workspace]
+members = [
+  "apps/api-server",
+  "apps/ai-service",
+  "packages/core-backend"
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

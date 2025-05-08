@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "core-backend"
+version = "0.1.0"
+description = "Shared backend utilities: Amadeus, MCP client, templates"
+packages = [
+  { include = "core_backend" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+amadeus = "^12.0.0"
+httpx = "^0.24.0"
+redis = "^4.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
