@@ -1,83 +1,53 @@
-import os
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
+#!/usr/bin/env python
+# apps/ai-service/src/main_service.py
 
-from app import embeddings, config
-from app.service import chains, retrievers
-from app.service.utils import utils
+import os
+from dotenv import load_dotenv
+from app import config
+from app.service.prompts import create_prompt, create_sql_summary_prompt
 from app.virtual_db import load_virtual_db
-from app.service.prompts import (
-    create_prompt, 
-    create_sql_summary_prompt,
-)
 from app.sql_queries import sql_query_map
 from app.sql_executor import pseudo_execute_sql
-from app.service.question_handler import handle_question
 
 def main():
-    # 1. PDF 벡터스토어 로드 (PDF RAG용)
-    vectorstore = embeddings.load_vectorstore()
-    print("Loaded persisted vectorstore.")
-    
-    # 2. Retriever 생성 (PDF 검색용)
-    retriever = retrievers.create_retriever(vectorstore, k=3)
-    print("Retriever created")
+    # 1) 환경변수 로드
+    load_dotenv()  
+    print("⚙️  환경변수 로드 완료")
 
-    # 3. PDF 기반 RAG 체인 생성
-    rag_chain = chains.create_rag_chain(retriever)
-    print("RAG chain created")
-
-    # 4. 분류 체인과 SQL 결과 요약 체인 생성
+    # 2) 분류 체인과 SQL 요약 체인 준비
     classification_chain = create_prompt()
-    sql_summary_chain = create_sql_summary_prompt()
+    sql_summary_chain   = create_sql_summary_prompt()
+    print("🔗 체인 초기화 완료 (분류 + SQL 요약)")
 
-    # 5. 가상 DB 로드
+    # 3) 가상 DB 로드
     db_data = load_virtual_db()
-    print("Virtual DB loaded.")
-    
-    ############################################################################
-    # [질문 1] 예시
-    ############################################################################
-    '''
-    question1 = "가장 저렴한 방이 있는지 확인하고 싶어요."
-    print(f"\n[User Question 1] {question1}")
+    print("📂 가상 DB 로드 완료")
 
-    result = classification_chain.invoke({"question": question1})
-    classification_key_1 = result.strip()
-    print(f"[Classification Key 1] {classification_key_1}")
+    # 4) 사용자 입력 루프
+    print("\n💬 질문을 입력하세요. (종료하려면 빈 줄 Enter)\n")
+    while True:
+        question = input("▶ ")
+        if not question.strip():
+            print("👋 종료합니다.")
+            break
 
-    final_answer_1 = handle_question(question1, classification_key_1, rag_chain, db_data, sql_summary_chain, retriever)
-    print("\n=== Final Answer 1 ===")
-    print(final_answer_1)
-    '''
+        # 5) 분류(chain.invoke) → SQL 키 결정
+        classification = classification_chain.invoke({"question": question}).strip()
+        print(f"[분류 결과] {classification}")
 
-    ############################################################################
-    # [질문 2] 예시
-    ############################################################################
-    '''
-    question2 = "호텔 예약 취소 정책은 어떻게 되나요?"
-    print(f"\n[User Question 2] {question2}")
+        # 6) SQL 조회 & 요약
+        if classification in sql_query_map:
+            query_key = sql_query_map[classification]
+            raw_rows  = pseudo_execute_sql(query_key, db_data)
+            print(f"[SQL 조회] {query_key} → {raw_rows}")
 
-    result = classification_chain.invoke({"question": question2})
-    classification_key_2 = result.strip()
-    print(f"[Classification Key 2] {classification_key_2}")
-
-    final_answer_2 = handle_question(question2, classification_key_2, rag_chain, db_data, sql_summary_chain, retriever)
-    print("\n=== Final Answer 2 ===")
-    print(final_answer_2)'
-    '''
-
-    ############################################################################
-    # [질문 3] 예시
-    ############################################################################
-    question3 = "저는 user1인데, 제가 예약한 비행기의 도착 시간을 알고 싶어요."
-    print(f"\n[User Question 3] {question3}")
-    result = classification_chain.invoke({"question": question3})
-    classification_key_3 = result.strip()
-    print(f"[Classification Key 3] {classification_key_3}")
-    final_answer_3 = handle_question(question3, classification_key_3, rag_chain, db_data, sql_summary_chain, retriever)
-    print("\n=== Final Answer 3 ===")
-    print(final_answer_3)
+            summary = sql_summary_chain.invoke({
+                "sql_result":    str(raw_rows),
+                "user_question": question
+            })
+            print(f"\n📝 최종 답변:\n{summary}\n")
+        else:
+            print("⚠️ 해당 분류는 SQL 처리 대상이 아닙니다. 다른 로직을 구현하세요.\n")
 
 if __name__ == "__main__":
     main()
