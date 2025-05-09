@@ -34,38 +34,41 @@ load_dotenv()
 AMA = get_client()
 
 
-
 def search_price(slots: Dict[str, Any]) -> Dict[str, Any]:
-   def search_price(slots: Dict[str, Any]) -> Dict[str, Any]:
-    # ① LLM → Amadeus 변환
     params = to_amadeus_params(slots)
+    print("\n[DEBUG] ▶ 요청 파라미터:", json.dumps(params, indent=2, ensure_ascii=False))
 
-    # 👉 디버그 로그
-    print("\n[DEBUG] Amadeus params ▶", json.dumps(params, indent=2), "\n")
-
-    # ② 실제 호출
     try:
         rsp = AMA.shopping.flight_offers_search.get(**params, max=3)
     except Exception as e:
-        # 2-단계 에러 정보까지 출력
-        if hasattr(e, "response") and hasattr(e.response, "body"):
-            print("[Amadeus-RAW-Error] ", e.response.body.decode())
-        raise                 # 그대로 다시 예외를 올려서 stack-trace 유지
+        print("[DEBUG-ERROR] Amadeus 호출 실패:", e)
+        if hasattr(e, "response") and e.response:
+            body = e.response.body
+            print("[DEBUG-ERROR-BODY]", body.decode() if isinstance(body, (bytes, bytearray)) else body)
+        raise
+
+    # ── Amadeus SDK 8.x~ : HTTP 메타는 1-depth ───────────────────
+    print(f"[DEBUG] HTTP 상태: {rsp.status_code}")
+    print(f"[DEBUG] Host: {rsp.request.host}")
+    print(f"[DEBUG] X-Request-Id: {rsp.headers.get('X-Request-Id')}")
+    print(f"[DEBUG] Raw body 길이: {len(rsp.body)} bytes")
+    print(f"[DEBUG] 데이터 개수: {len(rsp.data or [])}")
 
     if not rsp.data:
         return {"error": "No flight offers"}
+
     cheapest = min(rsp.data, key=lambda x: float(x["price"]["grandTotal"]))
-    it = cheapest["itineraries"][0]["segments"][0]
+    seg = cheapest["itineraries"][0]["segments"][0]
     return {
-        "route": f'{it["departure"]["iataCode"]}-{it["arrival"]["iataCode"]}',
-        "carrier": it["carrierCode"],
-        "departure": it["departure"]["at"],
-        "arrival": it["arrival"]["at"],
-        "price": float(cheapest["price"]["grandTotal"]),
-        "currency": cheapest["price"]["currency"],
-        "offer_id": cheapest["id"],
+        "route":     f"{seg['departure']['iataCode']}-{seg['arrival']['iataCode']}",
+        "carrier":   seg["carrierCode"],
+        "departure": seg["departure"]["at"],
+        "arrival":   seg["arrival"]["at"],
+        "price":     float(cheapest["price"]["grandTotal"]),
+        "currency":  cheapest["price"]["currency"],
+        "offer_id":  cheapest["id"],
     }
-    return summary
+
 
 def reply_json(question: str) -> Dict[str, Any]:
     # ① intent/slots 추출

@@ -1,15 +1,25 @@
 # packages/core_backend/amadeus_client.py
+from amadeus import Client, ResponseError
 import os
-from functools import lru_cache
-from amadeus import Client
+from dotenv import load_dotenv
 
-@lru_cache
-def get_client() -> Client:            # 싱글턴
+load_dotenv()                                     # ① .env → env vars
+
+def get_client() -> Client:
+    """
+    Always returns a live Amadeus Client or raises a helpful exception.
+    """
+    cid  = os.getenv("AMADEUS_CLIENT_ID")
+    csec = os.getenv("AMADEUS_CLIENT_SECRET")
+
+    if not cid or not csec:                       # ② helpful error
+        raise RuntimeError(
+            "❌ AMADEUS_CLIENT_ID / _SECRET not set – check your .env"
+        )
+
     return Client(
-        client_id  = os.getenv("AMADEUS_CLIENT_ID"),
-        client_secret = os.getenv("AMADEUS_CLIENT_SECRET")
+        client_id     = cid,
+        client_secret = csec,
+        log_level     = "debug",                  # extra transparency
+        timeout       = 10
     )
-
-
-# @lru_cache 로 AI 노드·API 서버가 공유하는 싱글턴 세션을 제공
-# -> from core_backend.amadeus_client import get_client 로 두 앱에서 동일 코드 재사용
