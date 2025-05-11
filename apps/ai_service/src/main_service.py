@@ -50,9 +50,8 @@ def search_price(slots: Dict[str, Any]) -> Dict[str, Any]:
     # ── Amadeus SDK 8.x~ : HTTP 메타는 1-depth ───────────────────
     print(f"[DEBUG] HTTP 상태: {rsp.status_code}")
     print(f"[DEBUG] Host: {rsp.request.host}")
-    print(f"[DEBUG] X-Request-Id: {rsp.headers.get('X-Request-Id')}")
-    print(f"[DEBUG] Raw body 길이: {len(rsp.body)} bytes")
-    print(f"[DEBUG] 데이터 개수: {len(rsp.data or [])}")
+    print(f"[DEBUG] Raw body 길이: {len(rsp.body)}")
+
 
     if not rsp.data:
         return {"error": "No flight offers"}
