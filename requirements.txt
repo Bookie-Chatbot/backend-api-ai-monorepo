@@ -8,6 +8,7 @@ python-dotenv
 amadeus
 
 # --- AI/RAG 쪽 ---
+requests 
 langchain
 huggingface_hub
 langchain-openai

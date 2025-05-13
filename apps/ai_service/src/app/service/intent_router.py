@@ -9,19 +9,18 @@ TODAY = dt.date.today().isoformat()
 
 # 1) LLM이 반드시 채워야 할 키 2개만 정의
 response_schemas = [
-    ResponseSchema(
-        name="intent",
-        description="항상 'price_search' 로 고정"
-    ),
-    ResponseSchema(
-        name="arguments",
-        description="항공권 검색 파라미터(JSON 객체)"
-    )
+  ResponseSchema(name="intent",
+                 description="'price_search' 또는 'dest_reco' 중 하나"),
+  ResponseSchema(name="arguments",
+                 description="intent가 price_search일 때는, 항공권 검색 파라미터(JSON) /  intent가 dest_reco일 때는 추천 키워드")
 ]
 
 parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
 # 2) 프롬프트
+
+# intent → price_search | dest_reco
+
 PROMPT_TMPL = (
     "너는 항공권 챗봇의 '의도·슬롯 추출기'다.\n"
     "규칙\n"
@@ -30,7 +29,7 @@ PROMPT_TMPL = (
     "3. 예산 ‘…만원 이하/이상’ → maxPrice(정수, KRW)\n"
     "4. ‘논스톱·직항·non_stop’ → nonStop(Boolean)\n"
     "5. 날짜·기간은 ISO‑8601 (YYYY‑MM‑DD)\n\n"
-    "### 예시\n"
+    "### 예시 (price_search)\n"
     "1) \"ICN-LHR 2025-11-05 편도, non_stop true, 200만 원 이하\"\n"
     "   ➜ {{\"intent\":\"price_search\",\"arguments\":{{\"originLocationCode\":\"ICN\",\"destinationLocationCode\":\"LHR\",\"departureDate\":\"2025-11-05\",\"maxPrice\":2000000,\"nonStop\":true}}}}\n"
     "2) \"CN-LHR 2025-11-05 편도, non_stop true, 200만 원 이하\"\n"
@@ -67,14 +66,28 @@ PROMPT_TMPL = (
     "   ➜ {{\"intent\":\"price_search\",\"arguments\":{{"
     "\"originLocationCode\":\"ICN\",\"destinationLocationCode\":\"SIN\","
     "\"departureDate\":\"${{TODAY}}\",\"maxPrice\":200000}}}}\n\n"
+    "### 예시 (dest_reco)\n"
+    "16) \"유럽에서 맛집 많은 도시 어디 갈까?\"\n"
+    "   ➜ {{ \"intent\":\"dest_reco\", \"arguments\":{{\"region\":\"europe\",\"tag\":\"foodie\"}} }}\n"
+    "17) \"5월에 1인 50만원 이하로 해변 추천해줘\"\n"
+    "   ➜ {{ \"intent\":\"dest_reco\", \"arguments\":{{\"month\":\"2025-05\",\"budget\":500000,\"tag\":\"beachlife\"}} }}\n"
+    "18) \"가족 여행으로 갈 만한 도시는 어디가 좋을까?\"\n"
+    "   ➜ {{ \"intent\":\"dest_reco\", \"arguments\":{{\"tag\":\"familytravel\"}} }}\n"
+    "19) \"혼자 가기 좋은 도시 추천해줘\"\n"
+    "   ➜ {{ \"intent\":\"dest_reco\", \"arguments\":{{\"tag\":\"solotravel\"}} }}\n"
+    "20) \"휴식할 수 있는 럭셔리 여행지 알려줘\"\n"
+    "   ➜ {{ \"intent\":\"dest_reco\", \"arguments\":{{\"tag\":\"luxurytravel\",\"mood\":\"relaxation\"}} }}\n"
     "{format_instructions}\n\n질문: {question}"
+
 )
 
 
 llm = ChatOpenAI(
     model_name="gpt-4o-mini",
     temperature=0,
-    response_format={"type": "json_object"}   # JSON mode
+    model_kwargs={       # 경고 제거
+        "response_format":{"type": "json_object"}
+    }
 )
 
 def classify(question: str) -> Dict[str, Any]:
