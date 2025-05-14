@@ -36,4 +36,5 @@ HASHTAGS: List[TagInfo] = [
     TagInfo("vacationmode",    "mood"),
     TagInfo("adventureseeker", "mood"),
     TagInfo("travelphotography", "category"),
+    TagInfo("instagrammable",   "mood"),
 ]
