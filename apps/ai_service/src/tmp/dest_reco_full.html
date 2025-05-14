@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Destination Recommendations</title>
+  <style>
+    body { font-family: sans-serif; }
+    .cards { display: flex; flex-wrap: wrap; gap: 12px; }
+    section {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 12px;
+      width: 300px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+    }
+    section h3 { margin-top: 0; }
+    .photos { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .photos img {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .description { margin: 8px 0; color: #333; }
+    .hashtags { color: #777; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h2>Query: {{ query }}</h2>
+  <div class="cards">
+    {% for card in cards %}
+      <section>
+        <h3>{{ card.city }} <small>(score {{ "%.2f"|format(card.score) }})</small></h3>
+        {% if card.photos %}
+          <div class="photos">
+            {% for url in card.photos %}
+              <img src="{{ url }}" alt="{{ card.city }} photo">
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if card.description %}
+          <div class="description">{{ card.description }}</div>
+        {% endif %}
+        {% if card.hashtags %}
+          <div class="hashtags">
+            {{ card.hashtags | join(' ') }}
+          </div>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+</body>
+</html>
