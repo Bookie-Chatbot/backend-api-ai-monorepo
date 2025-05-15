@@ -9,16 +9,32 @@ import random, asyncio
 from typing import List, Dict
 from langchain_openai import ChatOpenAI
 
-# ── WEU allow-list ─────────────────────────────────────────
-WEST_EU_CITIES_EN: List[str] = [
-    "paris","london","barcelona","berlin","rome","amsterdam",
-    "lisbon","prague","vienna","munich","hamburg","frankfurt",
-    "cologne","lyon","marseille","nice","toulouse","brussels",
-    "antwerp","ghent","zurich","geneva","basel","porto","madrid",
-    "valencia","seville","milan","naples","florence","copenhagen",
-    "dublin","edinburgh","manchester",
+# 서유럽 + 동남·동아시아를 통합한 도시 리스트
+CITIES_EN: List[str] = [
+    # ── 서유럽
+    "paris", "london", "barcelona", "berlin", "rome", "amsterdam",
+    "lisbon", "prague", "vienna", "munich", "hamburg", "frankfurt",
+    "cologne", "lyon", "marseille", "nice", "toulouse", "brussels",
+    "antwerp", "ghent", "zurich", "geneva", "basel", "porto", "madrid",
+    "valencia", "seville", "milan", "naples", "florence", "copenhagen",
+    "dublin", "edinburgh", "manchester",
+
+    # ── 동남아시아 & 인도차이나
+    "bangkok", "singapore", "kuala_lumpur", "jakarta", "bali",
+    "hanoi", "ho_chi_minh_city", "phuket", "chiang_mai",
+    "siem_reap", "phnom_penh", "vientiane", "luang_prabang",
+    "yangon",
+
+    # ── 동아시아
+    "seoul", "busan", "jeju", "tokyo", "osaka", "kyoto",
+    "taipei", "hong_kong", "shanghai", "beijing",
+    "guangzhou", "shenzhen",
+
+    # ── 남아시아 & 몽골
+    "new_delhi", "mumbai", "kathmandu", "ulaanbaatar",
 ]
-_WEU_PRETTY = ", ".join(c.title() for c in WEST_EU_CITIES_EN)
+
+_WEU_PRETTY = ", ".join(c.title() for c in CITIES_EN)
 
 COMMON_SUFFIX = f"""
 ### HARD RULES
@@ -26,21 +42,39 @@ COMMON_SUFFIX = f"""
 2. 허구 정보·근거 없는 축약형 지명 금지.
 3. 출력은 아래 JSON 스키마 **하나만**(설명·마크다운 없이):
 
-{{
-  "cards":[
-   "budget_krw": 600000,
-   "nights": 4,
-    {{
-      "city_ko":"파리",
-      "city_en":"Paris",
-      "country_ko":"프랑스",
-      "country_en":"France",
-      "highlights":["미식","쇼핑"]
-    }}
-  ]
-}}
+   {{
+          "budget_krw": 2000000,
+          "nights": 7,
+          "cards": [
+            {{
+              "city_ko": "파리",
+              "city_en": "Paris",
+              "country_ko": "프랑스",
+              "country_en": "France",
+              "highlights": ["미술관", "카페"],
+              "description": "루브르 야간 개장으로 붐비지 않는 관람 후, 생제르맹 데 프레의 테라스 카페에서 크렘 브륄레를 맛보세요."
+            }},
+            {{
+              "city_ko": "산토리니",
+              "city_en": "Santorini",
+              "country_ko": "그리스",
+              "country_en": "Greece",
+              "highlights": ["휴양", "경치"],
+              "description": "이아 마을 일몰과 함께 인피니티 풀에서 와인을 즐기며 하루를 마무리할 수 있습니다."
+            }},
+            {{
+              "city_ko": "바르셀로나",
+              "city_en": "Barcelona",
+              "country_ko": "스페인",
+              "country_en": "Spain",
+              "highlights": ["건축", "미식"],
+              "description": "가우디의 사그라다 파밀리아 관람 뒤, 엘 보른 지구에서 타파스 바 호핑을 즐겨보세요."
+            }}
+          ]
+        }}
 4. 유효한 JSON (trailing comma ❌).
 """
+
 
 # ── LLM wrapper ────────────────────────────────────────────
 class _LLM:
@@ -62,10 +96,11 @@ class SelfConsistencyExecutor:
 
     def __init__(self):
         self._base_sys = (
-            "너는 서유럽 여행 전문 컨설턴트야. "
-            "다음 규칙을 지키며 조용히 내부에서 추론해: "
-            "① 사용자 조건에 맞는 도시 3곳과 이유를 생각해 "
-            "② 위 규칙을 어기지 않는 JSON만 출력"
+            "ROLE: 친근하지만 전문적인 세계 여행 컨설턴트.\n"
+            "TASK: Chain-of-Thought(조용히), 다양한 reasoning path 5회 생성 후 "
+            "Self-Consistency로 가장 빈번한 결과를 선택.\n"
+            "OUTPUT: HARD RULES & JSON 스키마만 준수. "
+            "각 card.description 은 2문장, 사용자가 체감할 생생한 액티비티를 포함.\n"
         ) + COMMON_SUFFIX
         # 다양성 확보용 서로 다른 temperature
         self._llms = [_LLM(temperature=0.4 + 0.1 * random.random()) for _ in range(self._N)]
@@ -92,13 +127,13 @@ class SelfConsistencyExecutor:
         freq: Dict[str, int] = {}
         for raw in drafts:
             txt = _to_text(raw).lower()
-            for city in WEST_EU_CITIES_EN:
+            for city in CITIES_EN:
                 if city in txt:
                     freq[city] = freq.get(city, 0) + 1
 
         top3 = sorted(freq, key=freq.get, reverse=True)[:3]
         if len(top3) < 3:  # 예외적으로 등장 수가 모자라면 랜덤 보충
-            remaining = [c for c in WEST_EU_CITIES_EN if c not in top3]
+            remaining = [c for c in CITIES_EN if c not in top3]
             top3 += random.sample(remaining, 3 - len(top3))
 
         # ── 최종 결정적 JSON ────────────────────────────────

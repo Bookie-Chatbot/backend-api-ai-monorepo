@@ -1,8 +1,8 @@
 from langchain.prompts import ChatPromptTemplate
 
-judge_prompt = ChatPromptTemplate.from_template(
+judge_prompt: ChatPromptTemplate = ChatPromptTemplate.from_template(
     """
-You are an impartial LLM-as-Judge.
+You are an impartial **LLM-as-Judge**.
 
 ════════════════════════════════════
 # Question
@@ -11,30 +11,40 @@ You are an impartial LLM-as-Judge.
 # Assistant response
 {answer}
 
-# External context (real-world data)
+# External facts
 {context}
+
+# Pre-computed per-city scores  (list of dicts like
+#   {{ "city": "파리", "budget_score": 8, "shopping_score": 7 }} )
+{city_scores}
 ════════════════════════════════════
 
-## Grading rubric (0-10 each)
+## Grading rubric (0–10 each)
 
-1. **Accuracy** — Does the response contradict or faithfully reflect the context?
-2. **Budget Feasibility** — For a 3-night trip, sum of daily cost × 3:
-   · ≤ ₩500 000 → 10 · ≤ ₩600 000 → 7 · ≤ ₩750 000 → 4 · > ₩750 000 → 0
-3. **Shopping Appeal** — Number of shopping POIs in the city:
-   · ≥ 300 → 10 · ≥ 150 → 7 · ≥ 50 → 4 · < 50 → 0
+1. **Accuracy** — Assistant response *전체* (설명·description 포함) 와 External facts를 비교.
+    - Start **10**.  −2 per contradiction, −1 per unverifiable key fact (min 0).
+
+2. **Budget Feasibility** — Let
+  `B = mean(item["budget_score"] for item in city_scores)`   (0 – 10). \
+   Use **B** directly.
+
+3. **Shopping Appeal** — Let
+   `S = mean(item["shopping_score"] for item in city_scores)`   (0 – 10). \
+   Use **S** directly.
+
+4. **Tone & Role Compliance** - `description` 문체가 “친근하고 전문적인 여행 가이드” 역할을 지켰는가?
+   = 10 = perfect, 7 = minor drift, 4 = noticeable drift, 1 = off-tone.
 
 ### Final normalized score
-`(Accuracy + Budget Feasibility + Shopping Appeal) ÷ 30` → 0 – 1 float.
+`(Accuracy + B + S + ToneRole) / 40`  → three-decimal float.
 
-**출력 포맷**
-반드시 **유효한 JSON**로, 다음 필드를 포함하세요:
-이 밖의 필드는 포함하지 마세요.
+### Output format (JSON only)
 
-```
+
 {{
-  "score": float,           // 0.0–1.0 사이
-  "calculation": string,    // 예: "Accuracy:10, Budget:7, Shopping:4; (10+7+4)/30=0.7"
-  "justification": string   // 한두 문장 분량의 근거 설명
+"score": float // result of the below calculation
+"calculation": string, // e.g. "Acc:8, Budget:9, Shop:6, Tone:7 → 30/40=0.75"
+"justification": string // concise rationale
 }}
 """
 )

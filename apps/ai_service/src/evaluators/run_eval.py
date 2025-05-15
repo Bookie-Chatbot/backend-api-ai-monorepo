@@ -50,6 +50,7 @@ def make_custom_evaluator(executor_name: str):
             "question": run.outputs["question"],
             "answer":   run.outputs["answer"],
             "context":  run.outputs["context"],
+            "city_scores": run.outputs["city_scores"],
         })
         print("[DEBUG] judge raw:", raw_output)
         # 2) JSON 파싱
@@ -64,7 +65,7 @@ def make_custom_evaluator(executor_name: str):
 
 # ── 공통 질문 & 데이터셋 ────────────────────────────────────
 QUESTION   = (
-   "비행기 가격까지 포함해서 예산 100만 원, 4박5일 일정으로 유적지, 미술관 탐방 중심으로 여행할 수 있는 서유럽 도시 추천해줘"
+"예산 120만 원, 2박3일 동안 와인과 치즈 테이스팅을 중심으로 즐길 수 있는 도시를 알려 주세요."
 )
 DATASET_ID = "d7ebde55-b668-47fb-9b34-d2eea49bf3c4"
 
@@ -120,7 +121,7 @@ async def main() -> None:
             evaluators=[make_custom_evaluator(name)],
             experiment_prefix=f"{name}-DEST-EVAL-{random.randint(0, 9999)}={dt.datetime.now().isoformat(timespec='seconds')}",
             metadata={"prompt_variant": name},
-            upload_results=True,    
+            upload_results=True,
         )
 
 # ── entrypoint ─────────────────────────────────────────────

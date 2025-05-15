@@ -39,15 +39,32 @@ PHOTO_PER_CITY = 1
 • 사용자 입력에 항상 “예산(만원)·체류일수”가 포함된다고 가정
 """
 
-WEST_EU_CITIES_EN: List[str] = [
-    "paris","london","barcelona","berlin","rome","amsterdam",
-    "lisbon","prague","vienna","munich","hamburg","frankfurt",
-    "cologne","lyon","marseille","nice","toulouse","brussels",
-    "antwerp","ghent","zurich","geneva","basel","porto","madrid",
-    "valencia","seville","milan","naples","florence","copenhagen",
-    "dublin","edinburgh","manchester",
+# 서유럽 + 동남·동아시아를 통합한 도시 리스트
+CITIES_EN: List[str] = [
+    # ── 서유럽
+    "paris", "london", "barcelona", "berlin", "rome", "amsterdam",
+    "lisbon", "prague", "vienna", "munich", "hamburg", "frankfurt",
+    "cologne", "lyon", "marseille", "nice", "toulouse", "brussels",
+    "antwerp", "ghent", "zurich", "geneva", "basel", "porto", "madrid",
+    "valencia", "seville", "milan", "naples", "florence", "copenhagen",
+    "dublin", "edinburgh", "manchester",
+
+    # ── 동남아시아 & 인도차이나
+    "bangkok", "singapore", "kuala_lumpur", "jakarta", "bali",
+    "hanoi", "ho_chi_minh_city", "phuket", "chiang_mai",
+    "siem_reap", "phnom_penh", "vientiane", "luang_prabang",
+    "yangon",
+
+    # ── 동아시아
+    "seoul", "busan", "jeju", "tokyo", "osaka", "kyoto",
+    "taipei", "hong_kong", "shanghai", "beijing",
+    "guangzhou", "shenzhen",
+
+    # ── 남아시아 & 몽골
+    "new_delhi", "mumbai", "kathmandu", "ulaanbaatar",
 ]
-_WEU_LIST_PRETTY = ", ".join(city.title() for city in WEST_EU_CITIES_EN)
+
+_WEU_LIST_PRETTY = ", ".join(city.title() for city in CITIES_EN)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -58,15 +75,20 @@ _WEU_LIST_PRETTY = ", ".join(city.title() for city in WEST_EU_CITIES_EN)
 # ─────────────────────────────────────────────────────────────
 JSON_SCHEMA = """
 {
-  "budget_krw": 500000,      // 사용자가 명시한 총 예산(원)
-  "nights": 3,               // 숙박 박수
+  "budget_krw": integer,       // integer: 사용자 예산(원)
+  "nights": integer,           // integer: 숙박 박수
   "cards": [
     {
-      "city_ko": "파리",
-      "city_en": "Paris",
-      "country_ko": "프랑스",
-      "country_en": "France",
-      "highlights": ["쇼핑","미식"]
+      "city_ko": string,       // string: 한국어 도시명
+      "city_en": string,       // string: 영어 도시명
+      "country_ko": string,    // string: 한국어 국가명
+      "country_en": string,    // string: 영어 국가명
+      "highlights": [          // array<string>: 주요 키워드
+        string,
+        string,
+        …
+      ],
+      "description": string    // string: 1‑2문장, 이유·톤·역할감 드러내기
     }
   ]
 }
@@ -74,7 +96,7 @@ JSON_SCHEMA = """
 
 RULES = f"""
 ### HARD RULES
-1. 반드시 다음 서유럽 도시 중 **정확히 3곳** 선택: {_WEU_LIST_PRETTY}.
+1. 반드시 다음 도시 중 **정확히 3곳** 선택: {_WEU_LIST_PRETTY}.
 2. 출력 JSON 최상위에 **budget_krw(정수, KRW)** 와 **nights(정수, 박)** 를
    그대로 포함한다.
 3. 나머지 규칙·스키마는 아래 예시 준수(마크다운·여분 설명 금지):
@@ -143,76 +165,142 @@ def make_llm_config_executor():
 
 def make_zero_shot_executor():
     msg = (
-        "You are a concise Western-Europe travel recommender. "
-        "Use the user’s budget(₩) and stay length to pick three cities."
+        "사용자의 예산, 취향, 여행 기간을 바탕으로 여행 목적지 TOP-3를 추천해줘."
     )
     return ChatExecutor(msg, 0.1)
 
 # 2) JSON‑SCHEMA **비반영** 버전들 -----------------------------------------
 
-def make_zero_shot_executor_no_schema():
-    msg = (
-        "You are a travel advisor. "
-        "Answer concisely in plain Korean text without JSON formatting."
-    )
-    return ChatExecutor(system_message=msg, temperature=0.5, enforce_schema=False)
 
 def make_one_shot_executor():
     example = (
-        "예시\n"
-        "입력: 예산 120만 원 / 4일 / 미식·쇼핑 선호 / 4월 초\n"
-        "출력(JSON): {\"cards\":[{\"city_ko\":\"바르셀로나\",…}]}\n\n"
-        "위 형식을 참고해 사용자 조건에 맞춰 답해라."
+        "사용자의 예산, 취향, 여행 기간을 바탕으로 여행 목적지 TOP‑3를 추천해줘. "
+        "예를 들어, 사용자가 '예산 120만 원, 4일 일정, 미식·쇼핑 선호, 4월 초 출발'이라면 아래와 같은 JSON을 출력하세요. 각 카드에 1‑2문장 `description` 포함.\n"
+        """
+        {
+          "budget_krw": 1200000,
+          "nights": 4,
+          "cards": [
+            {"city_ko": "바르셀로나", "city_en": "Barcelona", "country_ko": "스페인", "country_en": "Spain", "highlights": ["미식", "쇼핑"], "description": "현지 타파스 투어와 보케리아 시장 쇼핑을 하루에 모두 즐길 수 있어요."},
+            {"city_ko": "피렌체", "city_en": "Florence", "country_ko": "이탈리아", "country_en": "Italy", "highlights": ["역사", "예술"], "description": "메디치 가문의 흔적을 따라 르네상스 미술관을 탐방해 보세요."},
+            {"city_ko": "리스본", "city_en": "Lisbon", "country_ko": "포르투갈", "country_en": "Portugal", "highlights": ["풍경", "문화"], "description": "노란 트램을 타고 알파마 언덕을 오르며 파두 선율을 느껴보세요."}
+          ]
+        }
+        """
     )
-    return ChatExecutor(example, 0.2)
-
-def make_one_shot_executor_no_schema():
-    example = (
-        "예시\n"
-        "입력: 예산 120만 원 / 4일 / 미식·쇼핑 선호 / 4월 초\n"
-        "출력: 바르셀로나·포르투·니스\n\n"
-        "위 형식을 참고해 사용자 조건에 맞춰 답해라."
-    )
-    return ChatExecutor(example, 0.2, enforce_schema=False)
+    return ChatExecutor(example)
 
 
 def make_few_shot_executor():
     shots = (
-        "예시1 … (120만/휴양/5월) → 바르셀로나·포르투·니스\n"
-        "예시2 … (200만/문화/9월) → 파리·마드리드·비엔나\n\n"
-        "두 예시의 패턴을 학습해 동일한 JSON을 출력해라."
+        "사용자의 조건에 맞는 여행지 3곳을 JSON으로 추천해줘. 아래 예시들을 참고하세요.\n"
+        # 예시 1
+        "사용자가 '예산 150만 원, 5일 일정, 자연 경관·역사를 선호하며 6월 말에 출발하고 싶어요'라고 요청하면, "
+        "모델은 다음 JSON을 출력해야 합니다.\n"
+        """
+        {
+          "budget_krw": 1500000,
+          "nights": 5,
+          "cards": [
+            {
+              "city_ko": "피렌체",
+              "city_en": "Florence",
+              "country_ko": "이탈리아",
+              "country_en": "Italy",
+              "highlights": ["자연경관", "역사"],
+              "description": "투스카니 언덕 사이를 달리는 일일 와이너리 투어와 두오모 대성당 일출이 압권입니다."
+            },
+            {
+              "city_ko": "리우데자네이루",
+              "city_en": "Rio de Janeiro",
+              "country_ko": "브라질",
+              "country_en": "Brazil",
+              "highlights": ["해변", "축제"],
+              "description": "코파카바나 해변에서 아침 요가를, 저녁엔 삼바 바에서 현지 리듬에 몸을 맡겨보세요."
+            },
+            {
+              "city_ko": "교토",
+              "city_en": "Kyoto",
+              "country_ko": "일본",
+              "country_en": "Japan",
+              "highlights": ["문화유산", "쇼핑"],
+              "description": "청수사 일출 산책 후, 기온 거리에 숨은 찻집에서 말차 체험을 즐길 수 있습니다."
+            }
+          ]
+        }
+        """
+        # 예시 2
+        "사용자가 '예산 200만 원, 7일 일정, 미술관·휴양을 선호하며 9월 초에 떠나고 싶어요'라고 요청하면, "
+        "모델은 다음 JSON을 출력해야 합니다.\n"
+        """
+        {
+          "budget_krw": 2000000,
+          "nights": 7,
+          "cards": [
+            {
+              "city_ko": "파리",
+              "city_en": "Paris",
+              "country_ko": "프랑스",
+              "country_en": "France",
+              "highlights": ["미술관", "카페"],
+              "description": "루브르 야간 개장으로 붐비지 않는 관람 후, 생제르맹 데 프레의 테라스 카페에서 크렘 브륄레를 맛보세요."
+            },
+            {
+              "city_ko": "산토리니",
+              "city_en": "Santorini",
+              "country_ko": "그리스",
+              "country_en": "Greece",
+              "highlights": ["휴양", "경치"],
+              "description": "이아 마을 일몰과 함께 인피니티 풀에서 와인을 즐기며 하루를 마무리할 수 있습니다."
+            },
+            {
+              "city_ko": "바르셀로나",
+              "city_en": "Barcelona",
+              "country_ko": "스페인",
+              "country_en": "Spain",
+              "highlights": ["건축", "미식"],
+              "description": "가우디의 사그라다 파밀리아 관람 뒤, 엘 보른 지구에서 타파스 바 호핑을 즐겨보세요."
+            }
+          ]
+        }
+        """
     )
     return ChatExecutor(shots)
 
-def make_few_shot_executor_no_schema():
-    shots = (
-        "예시1 … (120만/휴양/5월) → 바르셀로나·포르투·니스\n"
-        "예시2 … (200만/문화/9월) → 파리·마드리드·비엔나\n\n"
-        "두 예시의 패턴을 학습해 동일한 JSON을 출력해라."
-    )
-    return ChatExecutor(shots, enforce_schema=False)
-
 
 def make_system_prompt_executor():
-    msg = "You are a senior travel consultant producing structured JSON answers."
+    msg = ("너는 여행 추천을 전문으로 하는 AI 챗봇이야."
+"사용자의 예산, 취향, 여행 기간에 따라 최적의 목적지를 추천해줘."
+"추천은 신뢰할 수 있는 정보에 기반해야하고, 과장하거나 허구의 정보의 생성은 삼가해줘."
+"추천은 JSON 형식으로 출력해야 해."
+)
     return ChatExecutor(msg)
 
 def make_contextual_prompt_executor():
     today = dt.date.today().isoformat()
-    msg = f"오늘은 {today}. 현재 환율·계절을 고려해 최적 도시를 추천한다."
+    msg = (
+        "사용자가 급하게 해외 여행을 다녀오려고 해."
+        f"오늘은 {today}. 실시간 환율과 계절을 고려해 사용자의 자유로운 요청을 분석한 뒤, \n"
+        "조건에 맞는 3개 도시를 추천하고 모든 카드에 `description`을 써 주세요."
+    )
     return ChatExecutor(msg)
 
 def make_role_prompt_executor():
-    msg = "너는 여행사 직원이다. 친절한 톤으로 JSON만 출력해라."
+    msg = ( "너는 친절하면서 전문적인 여행사 직원이이."
+        "사용자의 예산, 취향, 여행 기간을 바탕으로 여행 목적지 TOP-3를 추천해줘."
+         "각 `description`에는 부드러운 조언·포인트를 1‑2문장으로 담아줘."
+
+         )
     return ChatExecutor(msg)
 
 
 def make_cot_executor() -> ChatExecutor:
     """Chain-of-Thought 버전"""
     sys_msg = (
-        "너는 서유럽 여행 전문 컨설턴트야. "
-        "조용히 단계별로 생각(Chain-of-Thought)한 뒤 "
-        "위 JSON 스키마만 출력해."
+        "너는 세계 여행 전문 컨설턴트야. "
+        "사용자의 예산, 취향, 여행 기간을 바탕으로 단계별로 생각(Chain-of-Thought)한 뒤 "
+        " 여행 목적지 TOP-3를 추천해서 JSON으로 출력해줘.\n"
+
     )
     return ChatExecutor(sys_msg, temperature=0.2)
 

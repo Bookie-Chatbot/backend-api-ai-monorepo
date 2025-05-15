@@ -22,16 +22,32 @@ from .place_tools_safe import SearchPlaceId, GetDestinationPhotos
 from app.service.dest_recommend.hashtag_catalog import HASHTAGS
 
 
-# 서유럽 allow-list (CSV와 동일)
-WEU_EN: List[str] = [
-    "paris","london","barcelona","berlin","rome","amsterdam",
-    "lisbon","prague","vienna","munich","hamburg","frankfurt",
-    "cologne","lyon","marseille","nice","toulouse","brussels",
-    "antwerp","ghent","zurich","geneva","basel","porto","madrid",
-    "valencia","seville","milan","naples","florence","copenhagen",
-    "dublin","edinburgh","manchester",
+# 서유럽 + 동남·동아시아를 통합한 도시 리스트
+CITIES_EN: List[str] = [
+    # ── 서유럽
+    "paris", "london", "barcelona", "berlin", "rome", "amsterdam",
+    "lisbon", "prague", "vienna", "munich", "hamburg", "frankfurt",
+    "cologne", "lyon", "marseille", "nice", "toulouse", "brussels",
+    "antwerp", "ghent", "zurich", "geneva", "basel", "porto", "madrid",
+    "valencia", "seville", "milan", "naples", "florence", "copenhagen",
+    "dublin", "edinburgh", "manchester",
+
+    # ── 동남아시아 & 인도차이나
+    "bangkok", "singapore", "kuala_lumpur", "jakarta", "bali",
+    "hanoi", "ho_chi_minh_city", "phuket", "chiang_mai",
+    "siem_reap", "phnom_penh", "vientiane", "luang_prabang",
+    "yangon",
+
+    # ── 동아시아
+    "seoul", "busan", "jeju", "tokyo", "osaka", "kyoto",
+    "taipei", "hong_kong", "shanghai", "beijing",
+    "guangzhou", "shenzhen",
+
+    # ── 남아시아 & 몽골
+    "new_delhi", "mumbai", "kathmandu", "ulaanbaatar",
 ]
-WEU_PRETTY = ", ".join(c.title() for c in WEU_EN)
+
+WEU_PRETTY = ", ".join(c.title() for c in CITIES_EN)
 NUM_CARDS = 3          # 카드 개수 고정 값
 PHOTO_PER_CITY = 1
 
