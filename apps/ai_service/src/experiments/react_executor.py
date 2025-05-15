@@ -127,23 +127,38 @@ _react_graph = create_react_agent(
 )
 
 
-# ────────────────────────────────────────────────────────────
-# 4) 래퍼 클래스 (ainvoke 호환)
-# ────────────────────────────────────────────────────────────
 class ReactExecutor:
     def __init__(self):
         self._graph = _react_graph
 
     async def ainvoke(self, inputs: Dict[str, Any], **kwargs) -> Dict:
-        """
-        LangSmith 호환 비동기 호출 래퍼.
-        - inputs: {"messages": [{"role": "user", "content": <question>}]}
-        - kwargs : ReAct용 추가 설정 (예: max_rounds, recursion_limit)
-        반환값:
-        {"messages": [{"role": "assistant", "content": <JSON string>}]}
-        """
-        result = await self._graph.ainvoke(inputs, **kwargs)
-        return {"messages": [{"role": "assistant", "content": result}]}
+        run_out = await self._graph.ainvoke(inputs, **kwargs)
+
+        # --- ① run_out → messages 리스트로 통일 ------------------
+        if isinstance(run_out, dict) and "messages" in run_out:   # LangGraph run-dict
+            msgs = run_out["messages"]
+        elif isinstance(run_out, list):                           # 이미 list
+            msgs = run_out
+        else:                                                     # 단일 AIMessage / str
+            msgs = [run_out]
+
+        # --- ② 뒤에서부터 JSON 문자열 찾기 -----------------------
+        json_str = ""
+        for m in reversed(msgs):
+            content = (
+                getattr(m, "content", None)
+                if not isinstance(m, dict) else m.get("content")
+            ) or (m if isinstance(m, str) else None)
+
+            if isinstance(content, str) and content.lstrip().startswith("{"):
+                json_str = content
+                break
+
+        if not json_str:
+            raise ValueError("❌ ReAct agent did not emit a JSON answer!")
+
+        return {"messages": [{"role": "assistant", "content": json_str}]}
+
 
 def make_react_executor() -> ReactExecutor:
     return ReactExecutor()

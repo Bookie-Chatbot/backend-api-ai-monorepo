@@ -17,30 +17,18 @@ from .data_sources import (
 
 # ── 점수 함수 : 선형 정규화 버전 ────────────────────────────
 def _score_budget(daily_cost: float, nights: int, budget_krw: int) -> float:
-    """
-    • 예산 사용률 R = (daily_cost * nights) / budget_krw         (R ≥ 0)
-    • R == 1  → 10점  (예산을 딱 맞춤)
-    • R > 1   → 10 / R   (예산 초과할수록 감점, 최소 0)
-    • R < 1   → 10       (예산보다 적게 쓰면 가산점 없이 10에 캡)
-    """
     total = daily_cost * nights
-    if total == 0:          # 보호
+    if total <= 0:
         return 10.0
-    raw  = (budget_krw / total) * 10      # = 10 / R
+    # 예산을 딱 쓰면 10, 초과할수록 10/R, 예산보다 적게 쓰면 10 고정
+    raw = (budget_krw / total) * 10
     return max(0.0, min(10.0, raw))
 
-
-# 데이터셋에서 가장 큰 쇼핑 POI ≈ 600(홍콩) → 정규화 상한
-_MAX_POI = 600
+_MAX_POI = 600  # 데이터셋 내 최대 쇼핑 POI
 
 def _score_shopping(poi: int) -> float:
-    """
-    • POI_count / _MAX_POI 를 0-10 스케일로 선형 매핑
-    • cap = 10 (600개 이상이어도 10점)
-    """
-    if poi <= 0:
-        return 0.0
-    raw = (poi / _MAX_POI) * 10
+    # POI/_MAX_POI → 0–10 선형 매핑, cap 10
+    raw = (poi / _MAX_POI) * 10 if poi > 0 else 0.0
     return max(0.0, min(10.0, raw))
 
 
@@ -95,6 +83,9 @@ async def context_answer_dest(
     for c, (daily, poi) in zip(valid_cards, results):
         ko = c.get("city_ko") or c.get("city") or c.get("destination")
         ctx_lines.append(f"{ko} · 1박≈{daily:,.0f}KRW · 쇼핑POI≈{poi}")
+        print(f"[COST] {ko} · 1박≈{daily:,.0f}₩ · 쇼핑POI≈{poi}")
+        print(f"[BUDGET] {budget_krw}₩ / {daily * nights:,.0f}₩ = {(_score_budget(daily, nights, budget_krw)):.2f}")
+        print(f"[SHOPPING] POI={poi} / {_MAX_POI} = {(_score_shopping(poi)):.2f}")
         city_scores.append(
             {
                 "city": ko,

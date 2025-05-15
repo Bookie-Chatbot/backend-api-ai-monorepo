@@ -160,8 +160,13 @@ class ChatExecutor:
 
 def make_llm_config_executor():
     # Ensure the system message includes 'json' for Responses API
-    sys_msg = "<no-op> Please output your recommendations as JSON."
+    sys_msg = "<no-op>"
     return ChatExecutor(system_message=sys_msg, temperature=0.1)
+
+def make_llm_config_executor2():
+    # Ensure the system message includes 'json' for Responses API
+    sys_msg = "<no-op> "
+    return ChatExecutor(system_message=sys_msg, temperature=0.9)
 
 def make_zero_shot_executor():
     msg = (
@@ -314,6 +319,7 @@ def make_cot_executor() -> ChatExecutor:
 EXECUTORS = {
     "react": make_react_executor,
     "llm_config": make_llm_config_executor,
+    "llm_config2": make_llm_config_executor2,
     "zero_shot": make_zero_shot_executor,
    # "zero_shot_no_schema": make_zero_shot_executor_no_schema,
     "one_shot": make_one_shot_executor,

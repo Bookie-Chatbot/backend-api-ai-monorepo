@@ -1,6 +1,6 @@
 from langchain.prompts import ChatPromptTemplate
 
-judge_prompt: ChatPromptTemplate = ChatPromptTemplate.from_template(
+judge_prompt = ChatPromptTemplate.from_template(
     """
 You are an impartial **LLM-as-Judge**.
 
@@ -14,38 +14,37 @@ You are an impartial **LLM-as-Judge**.
 # External facts
 {context}
 
-# Pre-computed per-city scores  (list of dicts like
-#   {{ "city": "파리", "budget_score": 8, "shopping_score": 7 }} )
+# Pre-computed per-city scores
 {city_scores}
 ════════════════════════════════════
 
-## Grading rubric (0–10 each)
+## Grading rubric (0–10 each, sum / 40)
 
-1. **Accuracy** — Assistant response *전체* (설명·description 포함) 와 External facts를 비교.
-    - Start **10**.  −2 per contradiction, −1 per unverifiable key fact (min 0).
+1. **Accuracy** — Assistant response 전체(설명·description 포함)와 External facts 비교.
+   • 시작점 10 → 모순 당 −2, 확인 불가 −1, 최소 0.
 
-2. **Budget Feasibility** — Let
-  `B = mean(item["budget_score"] for item in city_scores)`   (0 – 10). \
-   Use **B** directly.
+2. **Budget Feasibility** —
+   `B = mean(item["budget_score"] for item in city_scores)`
+   (0–10)
 
-3. **Shopping Appeal** — Let
-   `S = mean(item["shopping_score"] for item in city_scores)`   (0 – 10). \
-   Use **S** directly.
+3. **Shopping Appeal** —
+   `S = mean(item["shopping_score"] for item in city_scores)`
+   (0–10)
 
-4. **Tone & Role Compliance** - `description` 문체가 “친근하고 전문적인 여행 가이드” 역할을 지켰는가?
-   = 10 = perfect, 7 = minor drift, 4 = noticeable drift, 1 = off-tone.
+4. **Tone & Role Compliance** —
+   `T =` “친근하고 전문적인 여행 가이드” 역할대로 `description` 문체가 지켜졌는가?
+   • 완벽 10, 약간 이탈 7, 명백 불일치 3, 완전 실패 0.
 
-### Final normalized score
-`(Accuracy + B + S + ToneRole) / 40`  → three-decimal float.
+### 최종 normalized score
+(Accuracy + B + S + T) / 40 → 소수 둘째 자리까지
 
-### Output format (JSON only)
-
+### 출력 형식 (JSON only)
 
 {{
-"score": float // result of the below calculation
-"calculation": string, // e.g. "Acc:8, Budget:9, Shop:6, Tone:7 → 30/40=0.75"
-"justification": string // concise rationale
+"score": float, // 0.00–1.00
+"calculation": string, // e.g. "Acc:8.0, B:7.5, S:4.3, T:10.0 => (8.0+7.5+4.3+10.0)/40=0.74"
+"justification": string // 한두 문장 분량
 }}
+
 """
 )
-
