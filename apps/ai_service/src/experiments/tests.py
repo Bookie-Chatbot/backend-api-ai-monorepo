@@ -17,33 +17,45 @@ async def run_all_variants():
     for scenario in SCENARIOS:
         print(f"\n=== Scenario {scenario['id']}: {scenario['question']} ===")
         for name, factory in EXECUTORS.items():
+            print(f"--> Starting executor: {name}")
             executor = factory()
-            # ReAct flow만 별도 config 전달
-            if name == "react":
-                response = await executor.ainvoke(
-                    {"messages": [{"role": "user", "content": scenario['question']}]},
-                    config={"max_rounds": 25, "recursion_limit": 60}
-                )
-            else:
-                response = await executor.ainvoke(
-                    {"messages": [{"role": "user", "content": scenario['question']}]}
-                )
+            try:
+                # invoke
+                print(f"    Invoking {name}.ainvoke...")
+                # ReAct flow만 별도 config 전달
+                if name == "react":
+                    response = await executor.ainvoke(
+                        {"messages": [{"role": "user", "content": scenario['question']} ]},
+                        config={"max_rounds": 25, "recursion_limit": 60}
+                    )
+                else:
+                    response = await executor.ainvoke(
+                        {"messages": [{"role": "user", "content": scenario['question']}]}
+                    )
+                print(f"    Received response from {name}")
+            except Exception as e:
+                print(f"    ERROR invoking {name}: {e}")
+                continue
 
-            # Extract last message content
+            # Extract raw content
             try:
                 last_msg = response['messages'][-1]
                 raw = last_msg['content']
-            except Exception:
-                raw = response if not hasattr(response, 'content') else response.content
+                print(f"    Raw content (type={type(raw)}): {raw}")
+            except Exception as e:
+                raw = response.content if hasattr(response, 'content') else str(response)
+                print(f"    Fallback raw content: {raw} (error: {e})")
 
-            # Normalize raw to a JSON-like object
+            # Normalize raw
             if isinstance(raw, (dict, list)):
                 payload = raw if isinstance(raw, dict) else {'cards': raw}
+                print(f"    Using raw directly as payload")
             else:
                 try:
                     payload = json.loads(raw)
-                except (TypeError, json.JSONDecodeError):
-                    print(f"[{name}] → invalid JSON: {raw}")
+                    print(f"    Parsed JSON payload successfully")
+                except (TypeError, json.JSONDecodeError) as e:
+                    print(f"    JSON parse error: {e}, raw was: {raw}")
                     continue
 
             # Print card count

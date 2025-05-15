@@ -32,7 +32,7 @@ PHOTO_PER_CITY = 1
 # ─────────────────────────────────────────────────────────────────────
 class ChatExecutor:
     def __init__(self, system_message: str, temperature: float = 0.0):
-        # Use Responses API 
+        # Use Responses API
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=temperature,
@@ -106,7 +106,7 @@ def make_step_back_executor():
     return ChatExecutor(system_message=sys_msg)
 
 def make_cot_executor():
-    sys_msg = "Think step by step and explain your reasoning, then output JSON recommendations."
+    sys_msg = "각 단계별로 생각한 후 여행지를 추천해줘 output은 JSON recommendations."
     return ChatExecutor(system_message=sys_msg)
 
 def make_self_consistency_executor():
@@ -120,40 +120,17 @@ def make_self_consistency_executor():
 
 # ─────────────────────────────────────────────────────────────────────
 EXECUTORS = {
-  #  "llm_config": make_llm_config_executor,
-   # "zero_shot": make_zero_shot_executor,
-   # "one_shot": make_one_shot_executor,
-   # "few_shot": make_few_shot_executor,
-   # "system_prompt": make_system_prompt_executor,
-   # "contextual_prompt": make_contextual_prompt_executor,
-   # "role_prompt": make_role_prompt_executor,
-   # "step_back": make_step_back_executor,
-    "cot": make_cot_executor,
+ #   "llm_config": make_llm_config_executor,
+  # "zero_shot": make_zero_shot_executor,
+   #"one_shot": make_one_shot_executor,
+  # "few_shot": make_few_shot_executor,
+  # "system_prompt": make_system_prompt_executor,
+# "contextual_prompt": make_contextual_prompt_executor,
+ #  "role_prompt": make_role_prompt_executor,
+  # "step_back": make_step_back_executor,
+    "cot_prompt": make_cot_executor,
     "self_consistency": make_self_consistency_executor,
 }
 
-# For manual testing
-async def run_all_variants():
-    from experiments.prompts_and_scenarios import SCENARIOS as LOCAL_SCENARIOS
-    for scenario in LOCAL_SCENARIOS:
-        print(f"\n=== Scenario {scenario['id']}: {scenario['question']} ===")
-        for name, factory in EXECUTORS.items():
-            executor = factory()
-            if name == "react":
-                res = await executor.ainvoke(
-                    {"messages": [{"role": "user", "content": scenario['question']}]},
-                    config={"max_rounds": 25, "recursion_limit": 60}
-                )
-            else:
-                res = await executor.ainvoke(
-                    {"messages": [{"role": "user", "content": scenario['question']}]}
-                )
-            raw = res['messages'][-1]['content']
-            try:
-                payload = json.loads(raw)
-                print(f"[{name}] → {len(payload.get('cards', []))} cards")
-            except:
-                print(f"[{name}] → invalid JSON")
 
-if __name__ == "__main__":
-    asyncio.run(run_all_variants())
+
