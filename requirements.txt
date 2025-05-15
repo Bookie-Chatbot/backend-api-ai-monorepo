@@ -9,7 +9,7 @@ amadeus
 
 # --- AI/RAG 쪽 ---
 requests
-jinja2 
+jinja2
 langchain
 huggingface_hub
 langchain-openai
@@ -19,3 +19,5 @@ langsmith
 openai
 langgraph
 python-dateutil
+langchain-teddynote
+openevals
