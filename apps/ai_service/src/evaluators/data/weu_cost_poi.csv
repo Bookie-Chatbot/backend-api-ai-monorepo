@@ -1,0 +1,35 @@
+city_en,country_en,daily_usd,shopping_poi
+Paris,France,110,480
+London,United Kingdom,130,520
+Barcelona,Spain,90,340
+Berlin,Germany,85,310
+Rome,Italy,95,290
+Amsterdam,Netherlands,105,330
+Lisbon,Portugal,70,220
+Prague,Czechia,60,200
+Vienna,Austria,100,250
+Munich,Germany,120,350
+Hamburg,Germany,100,320
+Frankfurt,Germany,110,310
+Cologne,Germany,90,280
+Lyon,France,85,260
+Marseille,France,80,240
+Nice,France,125,300
+Toulouse,France,75,220
+Brussels,Belgium,105,340
+Antwerp,Belgium,95,270
+Ghent,Belgium,85,240
+Zurich,Switzerland,150,330
+Geneva,Switzerland,145,310
+Basel,Switzerland,130,280
+Porto,Portugal,65,210
+Madrid,Spain,100,340
+Valencia,Spain,80,250
+Seville,Spain,75,230
+Milan,Italy,110,320
+Naples,Italy,70,200
+Florence,Italy,100,260
+Copenhagen,Denmark,140,300
+Dublin,Ireland,120,260
+Edinburgh,United Kingdom,110,250
+Manchester,United Kingdom,100,270

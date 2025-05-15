@@ -12,7 +12,7 @@ from experiments.prompts_and_scenarios import SCENARIOS
 
 async def run_all_variants():
     """
-    프롬프트 기법별로 각 시나리오를 실행하고 결과를 출력합니다.
+    프롬프트 기법별로 각 시나리오를 실행하고 결과를 출력.
     """
     for scenario in SCENARIOS:
         print(f"\n=== Scenario {scenario['id']}: {scenario['question']} ===")
