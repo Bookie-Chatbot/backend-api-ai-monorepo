@@ -22,3 +22,20 @@ python-dateutil
 langchain-teddynote
 openevals
 backoff
+
+# --- preprocess ---
+langchain_community
+langchain-text-splitters
+langchain_experimental
+faiss-cpu
+langchain-huggingface
+langchain_chroma
+unstructured[pdf]
+# pdf2image
+# pi-heif
+pdfplumber
+langchain_mcp_adapters>=0.0.7
+mcp[cli]
+# langgraph>=0.3.21
+fastapi_mcp
+asyncio
