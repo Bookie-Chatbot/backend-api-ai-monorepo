@@ -21,6 +21,7 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 backend-api-ai-monorepo/
 ├── apps/
 │   ├── api-server/          # ⇢ 기존 backend-api
+│   ├── ai_preprocess/       # ⇢ 기존 backend-ai
 │   └── ai-service/          # ⇢ 기존 backend-ai
 ├── packages/
 │   └── core-backend/
