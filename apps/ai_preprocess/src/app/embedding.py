@@ -7,8 +7,8 @@ import os
 from dotenv import load_dotenv
 
 # cacheback은 사용 안했음
-''' 
-    embeddings = OpenAiEmbeddings(model = 
+'''
+    embeddings = OpenAiEmbeddings(model =
     "text-embedding-3-small" or
     "text-embedding-3-large" or
     "text-embedding-ada-002" , dimensions=차원 지정 가능)
@@ -21,8 +21,8 @@ def embed_document_openai(doc):
     # List[str] input을 OpneAIEmbedding 사용해서 embed하는 메소드. doc type이어야됨
     load_dotenv()
     embedder = OpenAIEmbeddings(
-        model = "text-embedding-3-small", 
-    #    dimensions=차원 지정 가능
+        model = "text-embedding-3-small",
+        dimensions=1024,  # 1024차원
     )
 
     doc_embed = embedder.embed_documents(doc)
@@ -60,7 +60,7 @@ def embed_document_huggingface(doc):
     embedder = HuggingFaceEmbeddings(
         model_name = "intfloat/multilingual-e5-large-instruct",
     )
-    
+
     doc_embed=embedder.embed_documents(doc)
     return doc_embed, embedder
 
