@@ -1,5 +1,5 @@
-# Backend-ai
-Backend service dedicated to RAG chatbot functionalities using Langchain and OpenAI API
+# ai_preprocess
+백엔드 RAG사용시 필요한 전처리 도구
 
 # A. 프로젝트 구조
 **디렉토리 구조**
@@ -9,11 +9,13 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     ├── app
     │   ├── __init__.py 
     │   ├── config.py
-    │   └── virtual_db.py // 백 연동용 가상 db 중첩 객체
-        └── sql_executor.py
-        └── sql_queries.py
-    │   └── service // 폴더 - 저 작업 폴더 
-    │   └── preprocess // 폴더 - 승철님 작업 폴더 (emtpy 폴더) 
+    │   ├── embedding.py
+    │   ├── loader.py
+    │   ├── preprocess.py
+    │   ├── splitter.py
+    │   ├── utils.py
+    │   ├── vectorstore.py
+    │   └── weatherApi.py
     ├── data 
     │   ├── db - 백엔드 연동 전에 테스트 위해 사용할 가상 db (도의님이 업데이트하는 db에 맞춰서 변경하기)
     │   │   ├── admin.json
@@ -22,13 +24,14 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     │   │   ├── querylog.json
     │   │   ├── reservation.json
     │   │   └── user.json
-    │   ├── processed
-    │   └── raw
-    │       └── // 비정형 데이터 추가 
-    ├── evaluations 폴더 (emtpy 폴더)
-    ├── main_preprocess.py // 승철님 전처리 메인 플로우 실행 폴더 (empty파일)
+    │   └── un_db
+    │       └── 비정형 데이터 추가 
+    ├── mcp - mcp 서버 연동용
+    │   ├── mcp_adapter.py - 테스트용. 실제 사용 X
+    │   ├── mcp_client.py - mcp_server.py나 다른 mcp 서버들을 연결해서 llm이 처리하도록 돕는 client 역할.    
+    │   └── mcp_server.py - client에서 사용할 tool이 들어있는 임시 서버.
     ├── requirements.txt (여기다가 실행 시 필요한 패키지 목록들 추가하기)
-    ├── main_service.py
+    ├── main_preprocess.py - 전처리 플로우 실행
     └── tests 폴더 (emtpy 폴더)
         └── 
 -- .env // 깃에 올리지 않을 예정 - 각자 로컬에서 생성해서 토큰 변수 저장하기
@@ -39,10 +42,6 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ### **src/app 폴더**
 
-- preprocess 폴더 (승철님이 채워나갈 파일)
-    - 임베딩, 벡터스토어 생성, 청킹, 문서 로드등 전처리 단계를 담당
-- service 폴더 (제가 작업할 파일)
-    - 체인, 프롬프트, 리트리벌 등의 검색 영역
 - **init.py(공용)**
     - **역할:** `app` 패키지를 초기화합니다.
     - **특징:** 다른 모듈에서 상대 경로로 불러올 수 있도록 패키지로 인식시킵니다.
@@ -50,31 +49,40 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
     - **역할:** 환경변수 및 상수 값들을 설정합니다.
     - **주요 내용:**
         - `.env` 파일을 통해 `OPENAI_API_KEY`, `VIRTUAL_DB_DIR`, `MODEL_NAME` 등의 설정을 로드합니다.
-- **sql_executor.py  (공용)**
-    - **역할:** 가상 DB 데이터에서 SQL 쿼리 실행을 흉내 내는(pseudo) 로직을 구현합니다.
+- **embedding.py**
+    - **역할:** document embedding을 지원합니다.
     - **주요 함수:**
-        - `pseudo_execute_sql(query_key, db_data)`
-            - query_key에 따라 DB의 호텔, 항공편, 예약 등의 데이터를 필터링하여 반환합니다.
-- **sql_queries.py  (공용)**
-    - **역할:** 질문 분류에 따른 SQL 쿼리 키 매핑 정보를 제공합니다.
-    - **주요 내용:**
-        - `sql_query_map` 딕셔너리
-            - 예: `"available_rooms": "SHOW_AVAILABLE_ROOMS"`, `"customer_reservation": "SHOW_CUSTOMER_RESERVATION"` 등.
-- **virtual_db.py  (공용)**
-    - **역할:** JSON 파일들을 로드하여 가상 DB를 구성합니다.
+        - `embed_document_openai(doc)`
+            - 인자로 List[str]을 받아 해당 리스트를 openai embedding 함수로 임베딩해 그 결과를 반환합니다.
+- **loader.py**
+    - **역할:** PDF 파일을 가져옵니다.
     - **주요 함수:**
-        - `load_json_file(filename: str)`
-            - 개별 JSON 파일을 읽어 파이썬 객체로 반환합니다.
-        - `load_virtual_db()`
-            - 여러 JSON 파일을 조합하여 가상 DB(Hotel, Flight, Reservation, User 등)를 생성합니다.
-
+        - `load_pdf_plumber(file_path: str)`
+            - 해당 file path에 있는 pdf 파일을 가져오고 반환합니다.
+- **preprocess.py**
+    - **역할:** 전처리 단계를 진행해 가져온 pdf로 vectorstore를 생성합니다.
+    - **주요 함수:**
+        - `def create_file_vectorstore(file_path)`
+            - file_path에 있는 pdf 파일을 load, split, embed, store를 거쳐 생성한 vectorstore를 반환합니다.
+- **splitter.py**
+    - **역할:** load 해온 document를 더 작은 단위의 chunk로 split 합니다.
+    - **주요 함수:**
+        - `def splitter_recursive(doc)`
+            - 인자로 받은 doc를 recursive splitter 도구를 사용해 split하고 결과를 반환합니다.
+- **vectorstore.py**
+    - **역할:** document로 vectorstore를 생성합니다.
+    - **주요 함수:**
+        - `def create_doc_FAISS(split_doc, persist_directory="db_FAISS")`
+            - 인자로 받은 document를 통해 FAISS vectorstore를 생성하고, 해당 DB 이름을 지정해 저장합니다.
+- **weatehrApi.py**
+    - **역할:** weathermapapi를 사용해 날씨 정보를 얻는 예시 코드입니다.
+    - **주요 기능:**
+        - 실행 후 날씨 정보 검색을 원하는 도시 이름을 영어로 치면 해당 api를 통해 날씨 정보를 얻고 json 형태로 바꿀 수 있다.
 ---
 
 ### **src/data 폴더**
-
 - **db 폴더**
     - **역할:** 가상 DB 데이터 파일들이 위치합니다.
-    - 도의님이 설계한 스키마 참고하였습니다.
     - **주요 파일:**
         - `admin.json`: 시스템 관리자 관련 설정
         - `flight.json`: 항공편 정보
@@ -88,6 +96,19 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 - **raw 폴더**
     - **역할:** 원본 문서 파일들이 위치합니다.
     - 호텔 예약 관련 PDF 문서 등
+
+---
+
+### **src/mcp 폴더**
+- **mcp_adapter.py**
+    - **역할:** mcp 연결 확인을 위한 예시 코드입니다.    
+- **mcp_client.py**
+    - **역할:** mcp server와 llm을 연결해줍니다.
+    - **주요 함수:**
+        - `async def adapter(query)`
+            - mcp에 연결된 llm을 통해 인자로 받은 query에 대한 답변을 출력해줍니다.
+- **mcp_server.py**
+    - **역할:** mcp_client에 우선 연결한 예시 서버입니다.
 
 ---
 
@@ -112,7 +133,7 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
 
 ## **설치 및 실행 방법**
 
-1.  파이썬 가상환경 생성 및 활성화
+1. **파이썬 가상환경 생성 및 활성화**
 - 가상환경 생성
     
     ```tsx
@@ -131,60 +152,80 @@ Backend service dedicated to RAG chatbot functionalities using Langchain and Ope
         ```tsx
         source env/bin/activate
         ```
-        
-1. **패키지 설치**
-    - 가상환경이 활성화된 상태에서 cd src로 디렉토리 이동 후, 아래 명령어로 패키지를 한 번에 설치합니다.
-        
+
+- 가상환경 비활성화
+    - Windows
+
+        ```tsx
+        deactivate
         ```
-        pip install -r requirements.txt
+
+2. **패키지 설치**
+- 가상환경이 활성화된 상태에서 cd src로 디렉토리 이동 후, 아래 명령어로 패키지를 한 번에 설치합니다.
         
-        // 패키지 삭제
-        pip uninstall -r requirements.txt -y
-        ```
+    ```
+    pip install -r requirements.txt
         
-         참고) numpy 버전 충돌 때문에,
-        numpy는 별도로 버전을 지정하여 numpy==1.26.2를 추가하였습니다.
+    // 패키지 삭제
+    pip uninstall -r requirements.txt -y
+    ```
         
-        **필수**
+    참고) numpy 버전 충돌 때문에,
+    numpy는 별도로 버전을 지정하여 numpy==1.26.2를 추가하였습니다.
         
-        - langchain
-        - python-dotenv
-        - langchain_community
-        - langchain-openai
-        - numpy==1.26.2
-        - langsmith
-        - openai
-        
-        **그냥 샘플로 넣어놓은 것 (승철님이 결정하신걸로 마구마구 삭제 바꾸기 가능)**
-        
-        - huggingface_hub (임시로 허깅페이시 임베딩 지정해서 추가함)
-        - pypdf
-        - faiss-cpu
-        - langchain-text
-        - langchain-huggingface
-2. **환경변수 설정**
+    - langchain
+    - huggingface_hub
+    - python-dotenv
+    - langchain_community
+    - langchain-text-splitters
+    - langchain_experimental
+    - faiss-cpu
+    - langchain-huggingface
+    - langchain-openai
+    - langchain_chroma
+    - pypdf
+    - unstructured[pdf]
+    - pdfplumber
+    - numpy==1.26.2
+    - langsmith
+    - openai
+    - fastapi
+    - uvicorn
+    - langchain_mcp_adapters>=0.0.7
+    - mcp[cli]
+    - langgraph>=0.3.21
+    - fastapi_mcp
+    - asyncio
+
+3. **환경변수 설정**
     - 프로젝트 루트(backed-ai/.env)에 `.env` 파일을 생성하고, `OPENAI_API_KEY` 및 `랭스미스 키`, `VIRTUAL_DB_DIR` 등 필요한 환경변수를 설정합니다.
     
    ![image](https://github.com/user-attachments/assets/268c3db5-3824-4c4b-ab03-fc3647e85bda)
-
     
-    .env 구성 예시 : 이중에서 필요한 부분만 추가하면 될듯
-    
-3. **전처리**
+4. **전처리**
     - 전처리 메인 플로우 실행
         
         ```
         python main_preprocess.py
         ```
         
-4. **시스템 실행** 
+5. **시스템 실행** 
     - 서비스 메인 플로우 실행
         
         ```
         python main_service.py
         ```
 
+## **LLM에 MCP 서버 연동**
+1. **파이썬 가상환경 활성화**
 
+2. **python mcp_server.py 실행**
+    - mcp 서버 가동에 uvicorn 포함되어 있어 따로 uvicorn으로 실행 안해도 됩니다.
+
+3. **다른 실행기로 python mcp_client.py 실행**
+
+- 현재 우선 llm 통해서 날씨 가져오는 query만으로 가동하고 있고, 추후에 client쪽에 서버 추가해서 추가적인 기능 사용도 가능하고 별도로 추가하고 싶은 tool은 mcp_server쪽에 추가하는 방식으로 사용 가능.
+- FastAPI로 만든 서버에 mount 해서 mcp 사용하는 방식도 있다고 하는데 이 내용은 더 알아봐야 함.
 
 # B. backend-ai 코랩 연동 가이드
 
