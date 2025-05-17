@@ -16,24 +16,64 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 
 # A. 프로젝트 구조
 **디렉토리 구조**
-
+아래는 실제 디렉터리 구조를 반영한 backend-api-ai-monorepo/의 상위 4레벨입니다. 
 ```
 backend-api-ai-monorepo/
-├── apps/
-│   ├── api-server/          # ⇢ 기존 backend-api
-│   ├── ai_preprocess/       # ⇢ 기존 backend-ai
-│   └── ai-service/          # ⇢ 기존 backend-ai
-├── packages/
-│   └── core-backend/
-│       ├── amadeus_client.py
-│       ├── mcp_client.py
-│       ├── alert_templates.py
-│       
-├── infra/
-├── .github/workflows/       # 통합 CI - 미완
-├── requirements.txt 
-└── pyproject.toml           
--- .env // 깃에 올리지 않을 예정 - 각자 로컬에서 생성해서 토큰 변수 저장하기
+backend-api-ai-monorepo/
+├── README.md                        # 프로젝트 최상위 문서
+├── setup.py                         # 패키지 설치 & CLI 엔트리포인트 설정
+├── launch_api.py                   # FastAPI(Uvicorn) 기동 스크립트
+├── requirements.txt                # pip 종속성 정의
+├── pyproject.toml                  # Poetry/빌드 설정 (비활성 시 무시)
+├── infra/                          # 인프라 구성 (docker-compose 등)
+│   └── docker-compose.yml
+├── cache/                          # HuggingFace 모델 캐시
+│   └── hub/…
+├── db_FAISS/                       # FAISS 인덱스 파일
+│   ├── index.faiss  
+│   └── index.pkl
+├── root_data/                      # 샘플 PDF 등 원본 데이터
+│   └── koreanair.pdf
+├── apps/                           # 주요 애플리케이션 모듈
+│   ├── ai_preprocess/              # PDF 전처리 → 텍스트 청크 → FAISS 저장
+│   │   ├── README.md  
+│   │   ├── backendAI.ipynb  
+│   │   └── src/  
+│   │       ├── mcp/                # MCP 연동 테스트 코드  
+│   │       ├── app/                # 전처리 로직 모듈  
+│   │       ├── main_preprocess.py  # CLI용 전처리 진입점  
+│   │       └── tests/  
+│   ├── ai_service/                 # AI 챗봇 및 RAG 서비스
+│   │   ├── README.md  
+│   │   ├── backendAI.ipynb  
+│   │   └── src/  
+│   │       ├── app/                # llm 어플리케이션 로직 
+│   │       ├── data/               # 샘플·테스트 입력 데이터  
+│   │       ├── evaluators/         # LangSmith 평가 로직  
+│   │       ├── experiments/        # Prompt/시나리오 테스트  
+│   │       ├── main_preprocess.py  # 빈 파일 현재
+│   │       ├── main_service.py     # CLI 챗봇 진입점 (bookie-chat으로 실행)  
+│   │       ├── tests/              # 단위·통합 테스트  
+│   │       └── tmp/  
+│   └── api-server/                 # FastAPI 서버 프로젝트
+│       ├── README.md  
+│       ├── pyproject.toml  
+│       └── workspace/fastapi-project/  
+├── packages/                       # 공통 유틸리티·클라이언트 모듈
+│   └── core_backend/  
+│       ├── amadeus_client.py  
+│       └── …  
+├── runs/                           # 스크립트 기반 테스트 모음
+│   └── test/  
+│       ├── imports.py              # console_scripts 경로·모듈 임포트 테스트  
+│       ├── mcp.py                  # MCP 서버/클라이언트 통합 테스트  
+│       ├── policy.py               # FAISS-RAG Q&A 테스트 스크립트  
+│       ├── preprocess.py           # PDF→FAISS 전처리 테스트  
+│       └── …  
+└── tmp/                            # 런타임 생성 파일 (HTML 등)
+    ├── dest_reco_full.html  
+    └── dest_reco_test.html  
+
 
 ```
 
