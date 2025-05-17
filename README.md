@@ -171,6 +171,7 @@ api-server      # uvicorn으로 FastAPI 앱 기동
 
   * `find_packages(where=".")`로 최상위 패키지 전부를 자동으로 수집합니다.
   * 추가로 “싱글 파일 모듈”(`launch_api.py`)과, 앱별 디렉터리 위치를 `package_dir`로 1:1 매핑하여 패키지로 인식되도록 설정합니다.
+     ```
         "": ".",
         "mcp":                  "apps/ai_preprocess/src/mcp",
         "app_preprocess":       "apps/ai_preprocess/src/app",
@@ -180,7 +181,7 @@ api-server      # uvicorn으로 FastAPI 앱 기동
         "api_server":           "apps/api-server/workspace/fastapi-project",
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
         "core_backend":         "packages/core_backend",
-    
+    ```
 
 * **`py_modules`**
 
