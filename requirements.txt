@@ -24,10 +24,11 @@ openevals
 backoff
 
 # --- preprocess ---
+faiss-cpu==1.7.4
+langchain_anthropic
 langchain_community
 langchain-text-splitters
 langchain_experimental
-faiss-cpu
 langchain-huggingface
 langchain_chroma
 unstructured[pdf]
@@ -39,3 +40,7 @@ mcp[cli]
 # langgraph>=0.3.21
 fastapi_mcp
 asyncio
+
+# pip install -r requirements.txt
+# 실행 cmd simplify용
+-e .
