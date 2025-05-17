@@ -10,7 +10,7 @@ mcp = FastMCP(
     "test",  # Name of the MCP server
     instructions="You are a weather assistant that can answer questions about the weather in a given location.",  # LLM이 이 MCP에서 제공하는 tool을 어떻게 사용할지 이해하도록 돕는 설명(prompt)
     host="0.0.0.0",  # Host address (0.0.0.0 allows connections from any IP)
-    port=8000,  # Port number for the server
+    port=8010,  # Port number for the server
 )
 
 """
@@ -32,8 +32,8 @@ mcp.mount()
 async def get_weather(city: str) -> json:
     """
     Args: 날씨 조회할 도시 이름(eng)
-    
-    Body: weathermapapi_key로 openweathermap.org에 접속해서 
+
+    Body: weathermapapi_key로 openweathermap.org에 접속해서
     """
     load_dotenv()
     api_key = os.getenv("WEATHERMAPAPI_KEY")
@@ -61,7 +61,7 @@ async def get_weather(city: str) -> json:
         except httpx.HTTPStatusError as e:
             return {"error": f"HTTP error occurred: {e.response.status_code} - {e.response.text}"}
         except Exception as e:
-            return {"error": f"An unexpected error occurred: {str(e)}"}    
+            return {"error": f"An unexpected error occurred: {str(e)}"}
     return data
 
 @mcp.tool()

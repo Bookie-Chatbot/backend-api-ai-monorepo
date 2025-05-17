@@ -15,7 +15,7 @@ async def main() :
         {
             "weather": {
                 # 서버의 포트와 일치해야 합니다.(8005번 포트)
-                "url": "http://localhost:8005/sse",
+                "url": "http://localhost:8010/sse",
                 "transport": "sse",
             }
         }

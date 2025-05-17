@@ -21,7 +21,7 @@ async def adapter(query):
         # }, stdio 형식으로 mcp server 연결할 때
         "test": { # 이 연결의 고유 이름
             "transport": "sse",
-            "url": "http://localhost:8000/sse", # 날씨 서버가 실행 중인 URL
+            "url": "http://localhost:8010/sse", # 날씨 서버가 실행 중인 URL
             # 필요한 경우 다른 SSEConnection 매개변수를 추가합니다 (headers, timeout 등)
         },
     }
@@ -47,7 +47,7 @@ async def adapter(query):
     await client.__aenter__()                           # 명시적으로 초기화 필수.
 
     print(f"연결된 도구: {[tool.name for tool in client.get_tools()]}")
-    
+
     await client.__aexit__()
 
     근데 이 방법은 안하는게 좋은 듯
