@@ -4,8 +4,8 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableSequence, RunnablePassthrough
-from app.sql_queries import sql_query_map
-
+from app_service.sql_queries import sql_query_map
+from langchain.prompts import ChatPromptTemplate
 # 1) SQL vs. PDF 분류 프롬프트 체인 (RunnableSequence 사용, 구체적 지시문 추가)
 
 def create_prompt():
@@ -70,7 +70,7 @@ User Question:
     )
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     output_parser = StrOutputParser()
-    
+
     chain = RunnableSequence(
         {"question": RunnablePassthrough()}
         | classification_prompt
@@ -109,7 +109,7 @@ def create_sql_summary_prompt():
     )
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     output_parser = StrOutputParser()
-    
+
     chain = RunnableSequence(
         {
             "sql_result": RunnablePassthrough(),
@@ -122,9 +122,11 @@ def create_sql_summary_prompt():
     return chain
 
 
-# 3) PDF RAG용 기본 프롬프트 
 
-DEFAULT_PROMPT = PromptTemplate(
-    template="질문: {question}\n\n문서: {context}\n\n답변:",
-    input_variables=["question", "context"]
-)
+# RAG 체인에서 사용할 기본 프롬프트: 부엉이 톤으로 질문과 검색 결과를 안내
+DEFAULT_PROMPT = ChatPromptTemplate.from_messages([
+    ("system",
+     f"🦉 나는 지혜로운 부엉이 정책 도우미야! 언제나 친절하고 귀여운 말투로 정책 관련 질문에 답할게."
+     "\n정확한 정보만 제공하고, 모르는 내용은 '죄송하지만 제 지식 범위 내에는 해당 정보가 없어요'라고 알려줘."),
+    ("user", "질문: {question}\n\n문서에서 찾은 정보: ```{context}```\n\n답변:")
+])
