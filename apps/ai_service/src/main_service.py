@@ -183,13 +183,20 @@ async def chat(req: Dict[str, str]):
     q = req.get("query", "")
     return JSONResponse(content=await reply_json(q))
 
-# CLI
-if __name__ == "__main__":
+async def interactive_loop():
     print("✈️ AI Flight Assistant — ENTER 빈줄 종료\n")
     while True:
         q = input("🗨 질문: ").strip()
-        if not q: break
-        res = asyncio.run(reply_json(q))
+        if not q:
+            break
+        res = await reply_json(q)
         print(_json_safe(res), "\n")
         if res.get("intent") == "dest_reco":
             print(f"👉 HTML saved to {res.get('html_path')}")
+
+def main():
+    # since reply_json is async, run the interactive loop in asyncio
+    asyncio.run(interactive_loop())
+
+if __name__ == "__main__":
+    main()
