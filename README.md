@@ -94,53 +94,85 @@ backend-api-ai-monorepo/
       
 2. **환경변수 설정**
     - 프로젝트 루트에 `.env` 파일을 생성하고, `OPENAI_API_KEY` 및 `AMADEUS_CLIENT_ID/AMADEUS_CLIENT_SECRET` 등 필요한 환경변수를 설정합니다.
+
+
+아래 예시는 `README.md`에 추가할 수 있는 두 가지 주요 섹션입니다. 첫 번째는 `setup.py` + `pip install -e .`을 이용한 설치 및 CLI 실행 간소화 방법이고, 두 번째는 `runs/test` 폴더에 새로 추가된 테스트 스크립트들에 대한 간단한 설명입니다.
+
+---
+
+## 🚀 설치 및 실행 (Setup & CLI)
+
+```bash
+# 1. 프로젝트 루트에서 개발 모드로 설치
+pip install -e . (requirments.txt에 있으므로 별도 설치 불필요)
+
+# 2. entry point로 제공되는 명령어 예시
+#    - MCP 서버·클라이언트·테스트
+mcp-server      # MCP 서버 기동
+mcp-client      # MCP 클라이언트 호출
+mcp-test        # 통합 테스트 스크립트 실행
+
+#    - 전처리 및 챗봇 서비스
+preprocess      # PDF → FAISS, 혹은 기존 FAISS에 추가
+bookie-chat     # 대화형 AI 서비스 실행
+
+#    - FastAPI 서버 (Uvicorn wrapper)
+api-server      # uvicorn으로 FastAPI 앱 기동
+```
+ 
+### ⚙️ `setup.py` 구성 및 사용법
+
+프로젝트를 쉽고 간편하게 설치·실행하기 위해 `setup.py`에 다음과 같은 설정을 해두었습니다:
+
+
+#### 주요 항목 설명
+
+* **`packages` 및 `package_dir`**
+
+  * `find_packages(where=".")`로 최상위 패키지 전부를 자동으로 수집합니다.
+  * 추가로 “싱글 파일 모듈”(`launch_api.py`)과, 앱별 디렉터리 위치를 `package_dir`로 1:1 매핑하여 패키지로 인식되도록 설정합니다.
+
+* **`py_modules`**
+
+  * 패키지로 묶이지 않는 단일 모듈(`launch_api.py`)을 포함시켜, CLI 엔트리포인트에서 사용할 수 있게 합니다.
+
+* **`entry_points.console_scripts`**
+
+  * 설치 후 패스(Path)에 자동 등록되는 실행 명령어를 정의합니다.
+  * 예) `preprocess`, `bookie-chat`, `api-server` 등을 터미널에서 바로 호출할 수 있습니다.
+
+
+
+---
+
+위 내용을 `README.md`에 복사·붙여넣기하시면, 사용자와 개발자가 설치부터 실행, 테스트까지 보다 직관적으로 따라올 수 있습니다.
+
+
+  
+
+## 🧪 테스트 스크립트 (runs/test)
+
+`runs/test` 디렉터리안에 다음과 같은 스크립트를 배치해 두었습니다. 모두 `mcp-test`, `preprocess`, `bookie-chat` 등의 entry point로 쉽게 실행할 수 있습니다.
+
+| 파일명           | 설명                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| **imports.py**   | - **`setup.py`에 정의된 `console_scripts` 엔트리포인트**가 잘 작동하는지 테스트<br>- `data`, `app_service.virtual_db`, `core_backend.amadeus_client` 등 주요 모듈 임포트 경로 확인 |
+| **mcp.py**       | - MCP 서버(백그라운드) 기동/종료<br>- `langchain_mcp_adapters`를 통한 QA 에이전트 테스트<br>- `mcp-server`/`mcp-client` CLI 명령어 구현 |
+| **policy.py**    | - FAISS 기반 PDF RAG 체인 테스트 스크립트<br>- `--db-path` 옵션 지원, 인터랙티브 Q&A 루프<br>- `policy` 전용 entry point (`mcp-test`로 묶어서 실행) |
+| **preprocess.py**| - PDF 파일 → FAISS 벡터 스토어 생성 및 추가 기능 테스트<br>- `--mode=create|add` 옵션 지원<br>- 전처리 워크플로우 검증용 스크립트 |
+
+```bash
+# 예시: imports.py를 직접 실행해 console_scripts 설치 확인
+imports          # setup.py에 정의된 console_scripts 중 하나가 정상 동작하는지 테스트
+
+# 예시: 전처리 스크립트 실행
+preprocess sample.pdf --mode create
+
+# 예시: MCP 통합 테스트
+mcp-test
+```
+
     
-3. **서버**
-    - uvicorn 서버 실행
-        
-        ```
-        uvicorn main:app \
-        --reload \
-        --app-dir apps/api-server/workspace/fastapi-project \
-        --host 0.0.0.0 \
-        --port 8000
-        ```
-        - 정상 작동 실행 결과 
-        <img width="620" alt="image" src="https://github.com/user-attachments/assets/2396e629-6ccd-4f10-a321-1abc94f0b8be" />
-
-        
-    
-    
-4. **전처리**
-    - 전처리 메인 플로우 실행
-        
-        ```
-        python -m apps.ai_service.src.main_preprocess
-        ```
-        - 정상 작동 실행 결과 
-        <img width="606" alt="image" src="https://github.com/user-attachments/assets/4e14f82f-8c75-4b02-8090-e416f8f3b682" />
-
-        
-5. **시스템 실행** 
-    - 서비스 메인 플로우 실행
-        
-        ```
-        python -m apps.ai_service.src.main_service
-        ```
-        - 정상 작동 실행 결과
-         <img width="593" alt="image" src="https://github.com/user-attachments/assets/5e65bd03-9e5a-43ed-bcf2-e4912cb2f869" />
-          <img width="605" alt="image" src="https://github.com/user-attachments/assets/a54ce5c1-0c1a-400e-b2ce-e6cbe7e032aa" />
-
-          주의 : 대부분 요청 params을 알맞게 생성하나, 아직 모든 사용자 질의에 대해 올바른 요청 Params을 생성하지는 않는 것으로 확인됨
-           (대략 90프로 정확도 / 응답은 정확도 조금 더 떨어져서 최적화 작업 필요할듯)
-          질문 : 인천에서 뉴욕 가는 왕복 항공권 200만원 이하로 2025년 8월 중에 찾아줘 - 성공
-          질문 : 인천에서 GERMANY 가는거 100만원 아래꺼 2025년도 6월달것중에 젤 싼걸로 찾아줘 - 성공
-          질문: 인천에서 도쿄 편도 5월 15일, 50만원 이하 (요청 파라미터 정확 / but 응답이 부정확)
-          
-      <img width="528" alt="image" src="https://github.com/user-attachments/assets/08f9ff5c-2cd7-4e05-a7a7-45f9fa71035e" />
-
-      <img width="647" alt="image" src="https://github.com/user-attachments/assets/ce02a4bb-b843-4537-ac62-bda5578aa545" />
-
 
 ## B. 브랜치 전략
 모노레포 환경에서 DB, 전처리·Preprocess, LLM 서비스 영역을 독립 개발하면서도 `develop` 브랜치에서 전체 통합 테스트를 수행하고, `main` 브랜치로 배포하는 단순화된 구조입니다.
