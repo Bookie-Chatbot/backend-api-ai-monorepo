@@ -1,5 +1,4 @@
 from langchain_chroma import Chroma
-import faiss
 from langchain_community.vectorstores import FAISS
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import OpenAIEmbeddings
@@ -38,7 +37,7 @@ load_dotenv()
 
 def create_doc_Chroma(split_doc, persist_directory="db_Chroma"):
     # split doc들로 Chroma DB를 생성하는 메소드. 해당 데이터는 persist_directory 폴더에 저장
-    
+
     DB_PATH = "./chroma_db"
     # embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
     embedder = HuggingFaceEmbeddings(
@@ -54,7 +53,7 @@ def create_doc_Chroma(split_doc, persist_directory="db_Chroma"):
     )
 
     return db
-    
+
 def add_doc_to_Chroma(db: Chroma, new_docs):
     # 만들어져 있는 db에 새 docmunet 추가할 때 사용
     db.add_documents(new_docs)
@@ -114,7 +113,7 @@ def create_doc_FAISS(split_doc, persist_directory="db_FAISS"):
     db.save_local(persist_directory)
 
     return db
-    
+
 def add_doc_to_FAISS(db: FAISS, new_docs, persist_directory="db_FAISS"):
     # 만들어져 있는 db에 새 docmunet 추가할 때 사용
     db.add_documents(new_docs)

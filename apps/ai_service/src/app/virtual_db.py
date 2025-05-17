@@ -1,6 +1,6 @@
 import os
 import json
-from app import config
+from . import config
 
 def load_json_file(filename: str):
     """
