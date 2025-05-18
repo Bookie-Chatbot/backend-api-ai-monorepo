@@ -462,60 +462,88 @@ interface CheapestDateResult {
 
 server.tool(
   'find-cheapest-dates',
-  'Find the cheapest dates to fly for a given route',
+  'Find the cheapest dates to fly for a given route (using Flight Offers Search v2)',
   {
-    originLocationCode: z.string().length(3),
-    destinationLocationCode: z.string().length(3),
-    departureDate: z.string(),                // YYYY-MM-DD
-    returnDate: z.string().optional(),        // YYYY-MM-DD
-    duration: z.number().optional(),          // 왕복일 경우 체류일수
-    currencyCode: z.string().length(3).default('USD'),
+    originLocationCode: z.string().length(3).describe('Origin airport IATA code (e.g., ICN)'),
+    destinationLocationCode: z.string().length(3).describe('Destination airport IATA code (e.g., FRA)'),
+    departureDate: z.string().describe('Departure date in YYYY-MM-DD format'),
+    returnDate: z.string().optional().describe('Return date in YYYY-MM-DD format'),
+    maxPrice: z.number().optional().describe('Maximum price limit per ticket'),
+    nonStop: z.boolean().optional().default(false).describe('Only non-stop flights'),
+    adults: z.number().min(1).default(1).describe('Number of adult passengers'),
+    currencyCode: z.string().length(3).default('KRW').describe('Currency code for pricing'),
+    maxResults: z.number().min(1).default(5).describe('Max number of offers to return'),
   },
   async ({
     originLocationCode,
     destinationLocationCode,
     departureDate,
     returnDate,
-    duration,
+    maxPrice,
+    nonStop,
+    adults,
     currencyCode,
+    maxResults,
   }) => {
     try {
-      // 1) 파라미터 준비
+      // 1) v2FlightOffersSearch 파라미터 세팅
       const params: Record<string, any> = {
-        origin: originLocationCode,        // ← rename
-        destination: destinationLocationCode, // ← rename
+        originLocationCode,
+        destinationLocationCode,
         departureDate,
-        viewBy: 'DATE',
+        adults,
+        nonStop,
         currencyCode,
-        oneWay: !returnDate && !duration, // 왕복이 아닐 경우
+        max: maxResults,
       };
       if (returnDate) params.returnDate = returnDate;
-      if (duration)   params.duration   = duration;
+      if (maxPrice)  params.maxPrice  = maxPrice;
 
-      // 2) 실제 Amadeus flightDates API 호출
-      const rsp = await amadeus.shopping.flightDates.get(params);
+      // 2) 실제 Amadeus v2 쇼핑 Flight Offers Search 호출
+      const rsp = await amadeus.shopping.flightOffersSearch.get(params);
+      if (rsp.status !== 200) {
+        throw new Error(`Error: ${params.originLocationCode}
+        ${params.destinationLocationCode} ${params.departureDate}
+        ${params.returnDate} ${params.nonStop} ${params.adults} ${params.currencyCode}
+        ${params.max} - ${rsp.status} - ${rsp.statusText} - data: ${JSON.stringify(rsp.data)}`);
+      }
+      console.log('Flight Offers Search response:', rsp.data);
+
+      // 3) 데이터 유효성 검사
       if (!rsp.data || rsp.data.length === 0) {
         return {
           content: [
-            { type: 'text', text: 'No date data available.' },
+            { type: 'text', text: 'No flight offers found for the given criteria.' },
           ],
           isError: false,
         };
       }
 
-      // 3) 가장 저렴한 N개 날짜 추출
-      //    API가 이미 가격별로 정렬해 주는 경우, 그냥 앞의 몇 개를 잘라서 리턴해도 됩니다.
-      const cheapest = rsp.data.slice(0, 5).map((d: any) => ({
-        departureDate: d.departureDate,
-        returnDate:    d.returnDate ?? null,
-        price:         `${d.price.total} ${d.price.currency}`,
-      }));
+      // 4) 가장 저렴한 offer 선택
+      const cheapest = rsp.data.reduce((prev: any, curr: any) => {
+        const prevPrice = parseFloat(prev.price.total);
+        const currPrice = parseFloat(curr.price.total);
+        return currPrice < prevPrice ? curr : prev;
+      });
+
+      // 5) 응답 포맷
+      const seg = cheapest.itineraries[0].segments[0];
+      const result = {
+        route:     `${seg.departure.iataCode}-${seg.arrival.iataCode}`,
+        carrier:   seg.carrierCode,
+        departure: seg.departure.at,
+        arrival:   seg.arrival.at,
+        price:     `${cheapest.price.total} ${cheapest.price.currency}`,
+        offer_id:  cheapest.id,
+        // v2 응답의 self 링크
+        link:      rsp.meta?.links?.self,
+      };
 
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(cheapest, null, 2),
+            text: JSON.stringify(result, null, 2),
           },
         ],
       };
