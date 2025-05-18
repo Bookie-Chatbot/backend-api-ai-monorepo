@@ -58,6 +58,7 @@ setup(
             "mcp-server    = mcp.mcp_server:main",
             "mcp-client    = mcp.mcp_client:main",
             "mcp-test      = runs.test.mcp:main",
+            "mcp-test2    = runs.test.mcp2:main",
 
             # AI 서비스 전처리 & 메인 서비스
             "preprocess    = app_preprocess.main_preprocess:main",
