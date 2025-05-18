@@ -6,7 +6,7 @@ LLM JSON → 컨텍스트·점수 계산
 • 값이 빠져 있으면 안전하게 기본치(₩500 000, 3박)로 폴백
 """
 from __future__ import annotations
-import asyncio, json
+import asyncio, json, re
 from typing import Dict, List, Union, Optional
 
 from .data_sources import (
@@ -38,23 +38,35 @@ async def context_answer_dest(
 ) -> Dict[str, Union[str, List, Dict]]:
 
     raw_answer = inputs["answer"]
+    print(f"[DEBUG] raw_answer: {raw_answer}")
 
     # 1) JSON 파싱 -------------------------------------------------
     if isinstance(raw_answer, list):                       # Responses-API
         txt = raw_answer[0].get("text") if raw_answer else ""
-        loaded = json.loads(txt) if txt else {}
+        m = re.search(r'\{[\s\S]*\}', txt)
+        if m:
+            try:
+                loaded = json.loads(m.group())
+            except json.JSONDecodeError:
+                loaded = {}
+        else:
+            loaded = {}
     elif isinstance(raw_answer, str):
-        try:
-            loaded = json.loads(raw_answer)
-        except json.JSONDecodeError:
+        # 텍스트 내 첫 번째 JSON 블록을 찾아 파싱
+        m = re.search(r'\{[\s\S]*\}', raw_answer)
+        if m:
+            try:
+                loaded = json.loads(m.group())
+            except json.JSONDecodeError:
+                loaded = {}
+        else:
             loaded = {}
     else:
-        loaded = raw_answer
+         loaded = raw_answer  # 이미 dict 등인 경우
 
-    cards       = loaded.get("cards") or loaded.get("recommendations") \
-                  or (loaded if isinstance(loaded, list) else [])
-    budget_krw  = loaded.get("budget_krw", 500_000)     # 기본 50 만 원
-    nights      = loaded.get("nights", 3)               # 기본 3박
+    cards      = loaded.get("cards") or loaded.get("recommendations") or []
+    budget_krw = loaded.get("budget_krw", 500_000)
+    nights     = loaded.get("nights", 3)
 
     print(f"[META] budget={budget_krw:,}₩  nights={nights}")
 

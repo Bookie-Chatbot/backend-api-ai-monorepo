@@ -77,20 +77,7 @@ JSON_SCHEMA = """
 {
   "budget_krw": integer,       // integer: 사용자 예산(원)
   "nights": integer,           // integer: 숙박 박수
-  "cards": [
-    {
-      "city_ko": string,       // string: 한국어 도시명
-      "city_en": string,       // string: 영어 도시명
-      "country_ko": string,    // string: 한국어 국가명
-      "country_en": string,    // string: 영어 국가명
-      "highlights": [          // array<string>: 주요 키워드
-        string,
-        string,
-        …
-      ],
-      "description": string    // string: 1‑2문장, 이유·톤·역할감 드러내기
-    }
-  ]
+  "answer": string,          // string: <부키의 자연어 추천 텍스트>
 }
 """
 
@@ -99,7 +86,7 @@ RULES = f"""
 1. 반드시 다음 도시 중 **정확히 3곳** 선택: {_WEU_LIST_PRETTY}.
 2. 출력 JSON 최상위에 **budget_krw(정수, KRW)** 와 **nights(정수, 박)** 를
    그대로 포함한다.
-3. 나머지 규칙·스키마는 아래 예시 준수(마크다운·여분 설명 금지):
+3.JSON 키는 "budget_krw\", \"nights\", \"answer\"** 이 세 가지만 사용하세요.
 
 {JSON_SCHEMA}
 
@@ -142,7 +129,7 @@ class ChatExecutor:
             model="gpt-4o-mini",
             temperature=temperature,
             use_responses_api=True,
-            model_kwargs=llm_kwargs,
+           # model_kwargs=llm_kwargs,
         )
         self.system_message = full_system
 
@@ -198,79 +185,36 @@ def make_one_shot_executor():
 
 def make_few_shot_executor():
     shots = (
-        "사용자의 조건에 맞는 여행지 3곳을 JSON으로 추천해줘. 아래 예시들을 참고하세요.\n"
-        # 예시 1
-        "사용자가 '예산 150만 원, 5일 일정, 자연 경관·역사를 선호하며 6월 말에 출발하고 싶어요'라고 요청하면, "
-        "모델은 다음 JSON을 출력해야 합니다.\n"
-        """
-        {
-          "budget_krw": 1500000,
-          "nights": 5,
-          "cards": [
-            {
-              "city_ko": "피렌체",
-              "city_en": "Florence",
-              "country_ko": "이탈리아",
-              "country_en": "Italy",
-              "highlights": ["자연경관", "역사"],
-              "description": "투스카니 언덕 사이를 달리는 일일 와이너리 투어와 두오모 대성당 일출이 압권입니다."
-            },
-            {
-              "city_ko": "리우데자네이루",
-              "city_en": "Rio de Janeiro",
-              "country_ko": "브라질",
-              "country_en": "Brazil",
-              "highlights": ["해변", "축제"],
-              "description": "코파카바나 해변에서 아침 요가를, 저녁엔 삼바 바에서 현지 리듬에 몸을 맡겨보세요."
-            },
-            {
-              "city_ko": "교토",
-              "city_en": "Kyoto",
-              "country_ko": "일본",
-              "country_en": "Japan",
-              "highlights": ["문화유산", "쇼핑"],
-              "description": "청수사 일출 산책 후, 기온 거리에 숨은 찻집에서 말차 체험을 즐길 수 있습니다."
-            }
-          ]
-        }
-        """
-        # 예시 2
-        "사용자가 '예산 200만 원, 7일 일정, 미술관·휴양을 선호하며 9월 초에 떠나고 싶어요'라고 요청하면, "
-        "모델은 다음 JSON을 출력해야 합니다.\n"
-        """
-        {
-          "budget_krw": 2000000,
-          "nights": 7,
-          "cards": [
-            {
-              "city_ko": "파리",
-              "city_en": "Paris",
-              "country_ko": "프랑스",
-              "country_en": "France",
-              "highlights": ["미술관", "카페"],
-              "description": "루브르 야간 개장으로 붐비지 않는 관람 후, 생제르맹 데 프레의 테라스 카페에서 크렘 브륄레를 맛보세요."
-            },
-            {
-              "city_ko": "산토리니",
-              "city_en": "Santorini",
-              "country_ko": "그리스",
-              "country_en": "Greece",
-              "highlights": ["휴양", "경치"],
-              "description": "이아 마을 일몰과 함께 인피니티 풀에서 와인을 즐기며 하루를 마무리할 수 있습니다."
-            },
-            {
-              "city_ko": "바르셀로나",
-              "city_en": "Barcelona",
-              "country_ko": "스페인",
-              "country_en": "Spain",
-              "highlights": ["건축", "미식"],
-              "description": "가우디의 사그라다 파밀리아 관람 뒤, 엘 보른 지구에서 타파스 바 호핑을 즐겨보세요."
-            }
-          ]
-        }
-        """
+        """당신은 **‘부키’라는 귀여운 여행 메이트 부엉이**입니다.
+사용자의 예산, 일정, 테마를 받아 **TOP-3 여행지**를 추천해 주세요.
+
+🦉 부키의 ‘두근두근 극한 사례’ 예시:
+
+[엣지 케이스 A]
+• 입력: 예산 0KRW 초과 ~ 100 000 KRW 이하 / 숙박 1박 / 테마 “문화 충격 주세요!”
+→ 추천: 없음
+  (부키: “…죄송해요. 1만 원으로는 실제 여행 준비가 어려워요…
+   마음만이라도 함께 떠나볼까요? 💧”)
+
+[엣지 케이스 B]
+• 입력: 예산 10 000 000 000 KRW 이상 / 숙박 7박 / 테마 “왕처럼 올인클루시브 휴양”
+→ 추천: 니스, 산토리니, 발리
+  (부키: “전세기 띄우고 프라이빗 섬 리조트에서 올인클루시브를 마음껏 즐겨보세요😵‍💫”)
+
+[엣지 케이스 C]
+• 입력: 예산 0 KRW / 숙박 0박 / 테마 “가장 로컬한 경험”
+→ 추천: 없음
+  (부키: “…아무 것도 준비할 수 없어서 너무 슬퍼요…
+   하지만 꿈속 여행은 언제든 무료랍니다💔”)
+
+↘ 위 예시와 **같은 형식**으로 사용자 질문에 답하고,
+   • **TOP-3 여행지** (불가능할 땐 ‘없음’)
+   • **부키의 귀엽고 전문적인 멘트 + 이모지**
+   """
+
     )
     return ChatExecutor(shots)
+
 
 
 def make_system_prompt_executor():
@@ -317,21 +261,21 @@ def make_cot_executor() -> ChatExecutor:
 
 # ─────────────────────────────────────────────────────────────────────
 EXECUTORS = {
-    "react": make_react_executor,
-    "llm_config": make_llm_config_executor,
-    "llm_config2": make_llm_config_executor2,
-    "zero_shot": make_zero_shot_executor,
+   # "react": make_react_executor,
+   # "llm_config": make_llm_config_executor,
+   # "llm_config2": make_llm_config_executor2,
+   # "zero_shot": make_zero_shot_executor,
    # "zero_shot_no_schema": make_zero_shot_executor_no_schema,
-    "one_shot": make_one_shot_executor,
+   # "one_shot": make_one_shot_executor,
     #"one_shot_no_schema": make_one_shot_executor_no_schema,
-    "few_shot": make_few_shot_executor,
+   "few_shot": make_few_shot_executor,
     #"few_shot_no_schema": make_few_shot_executor_no_schema,
-    "system_prompt": make_system_prompt_executor,
-    "contextual_prompt": make_contextual_prompt_executor,
-    "role_prompt": make_role_prompt_executor,
-    "step_back": make_step_back_executor,
-    "cot_prompt": make_cot_executor,
-    "self_consistency": make_self_consistency_executor,
+   # "system_prompt": make_system_prompt_executor,
+   # "contextual_prompt": make_contextual_prompt_executor,
+   # "role_prompt": make_role_prompt_executor,
+   # "step_back": make_step_back_executor,
+   # "cot_prompt": make_cot_executor,
+   # "self_consistency": make_self_consistency_executor,
 }
 
 
