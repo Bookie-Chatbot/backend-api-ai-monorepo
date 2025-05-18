@@ -84,7 +84,7 @@ const activeTransports = new Map<string, SSEServerTransport>();
 export async function main() {
   // Tools, resources, prompt 등을 사전에 등록
   await Promise.all([
-    import('./tools.js'),
+    import('./tools/index.js'),
     import('./resources.js'),
     import('./prompt.js')
   ]);
