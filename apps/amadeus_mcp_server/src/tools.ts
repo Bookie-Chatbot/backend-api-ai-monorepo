@@ -501,12 +501,12 @@ server.tool(
 
       // 2) 실제 Amadeus v2 쇼핑 Flight Offers Search 호출
       const rsp = await amadeus.shopping.flightOffersSearch.get(params);
-      if (rsp.status !== 200) {
-        throw new Error(`Error: ${params.originLocationCode}
+
+      console.log(`res: ${params.originLocationCode}
         ${params.destinationLocationCode} ${params.departureDate}
         ${params.returnDate} ${params.nonStop} ${params.adults} ${params.currencyCode}
         ${params.max} - ${rsp.status} - ${rsp.statusText} - data: ${JSON.stringify(rsp.data)}`);
-      }
+
       console.log('Flight Offers Search response:', rsp.data);
 
       // 3) 데이터 유효성 검사
