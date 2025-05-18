@@ -37,42 +37,7 @@ CITIES_EN: List[str] = [
 _WEU_PRETTY = ", ".join(c.title() for c in CITIES_EN)
 
 COMMON_SUFFIX = f"""
-### HARD RULES
-1. 추천은 반드시 다음 목록에서 **정확히 3개** 도시만 선택: {_WEU_PRETTY}.
-2. 허구 정보·근거 없는 축약형 지명 금지.
-3. 출력은 아래 JSON 스키마 **하나만**(설명·마크다운 없이):
-
-   {{
-          "budget_krw": 2000000,
-          "nights": 7,
-          "cards": [
-            {{
-              "city_ko": "파리",
-              "city_en": "Paris",
-              "country_ko": "프랑스",
-              "country_en": "France",
-              "highlights": ["미술관", "카페"],
-              "description": "루브르 야간 개장으로 붐비지 않는 관람 후, 생제르맹 데 프레의 테라스 카페에서 크렘 브륄레를 맛보세요."
-            }},
-            {{
-              "city_ko": "산토리니",
-              "city_en": "Santorini",
-              "country_ko": "그리스",
-              "country_en": "Greece",
-              "highlights": ["휴양", "경치"],
-              "description": "이아 마을 일몰과 함께 인피니티 풀에서 와인을 즐기며 하루를 마무리할 수 있습니다."
-            }},
-            {{
-              "city_ko": "바르셀로나",
-              "city_en": "Barcelona",
-              "country_ko": "스페인",
-              "country_en": "Spain",
-              "highlights": ["건축", "미식"],
-              "description": "가우디의 사그라다 파밀리아 관람 뒤, 엘 보른 지구에서 타파스 바 호핑을 즐겨보세요."
-            }}
-          ]
-        }}
-4. 유효한 JSON (trailing comma ❌).
+### ALLOW_LIST : {_WEU_PRETTY}.
 """
 
 
@@ -83,7 +48,7 @@ class _LLM:
             model="gpt-4o-mini",
             temperature=temperature,
             use_responses_api=True,
-            model_kwargs={"response_format": {"type": "json_object"}},
+           # model_kwargs={"response_format": {"type": "json_object"}},
         )
 
     def run(self, sys_msg: str, user_msg: str) -> str:
@@ -96,11 +61,24 @@ class SelfConsistencyExecutor:
 
     def __init__(self):
         self._base_sys = (
-            "ROLE: 친근하지만 전문적인 세계 여행 컨설턴트.\n"
-            "TASK: Chain-of-Thought(조용히), 다양한 reasoning path 5회 생성 후 "
-            "Self-Consistency로 가장 빈번한 결과를 선택.\n"
-            "OUTPUT: HARD RULES & JSON 스키마만 준수. "
-            "각 card.description 은 2문장, 사용자가 체감할 생생한 액티비티를 포함.\n"
+"""
+[ROLE]: 세계 여행 컨설턴트 부키🦉 (장난+전문 반반).
+
+[SELF-CONSISTENCY]: 서로 다른 5개의 추론 경로를 **Temperature=0.8**로 생성하고,
+각 경로에서 **Self-Consistency**를 통해 가장 빈번한 결과를 선택합니다.
+
+[RULES]:
+
+- ALLOW_LIST 밖의 도시는 ‘삐악!’ 경고 후 무시
+- 각 CoT 샘플은 “Path 1: …”, “Path 2: …” 형태로 구분
+- 최종 **Self-Vote**로 도시별 득표수 집계 (“Paris 4표 / Rome 3표 / …”)
+
+[OUTPUT]:
+
+1. **5개 CoT 샘플** (Path 1–5)
+2. **투표 결과 tally**
+3. **최빈 3개 도시**에 대한 2문단 요약 (매력 포인트·예산 대비 만족도)
+"""
         ) + COMMON_SUFFIX
         # 다양성 확보용 서로 다른 temperature
         self._llms = [_LLM(temperature=0.4 + 0.1 * random.random()) for _ in range(self._N)]
@@ -111,8 +89,15 @@ class SelfConsistencyExecutor:
         async def _once(llm: _LLM) -> str:
             return llm.run(self._base_sys, question)
 
+        # ① CoT 샘플 5개 생성
         drafts = await asyncio.gather(*[_once(l) for l in self._llms])
 
+
+        # ② 디버깅: 각 Path의 원본 CoT 출력
+        for i, raw in enumerate(drafts, 1):
+            print(f"\n--- Path {i} 원본 CoT ---\n{raw}\n")
+
+        # ③ 이후 텍스트 정제·투표 로직 진행
         def _to_text(raw) -> str:
             if isinstance(raw, str):
                 return raw
@@ -137,11 +122,25 @@ class SelfConsistencyExecutor:
             top3 += random.sample(remaining, 3 - len(top3))
 
         # ── 최종 결정적 JSON ────────────────────────────────
+      # ── 최종 결정적 JSON ────────────────────────────────────────────────
         final_sys = (
-            "아래 도시 3개를 그대로 사용하라. "
-            f"도시 리스트: {', '.join(top3)}. "
-            "규칙을 위배하지 않는 JSON을 출력한다."
-        ) + COMMON_SUFFIX
+          "🎉 부키 최종 라운드입니다! SELF-VOTE에서 승리한 3개 도시는: "
+           f"{', '.join(top3)} 입니다.\n\n"
+           "승리한 3개의 도시를 그대로 사용해주세요. "
+       "– 이제 다음 지침을 모두 준수해 답변을 작성하세요:\n"
+    "  1) 여행 포인트를 2문장씩 요약\n"
+    "  2) 마지막 문단에 “부키🦉 총예산 ≈ … KRW” 형태로 산출\n"
+    "  3) 자연어 텍스트 안에 아래 JSON 객체를 **반드시** 포함할 것\n\n"
+    "```json\n"
+    "{\n"
+    "  \"budget_krw\": <총 예산 KRW 정수>,\n"
+    "  \"nights\": <숙박 일수 정수>,\n"
+    "  \"answer\": \"<부키의 자연어 추천 텍스트>\"\n"
+    "}\n"
+    "```\n\n"
+    "– JSON 키는 **\"budget_krw\", \"nights\", \"answer\"** 이 세 가지만 사용하세요."
+  ) + COMMON_SUFFIX
+
 
         decisive_llm = _LLM(temperature=0.0)
         final_json = decisive_llm.run(final_sys, question)
