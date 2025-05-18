@@ -1,6 +1,7 @@
 import { z } from 'zod';
 // Tool to search for flights
 import { amadeus, cachedApiCall, server } from './index.js';
+import { cache } from './index.js';
 
 // Define interfaces for Amadeus API responses and parameters
 interface FlightParams {
@@ -75,6 +76,8 @@ interface FlightOffer {
   itineraries: FlightItinerary[];
   validatingAirlineCodes: string[];
   numberOfBookableSeats?: number;
+  id: string;
+
 }
 
 // Define response interfaces for API calls
@@ -195,6 +198,9 @@ server.tool(
         params,
       )) as FlightOfferResponse;
 
+      await cache.set('last_search_offers', response.data, 600);
+
+
       const formattedResults = response.data.map((offer: FlightOffer) => {
         const {
           price,
@@ -286,88 +292,8 @@ server.tool(
   },
 );
 
-// Tool to search for airports
-server.tool(
-  'search-airports',
-  'Search for airports by keyword',
-  {
-    keyword: z
-      .string()
-      .min(2)
-      .describe('Keyword to search for (city, airport name, IATA code)'),
-    subType: z
-      .string()
-      .default('CITY,AIRPORT')
-      .describe('Subtypes, comma–separated (e.g. "CITY", "AIRPORT", or "CITY,AIRPORT")')
-      .optional()
-      .describe('Subtype to filter results'),
-    countryCode: z
-      .string()
-      .length(2)
-      .optional()
-      .describe('Two-letter country code to filter results'),
-    maxResults: z
-      .number()
-      .min(1)
-      .max(100)
-      .default(10)
-      .describe('Maximum number of results'),
-  },
-  async ({ keyword, subType, countryCode, maxResults }) => {
-    try {
-      const params: AirportParams = {
-        keyword,
-        subType: subType ?? 'CITY,AIRPORT',
-        countryCode,
-        max: maxResults,
-      };
 
-      // Remove undefined values
-      for (const key of Object.keys(params)) {
-        if (params[key] === undefined) {
-          delete params[key];
-        }
-      }
 
-      // Create a cache key based on the parameters
-      const cacheKey = `airport_search_${keyword}_${subType || ''}_${
-        countryCode || ''
-      }_${maxResults}`;
-
-      // Use the cached API call with a TTL of 24 hours (86400 seconds) since airport data rarely changes
-      const response = await cachedApiCall<AirportResponse>(
-        cacheKey,
-        86400,
-        () =>
-          amadeus.referenceData.locations.get(
-            params,
-          ) as Promise<AirportResponse>,
-      );
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(response.data, null, 2),
-          },
-        ],
-      };
-    } catch (error: unknown) {
-      console.error('Error searching airports:', error);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error searching airports: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  },
-);
 
 /*
  * Tool to get flight price analysis
@@ -454,27 +380,49 @@ server.tool(
   'get-flight-details',
   'Get detailed information about a specific flight offer',
   {
-    flightOfferId: z.string().describe('The ID of the flight offer'),
+    offerId: z.string().describe('The flight offer ID returned by search-flights'),
   },
-  async ({ flightOfferId }) => {
+  async ({ offerId }) => {
     try {
-      // Flight offers need to be first retrieved then accessed by ID
-      // This is a simulated implementation as direct ID access isn't available in the basic API
+      // 1) 먼저 캐시나 DB에서 flightOffersSearch 결과 배열을 가져옵니다.
+      //    예: 이전 search-flights 호출에서 response.data 전체를 Redis 등에 저장했다가 꺼내는 로직
+      const cachedOffers = await cache.get<FlightOffer[]>('last_search_offers');
+      if (!cachedOffers) {
+        throw new Error('No cached flight offers found; please run search-flights first');
+      }
 
-      // In a real implementation, you would either:
-      // 1. Cache flight offers and look them up by ID
-      // 2. Pass the entire flight offer object as a JSON string and parse it here
+      // 2) offerId와 일치하는 항공편 찾기
+      const offer = cachedOffers.find((o) => o.id === offerId);
+      if (!offer) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Flight offer ID ${offerId} not found in cache.`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // 3) 상세 정보 포맷
+      const segments = offer.itineraries.flatMap((it) => it.segments);
+      const details = {
+        price: `${offer.price.total} ${offer.price.currency}`,
+        bookableSeats: offer.numberOfBookableSeats ?? 'Unknown',
+        airlines: offer.validatingAirlineCodes.join(', '),
+        segments: segments.map((seg) => ({
+          from: `${seg.departure.iataCode} @ ${seg.departure.at}`,
+          to:   `${seg.arrival.iataCode} @ ${seg.arrival.at}`,
+          carrier: `${seg.carrierCode}${seg.number}`,
+        })),
+      };
 
       return {
         content: [
           {
             type: 'text',
-            text: `To implement this properly for flight ID ${flightOfferId}, you would need to either:
-1. Cache flight search results server-side and retrieve by ID
-2. Pass the entire flight offer object as a JSON string parameter
-3. Use Amadeus Flight Offers Price API for the most current and detailed information
-
-Please modify this tool based on your specific implementation needs.`,
+            text: JSON.stringify(details, null, 2),
           },
         ],
       };
@@ -484,15 +432,13 @@ Please modify this tool based on your specific implementation needs.`,
         content: [
           {
             type: 'text',
-            text: `Error getting flight details: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
+            text: `Error getting flight details: ${(error as Error).message}`,
           },
         ],
         isError: true,
       };
     }
-  },
+  }
 );
 
 /**
@@ -512,34 +458,18 @@ interface CheapestDateResult {
   }>;
 }
 
+// apps/amadeus_mcp_server/src/tools.ts
+
 server.tool(
   'find-cheapest-dates',
   'Find the cheapest dates to fly for a given route',
   {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code (e.g., JFK)'),
-    destinationLocationCode: z
-      .string()
-      .length(3)
-      .describe('Destination airport IATA code (e.g., LHR)'),
-    departureDate: z
-      .string()
-      .describe('Earliest departure date in YYYY-MM-DD format'),
-    returnDate: z
-      .string()
-      .optional()
-      .describe('Latest return date in YYYY-MM-DD format (for round trips)'),
-    duration: z
-      .number()
-      .optional()
-      .describe('Desired length of stay in days (for round trips)'),
-    currencyCode: z
-      .string()
-      .length(3)
-      .default('USD')
-      .describe('Currency code for pricing'),
+    originLocationCode: z.string().length(3),
+    destinationLocationCode: z.string().length(3),
+    departureDate: z.string(),                // YYYY-MM-DD
+    returnDate: z.string().optional(),        // YYYY-MM-DD
+    duration: z.number().optional(),          // 왕복일 경우 체류일수
+    currencyCode: z.string().length(3).default('USD'),
   },
   async ({
     originLocationCode,
@@ -550,81 +480,42 @@ server.tool(
     currencyCode,
   }) => {
     try {
-      // Check if we have required parameters
-      if (!departureDate) {
+      // 1) 파라미터 준비
+      const params: Record<string, any> = {
+        origin: originLocationCode,        // ← rename
+        destination: destinationLocationCode, // ← rename
+        departureDate,
+        viewBy: 'DATE',
+        currencyCode,
+        oneWay: !returnDate && !duration, // 왕복이 아닐 경우
+      };
+      if (returnDate) params.returnDate = returnDate;
+      if (duration)   params.duration   = duration;
+
+      // 2) 실제 Amadeus flightDates API 호출
+      const rsp = await amadeus.shopping.flightDates.get(params);
+      if (!rsp.data || rsp.data.length === 0) {
         return {
           content: [
-            {
-              type: 'text',
-              text: 'Departure date is required for date search',
-            },
+            { type: 'text', text: 'No date data available.' },
           ],
-          isError: true,
+          isError: false,
         };
       }
 
-      const params: CheapestDateParams = {
-        originLocationCode,
-        destinationLocationCode,
-        departureDate,
-        returnDate,
-        oneWay: !returnDate && !duration,
-        duration,
-        nonStop: false,
-        viewBy: 'DATE',
-        currencyCode,
-      };
-
-      // Remove undefined values
-      for (const key of Object.keys(params)) {
-        if (params[key] === undefined) {
-          delete params[key];
-        }
-      }
-
-      // Note: This endpoint requires Flight Offers Search API
-      // This is a placeholder for the actual implementation
-      // Normally, you'd use amadeus.shopping.flightDates.get(params)
-
-      // Simulate a response for demonstration
-      const simulatedResponse: CheapestDateResult = {
-        data: [
-          {
-            type: 'flight-date',
-            origin: originLocationCode,
-            destination: destinationLocationCode,
-            departureDate: departureDate,
-            returnDate: returnDate,
-            price: { total: '450.00', currency: currencyCode },
-          },
-          {
-            type: 'flight-date',
-            origin: originLocationCode,
-            destination: destinationLocationCode,
-            departureDate: new Date(
-              new Date(departureDate).getTime() + 86400000 * 2,
-            )
-              .toISOString()
-              .split('T')[0],
-            returnDate: returnDate
-              ? new Date(new Date(returnDate).getTime() + 86400000 * 2)
-                  .toISOString()
-                  .split('T')[0]
-              : null,
-            price: { total: '425.00', currency: currencyCode },
-          },
-        ],
-      };
+      // 3) 가장 저렴한 N개 날짜 추출
+      //    API가 이미 가격별로 정렬해 주는 경우, 그냥 앞의 몇 개를 잘라서 리턴해도 됩니다.
+      const cheapest = rsp.data.slice(0, 5).map((d: any) => ({
+        departureDate: d.departureDate,
+        returnDate:    d.returnDate ?? null,
+        price:         `${d.price.total} ${d.price.currency}`,
+      }));
 
       return {
         content: [
           {
             type: 'text',
-            text: `Note: This is currently a simulated response. To implement fully, you'll need to use the Flight Offers Search API with appropriate date ranges.\n\n${JSON.stringify(
-              simulatedResponse.data,
-              null,
-              2,
-            )}`,
+            text: JSON.stringify(cheapest, null, 2),
           },
         ],
       };
@@ -634,16 +525,15 @@ server.tool(
         content: [
           {
             type: 'text',
-            text: `Error finding cheapest dates: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }`,
+            text: `Error finding cheapest dates: ${(error as Error).message}`,
           },
         ],
         isError: true,
       };
     }
-  },
+  }
 );
+
 
 /**
  * Tool to search for flight inspiration destinations

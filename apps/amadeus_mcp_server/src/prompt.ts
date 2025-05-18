@@ -247,7 +247,6 @@ Please use the flight-inspiration tool to find destinations and then:
 5. Include any interesting destinations that might be unexpected
 
 For the most interesting options, please use the search-flights tool to find specific flight details.
-If needed, use the search-airports tool to get more information about the destinations.
 
 Please organize the results to help me discover new travel possibilities within my constraints.`,
           },
@@ -256,6 +255,7 @@ Please organize the results to help me discover new travel possibilities within 
     };
   },
 );
+// If needed, use the search-airports tool to get more information about the destinations.
 
 // Prompt for exploring airport routes
 server.prompt(
