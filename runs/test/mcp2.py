@@ -1,113 +1,184 @@
 #!/usr/bin/env python3
-import asyncio
-import subprocess
-import time
-import signal
-import sys
-import os
+"""
+통합 MCP 런처
+ - 날씨  : Python FastMCP  → 8010/sse
+ - Amadeus : Node(TypeScript) → 8020/sse
+"""
+import asyncio, socket, sys, os, signal, subprocess, time
 from pathlib import Path
 from dotenv import load_dotenv
 
-# LangChain MCP client libraries
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
-
-# ── 기존 날씨 서버 래퍼 ───────────────────────────────────
-def start_weather_server():
-    return subprocess.Popen([
-        sys.executable, "-m", "mcp.mcp_server"
-    ], preexec_fn=os.setsid,
-       stdout=subprocess.DEVNULL,
-       stderr=subprocess.DEVNULL)
-
-def stop_weather_server(proc):
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGINT)
-    except Exception:
-        pass
-    proc.wait()
-
-# ── Amadeus 서버 래퍼 (§4 참고) ────────────────────────────
+# ──────────────────────────────────────────────────────────
+# 1. 공통 유틸
+# ──────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent
-def start_amadeus_server():
+WEATHER_PORT  = 8010
+AMADEUS_PORT  = int(os.getenv("AMADEUS_PORT", 8020))
+
+def wait_port(host: str, port: int, timeout: float = 2000.0):
+    """포트가 열릴 때까지 블로킹 대기"""
+    print(f"[DEBUG] wait_port: start waiting {host}:{port} (timeout={timeout}s)")
+    start = time.perf_counter()
+    while time.perf_counter() - start < timeout:
+        with socket.socket() as sock:
+            sock.settimeout(1)
+            res = sock.connect_ex((host, port))
+            print(f"[DEBUG] wait_port: try connect → {res}")
+            if res == 0:
+                print(f"[DEBUG] wait_port: port {port} is open!")
+                return
+        time.sleep(0.2)
+    raise RuntimeError(f"포트 {port} 대기 시간 초과")
+
+# ──────────────────────────────────────────────────────────
+# 2. 날씨 서버 (기존과 동일)
+# ──────────────────────────────────────────────────────────
+def start_weather():
+    cmd = [sys.executable, "-m", "mcp.mcp_server"]
+    print(f"[DEBUG] start_weather: 실행 → {cmd}")
     return subprocess.Popen(
-        ["npm", "run", "start", "--prefix", str(ROOT / "amadeus_server" / "apps" / "amadeus_mcp_server")],
+        cmd,
         preexec_fn=os.setsid,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        stderr=subprocess.DEVNULL,
     )
+    print(f"[DEBUG] start_weather: PID={proc.pid}")
+    return proc
 
-def stop_amadeus_server(proc):
+def stop_weather(proc):
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGINT)
     except ProcessLookupError:
         pass
     proc.wait()
 
-# ── MCP 질의 함수 ─────────────────────────────────────────
-async def query_mcp(question: str) -> str:
-    load_dotenv()
+# ──────────────────────────────────────────────────────────
+# 3. Amadeus 서버(Node) – cwd 지정 & 빌드 보장
+# ──────────────────────────────────────────────────────────
+AMADEUS_DIR = "apps/amadeus_mcp_server"
 
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-    server_connections = {
+def build_amadeus():
+    cmd = ["npm", "run", "build"]
+    cwd_path: Path = Path(AMADEUS_DIR)
+    print(f"[DEBUG] build_amadeus: cwd={cwd_path}")
+    print(f"[DEBUG] build_amadeus: 실행 → {cmd}")
+
+    ret = subprocess.run(
+        cmd,
+        cwd=str(cwd_path),
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    print(f"[DEBUG] build_amadeus: returncode={ret.returncode}")
+
+    dist_path = cwd_path / "dist" / "cli.js"
+    print(f"[DEBUG] build_amadeus: looking for {dist_path}")
+    if ret.returncode != 0 or not dist_path.exists():
+        raise RuntimeError("[ERROR] build_amadeus: 빌드 실패 또는 dist/cli.js 누락")
+
+
+def start_amadeus():
+    cmd = ["npm", "run", "start"]
+    cwd = str(AMADEUS_DIR)
+    print(f"[DEBUG] start_amadeus: cwd={cwd}")
+    print(f"[DEBUG] start_amadeus: 실행 → {cmd}")
+    proc = subprocess.Popen(
+        cmd,
+        cwd=AMADEUS_DIR,
+        preexec_fn=os.setsid,
+        stdout=None,
+        stderr=None,
+    )
+    print(f"[DEBUG] start_amadeus: PID={proc.pid}")
+    return proc
+
+def stop_amadeus(proc):
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+    except ProcessLookupError:
+        pass
+    proc.wait()
+
+# ──────────────────────────────────────────────────────────
+# 4. LangChain → MCP 클라이언트
+# ──────────────────────────────────────────────────────────
+async def ask_mcp(question: str) -> str:
+    load_dotenv()
+    # import 가 늦으면 느리게 불러오기
+    from langchain_mcp_adapters.client import MultiServerMCPClient
+    from langchain_openai import ChatOpenAI
+    from langgraph.prebuilt import create_react_agent
+
+    connections = {
         "weather": {
             "transport": "sse",
-            "url": "http://localhost:8010/sse",
+            "url": f"http://localhost:{WEATHER_PORT}/sse",
         },
         "amadeus": {
             "transport": "sse",
-            "url": "http://localhost:8020/sse",
+            "url": f"http://localhost:{AMADEUS_PORT}/sse",
         },
     }
 
-    client = MultiServerMCPClient(server_connections)
-    tools = await client.get_tools()
+    client = MultiServerMCPClient(connections)
+    tools   = await client.get_tools()
+
+    llm  = ChatOpenAI(model_name="gpt-3.5-turbo")
     agent = create_react_agent(model=llm, tools=tools)
 
-    persona = (
-        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-        "모든 질문에 친절하고 상냥한 말투로 대답해주세요. "
-        "말끝마다 '부키!'를 붙여주세요."
-    )
-    messages = [("system", persona), ("human", question)]
-
-    result = await agent.ainvoke({"messages": messages})
+    persona = ("당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+               "모든 답변 끝에 ‘부키!’를 붙여줘.")
+    msgs = [("system", persona), ("human", question)]
+    result = await agent.ainvoke({"messages": msgs})
     return result["messages"][-1].content
 
-# ── 메인 루틴 ────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────
+# 5. 메인
+# ──────────────────────────────────────────────────────────
 def main():
-    # 1) 두 서버 시작
-    weather_proc = start_weather_server()
-    amadeus_proc = start_amadeus_server()
-    print("❄️ 날씨 MCP 서버 및 ✈️ Amadeus MCP 서버를 시작했습니다...")
-    time.sleep(1)  # 각 포트(8010, 8020) 준비 대기
+    print("❄️  날씨 MCP  +  ✈️  Amadeus MCP  부팅 중…")
+    weather_proc  = start_weather()
 
-    # 2) 시그널 핸들러 등록 (SIGINT, SIGTERM, SIGTSTP)
-    def cleanup(sig, frame):
-        print("\n시그널 감지, MCP 서버들을 종료합니다...")
-        stop_amadeus_server(amadeus_proc)
-        stop_weather_server(weather_proc)
+    try:
+        build_amadeus()            # 컴파일
+    except Exception as e:
+        print(f"[ERROR] build_amadeus 실패: {e}")
+        stop_weather(weather_proc)
+        sys.exit(1)
+    amadeus_proc  = start_amadeus()
+    # 포트 오픈 대기
+    try:
+        wait_port("127.0.0.1", WEATHER_PORT)
+        wait_port("127.0.0.1", AMADEUS_PORT)
+    except Exception as e:
+        print("❌ 서버 기동 실패:", e)
+        stop_amadeus(amadeus_proc)
+        stop_weather(weather_proc)
+        sys.exit(1)
+
+    print("✅ 두 MCP 서버가 준비되었습니다!")
+    print("부엉이 부키와 대화하기 (종료: 빈 줄 + Enter)\n")
+
+    def shutdown(sig, _frame):
+        print("\n⏹️  MCP 서버들을 종료합니다…")
+        stop_amadeus(amadeus_proc)
+        stop_weather(weather_proc)
         sys.exit(0)
 
-    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGTSTP):
-        signal.signal(sig, cleanup)
+    for s in (signal.SIGINT, signal.SIGTERM, signal.SIGTSTP):
+        signal.signal(s, shutdown)
 
-    # 3) 대화형 루프
+    loop = asyncio.get_event_loop()
     try:
-        loop = asyncio.get_event_loop()
-        print("부엉이 부키와 대화하기 (종료: 빈 입력 후 Enter)")
         while True:
-            question = input("You: ").strip()
-            if not question:
+            q = input("You: ").strip()
+            if not q:
                 break
-            answer = loop.run_until_complete(query_mcp(question))
-            print(f"부엉이 부키: {answer}\n")
+            a = loop.run_until_complete(ask_mcp(q))
+            print(f"부엉이 부키: {a}\n")
     finally:
-        # 4) 서버 종료
-        print("MCP 서버들을 종료합니다...")
-        stop_amadeus_server(amadeus_proc)
-        stop_weather_server(weather_proc)
+        shutdown(None, None)
 
 if __name__ == "__main__":
     main()
