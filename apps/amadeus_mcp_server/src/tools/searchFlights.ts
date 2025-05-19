@@ -85,6 +85,8 @@ server.tool(
       )) as  Types.FlightOfferResponse;
 
       await cache.set('last_search_offers', response.data, 600);
+      await cache.set('last_search_params', JSON.stringify(params), 600);
+
 
 
       const formattedResults = response.data.map((offer:  Types.FlightOffer) => {
