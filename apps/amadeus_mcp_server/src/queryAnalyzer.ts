@@ -6,6 +6,7 @@ export enum TravelQueryType {
   SPECIFIC_ROUTE = 'specific_route',     // "Flights from X to Y"
   MULTI_CITY = 'multi_city',            // "Visit A, B, and C"
   FLEXIBLE_VALUE = 'flexible_value',     // "Cheapest time to fly..."
+  PRICE_ANALYSIS = 'price_analysis',     // "Analyze the price of flights..."
 }
 
 // Time expressions in queries
@@ -130,30 +131,50 @@ export const analyzedQuerySchema = z.object({
 });
 
 // Helper function to identify query type
-export function identifyQueryType(query: string): TravelQueryType {
-  const lowercaseQuery = query.toLowerCase();
-  
+export function identifyQueryType(q: string): TravelQueryType {
+  const lowercaseQuery = q.toLowerCase();
+
+
+  // **추가**: 가격 분석용 키워드
+  if (q.includes('분석') && q.includes('가격')
+  || q.includes('가격') && q.includes('예측')
+  || q.includes('비용') && q.includes('분석')
+  || q.includes('비용') && q.includes('예측')
+  || q.includes('가격') && q.includes('그래프')
+  || q.includes('비용') && q.includes('그래프')
+  || q.includes('price analysis')
+  || q.includes('가격을 분석')) {
+    return TravelQueryType.PRICE_ANALYSIS;
+  }
+
+  // Flexible-value 패턴
+  if (q.includes('cheapest time') ||
+      q.includes('best time') ||
+      q.includes('when should')) {
+    return TravelQueryType.FLEXIBLE_VALUE;
+  }
+
   // Inspiration patterns
   if (lowercaseQuery.includes('where can i go') ||
       lowercaseQuery.includes('suggest') ||
       lowercaseQuery.includes('recommend')) {
     return TravelQueryType.INSPIRATION;
   }
-  
+
   // Multi-city patterns
   if (lowercaseQuery.includes('visit') ||
       lowercaseQuery.includes('multiple cities') ||
       (lowercaseQuery.match(/,/g) || []).length >= 2) {
     return TravelQueryType.MULTI_CITY;
   }
-  
+
   // Flexible value patterns
   if (lowercaseQuery.includes('cheapest time') ||
       lowercaseQuery.includes('best time') ||
       lowercaseQuery.includes('when should')) {
     return TravelQueryType.FLEXIBLE_VALUE;
   }
-  
+
   // Default to specific route
   return TravelQueryType.SPECIFIC_ROUTE;
 }
@@ -188,7 +209,7 @@ export async function analyzeQuery(query: string): Promise<AnalyzedQuery> {
   const type = identifyQueryType(query);
   const timeFrame = extractTimeFrame(query);
   const locations = extractLocations(query);
-  
+
   const analysis: AnalyzedQuery = {
     type,
     timeFrame,
@@ -196,9 +217,9 @@ export async function analyzeQuery(query: string): Promise<AnalyzedQuery> {
     rawQuery: query,
     confidence: 0.8, // This should be calculated based on certainty of parsing
   };
-  
+
   // Validate the analysis
   analyzedQuerySchema.parse(analysis);
-  
+
   return analysis;
-} 
+}

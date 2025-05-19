@@ -76,6 +76,31 @@ const toolMappings: Record<TravelQueryType, ToolMapping> = {
       };
     },
   },
+   // **추가**: Price Analysis 쿼리 → flight-price-analysis 호출
+   [TravelQueryType.PRICE_ANALYSIS]: {
+    primaryTool: 'flight-price-analysis',
+    // flight-price-analysis 툴만 쓰면 충분
+    async parameterMap(query) {
+      // origin, destination, departureDate를 분석 결과에서 꺼내오거나
+      // 캐시된 last_search_params를 fallback으로 사용
+      let origin    = query.origin?.code;
+      let dest      = query.destinations[0]?.code;
+      let depart    = Array.isArray(query.timeFrame.value)
+                        ? query.timeFrame.value[0]
+                        : query.timeFrame.value;
+      const params: Record<string, any> = {
+        originIataCode:      origin,
+        destinationIataCode: dest,
+        departureDate:       depart,
+        currencyCode:        query.budget?.currency || 'KRW',
+        // 편도/왕복 여부는 isFlexibleValue에 따라 결정
+        oneWay: query.timeFrame.isFlexible,
+      };
+      return params;
+    },
+  },
+
+
 };
 
 // Process the analyzed query and call appropriate tools
