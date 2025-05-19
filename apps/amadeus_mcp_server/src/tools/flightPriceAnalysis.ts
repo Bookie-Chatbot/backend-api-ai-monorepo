@@ -54,7 +54,7 @@ server.tool(
       console.log('[DEBUG] formatted result =', result);
 
       return {
-       /* content: [
+       content: [
           {
             type: 'resource',
             resource: {
@@ -62,14 +62,14 @@ server.tool(
               text: JSON.stringify(result),
             },
           },
-        ],*/
+        ],
 
-            content: [
+           /* content: [
               {
                 type: 'text',
                 text: JSON.stringify(result)
               }
-            ],
+            ],*/
       };
     } catch (error) {
       console.error('[ERROR] price-analysis failed:', error);

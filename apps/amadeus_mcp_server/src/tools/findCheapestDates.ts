@@ -96,11 +96,14 @@ server.tool(
 
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
+            {
+              type: 'resource',
+              resource: {
+                mimeType: 'application/json',
+                text: JSON.stringify(result),
+              },
+            },
+          ],
       };
     } catch (error: unknown) {
       console.error('Error finding cheapest dates:', error);

@@ -52,11 +52,14 @@ server.tool(
 
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(formattedResults, null, 2),
-          },
-        ],
+            {
+              type: 'resource',
+              resource: {
+                mimeType: 'application/json',
+                text: JSON.stringify(formattedResults, null, 2),
+              },
+            },
+          ],
       };
     } catch (error: unknown) {
       console.error('Error searching airport routes:', error);
