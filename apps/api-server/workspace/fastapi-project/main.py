@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from models import user, hotel, flight, reservation, admin_settings
-from routers import user_router, hotel_router, flight_router, reservation_router
+from routers import user_router, hotel_router, flight_router, reservation_router, chat_log
 import logging
 
 app = FastAPI()
@@ -37,6 +37,7 @@ app.include_router(user_router)
 app.include_router(hotel_router)
 app.include_router(flight_router)
 app.include_router(reservation_router)
+app.include_router(chat_log.router)
 
 @app.get("/")
 def read_root():
