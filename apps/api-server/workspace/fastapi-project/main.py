@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+from database import engine, SessionLocal, Base
 from models import user, hotel, flight, reservation, admin_settings
 from routers import user_router, hotel_router, flight_router, reservation_router
 import logging
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -28,6 +33,21 @@ def on_startup():
         logging.info("✔︎ DB 초기화 성공")
     except Exception as e:
         logging.error(f"❌ DB 초기화 실패 (계속 진행): {e}")
+     # 2) 세션 열기
+    db = SessionLocal()
+    try:
+        # 3) 원하는 쿼리 실행
+        users = db.query(user.User).all()
+
+        # 4) 콘솔에 출력
+        print("▶️ 현재 DB에 저장된 User 레코드들:")
+        for u in users:
+            print(f"  - id={u.id}, name={u.name}, email={u.email}")
+    except Exception as e:
+        logging.error(f"DB 조회 중 에러: {e}")
+    finally:
+        # 5) 세션 닫기
+        db.close()
 
 # 데이터베이스 초기화
 Base.metadata.create_all(bind=engine)
