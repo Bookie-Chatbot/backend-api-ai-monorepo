@@ -1,10 +1,25 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from models import user, hotel, flight, reservation, admin_settings
 from routers import user_router, hotel_router, flight_router, reservation_router
 import logging
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173",      # Vite dev server
+    "http://127.0.0.1:5173",      # sometimes your browser uses 127.0.0.1
+]
+
+# 2) Add the CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # <-- your front-end origin(s)
+    allow_credentials=True,
+    allow_methods=["*"],         # <-- allow all HTTP methods
+    allow_headers=["*"],         # <-- allow all headers
+)
 
 @app.on_event("startup")
 def on_startup():
