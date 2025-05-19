@@ -30,7 +30,7 @@ def on_startup():
         logging.error(f"❌ DB 초기화 실패 (계속 진행): {e}")
 
 # 데이터베이스 초기화
-# Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 
 # 라우터 등록
 app.include_router(user_router)
