@@ -66,6 +66,42 @@ http://127.0.0.1:8000/docs
 - `POST /chat/log` - 사용자 메시지를 DB에 저장
 - `GET /chat/logs/{user_id}` - 특정 사용자의 전체 대화 내역 조회(예정)
 
+### AI Response API
+- `POST /chat/ai-response` - 챗봇의 JSON 응답을 DB에 저장
+  - `intent` 값을 기반으로 다양한 응답 형식을 `contents` 필드에 JSON 형태로 저장 가능
+  - 예시 요청:
+    ```json
+    {
+      "user_id": 1,
+      "intent": "price_search",
+      "contents": {
+        "arguments": {
+          "origin": "ICN",
+          "destination": "HND",
+          "date": "2025-06-01"
+        },
+        "result": {
+          "price": 130000,
+          "airline": "Asiana"
+        },
+      }
+    }
+    ```
+    ```json
+    {
+      "user_id": 2,
+      "intent": "dest_reco",
+      "contents": {
+        "recommendations": [
+          {"city": "후쿠오카", "reason": "짧은 비행시간"},
+          {"city": "다낭", "reason": "저렴한 항공권"}
+        ],
+        "html_path": "path/to/card.html"
+      }
+    }
+    ```
+
+
 
 ## 📂 데이터베이스 설정 (`database.py`)
 - **MySQL** 사용 (`fastapi_project` 데이터베이스)
