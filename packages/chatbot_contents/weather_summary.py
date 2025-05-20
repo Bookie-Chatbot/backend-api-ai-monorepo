@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 
 class WeatherSummaryContent(BaseModel):
-    intent: Literal["WEATHER_SUMMARY"]
+    intent: Literal["WEATHER_SUMMARY"]= Field(..., exclude=True)
     location: str
     date: str
     summary: str

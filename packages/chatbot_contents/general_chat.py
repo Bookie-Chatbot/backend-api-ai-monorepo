@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 
 class GeneralChatContent(BaseModel):
-    intent: Literal["GENERAL_CHAT"]
+    intent: Literal["GENERAL_CHAT"]= Field(..., exclude=True)
     message: str
 
 {

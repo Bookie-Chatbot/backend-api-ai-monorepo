@@ -12,7 +12,7 @@ class HotelSummary(BaseModel):
 
 
 class HotelSummaryContent(BaseModel):
-    intent: Literal["HOTEL_SUMMARY"]
+    intent: Literal["HOTEL_SUMMARY"]= Field(..., exclude=True)
     hotels: List[HotelSummary]
 
 

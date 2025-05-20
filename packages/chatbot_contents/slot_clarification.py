@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 class SlotClarificationContent(BaseModel):
-    intent: Literal["SLOT_CLARIFICATION"]
+    intent: Literal["SLOT_CLARIFICATION"]= Field(..., exclude=True)
     message: str
     missingSlots: List[str]
 

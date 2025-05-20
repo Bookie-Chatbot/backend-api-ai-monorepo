@@ -16,10 +16,14 @@ class FlightOption(BaseModel):
     currency: str
     bookingUrl: Optional[str]
 
+class ContentsList(BaseModel):
+    message: str
+    flights: List[FlightOption]
+
 
 class PriceSearchContent(BaseModel):
     intent: Literal["PRICE_SEARCH"]
-    flights: List[FlightOption]
+    contents : ContentsList
 
 {
   "intent": "PRICE_SEARCH",

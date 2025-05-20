@@ -14,6 +14,9 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
+from fastapi.responses import JSONResponse,PlainTextResponse
+
+
 
 # Pydantic 모델 & 체인
 from chatbot_contents.intents import IntentOnly, Intent
@@ -78,6 +81,21 @@ def stop_amadeus(proc):
         pass
     proc.wait()
 
+
+def _json_safe(obj: Any):
+    """LangChain Message 객체 등을 str로 바꿔 JSON 직렬화."""
+    try:
+        return json.dumps(obj, ensure_ascii=False, indent=2, default=str)
+    except TypeError:
+        # dict이지만 message 내부에 HumanMessage 같은 객체가 있을 때
+        def convert(o):
+            if isinstance(o, list):
+                return [convert(i) for i in o]
+            if isinstance(o, dict):
+                return {k: convert(v) for k, v in o.items()}
+            return str(o)
+        return json.dumps(convert(obj), ensure_ascii=False, indent=2)
+
 # ──────────────────────────────────────────────────────────
 # 4. LangChain → Intent 분류 & 라우팅 → Sub-chain
 # ──────────────────────────────────────────────────────────
@@ -99,12 +117,19 @@ async def query_chain(question: str) -> str:
         router.invoke,
         {"intent_only": parsed, "question": question}
     )
-    print("  - 전체 체인 실행 완료")
+    if hasattr(raw, "content"):
+            try:
+                parsed = json.loads(raw.content)
+            except json.JSONDecodeError:
+                # 혹시 유효 JSON이 아닐 경우, 그냥 문자열로 래핑
+                return JSONResponse(content=raw.content)
+    return JSONResponse(content=parsed)
+    #return  _json_safe(raw)
+
 
     # 3) contents 가 있으면 JSON, 아니면 문자열
-    if hasattr(raw, "contents"):
-        return raw.contents.json(ensure_ascii=False, indent=2)
-    return str(raw)
+   # if hasattr(raw, "contents"):
+   # return str(raw)
 
 # ──────────────────────────────────────────────────────────
 # 5. 메인
@@ -156,7 +181,8 @@ def main():
             if not q:
                 break
             answer = loop.run_until_complete(query_chain(q))
-            print(f"부엉이 부키: {answer}\n")
+            print(type(answer))
+            print("부키의 응답",answer.body.decode("utf-8"))
     finally:
         shutdown(None, None)
 

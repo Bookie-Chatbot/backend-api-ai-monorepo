@@ -26,11 +26,38 @@ safe_parser = RunnableLambda(parse_or_passthrough)
 price_search_chain = (
     PromptTemplate.from_template(
         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-        "모든 답변 끝에 ‘부키!’를 붙여줘."
-        "가격 조회 결과를 아래 JSON 스키마에 맞춰 `contents`만 반환하세요.\n"
+        "json의 contents.message 안에, 2줄짜리 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
+        "가격 조회 결과를 아래 JSON 스키마에 맞춰 반환해줘.\n"
         "{format_instructions}\n"
         "질문: {question}"
     )
     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
     | safe_parser
 )
+
+{
+  "intent": "PRICE_SEARCH",
+  "contents": {
+    "message": "가격을 검색해보니, 2025년 6월 15일 출발, 2025년 6월 22일 귀국 항공편이 있습니다. 부키!",
+    "flights": [
+      {
+        "origin": "ICN",
+        "destination": "LAX",
+        "departureDate": "2025-06-15",
+        "returnDate": "2025-06-22",
+        "price": 1250000.0,
+        "currency": "KRW",
+        "bookingUrl": "https://booking.example.com/ICN-LAX"
+      },
+      {
+        "origin": "ICN",
+        "destination": "LAX",
+        "departureDate": "2025-06-15",
+        "returnDate": "",
+        "price": 1100000.0,
+        "currency": "KRW",
+        "bookingUrl": ""
+      }
+    ]
+  }
+}

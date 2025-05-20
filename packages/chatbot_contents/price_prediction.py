@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 class PricePredictionContent(BaseModel):
-    intent: Literal["PRICE_PREDICTION"]
+    intent: Literal["PRICE_PREDICTION"]= Field(..., exclude=True)
     origin: str
     destination: str
     departureDate: str

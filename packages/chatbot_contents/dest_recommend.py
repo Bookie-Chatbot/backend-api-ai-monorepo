@@ -1,5 +1,5 @@
 from typing import List, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class DestRecommendCard(BaseModel):
     city: str
@@ -8,10 +8,14 @@ class DestRecommendCard(BaseModel):
     description: str
     hashtags: List[str]
 
-class DestRecommendContent(BaseModel):
-    intent: Literal["DEST_RECOMMEND"]
-    cards: List[DestRecommendCard]
+class ContentsList(BaseModel):
     message: str
+    cards: List[DestRecommendCard]
+
+
+class DestRecommendContent(BaseModel):
+    intent: Literal["DEST_RECOMMEND"] = Field(..., exclude=True)
+    contents: ContentsList
 
 # 예시
 if __name__ == "__main__":

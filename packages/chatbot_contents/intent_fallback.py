@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 
 class IntentFallbackContent(BaseModel):
-    intent: Literal["INTENT_FALLBACK"]
+    intent: Literal["INTENT_FALLBACK"]= Field(..., exclude=True)
     message: str
 
 

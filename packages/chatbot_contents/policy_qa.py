@@ -9,7 +9,7 @@ class PolicyReference(BaseModel):
 
 
 class PolicyQAContent(BaseModel):
-    intent: Literal["POLICY_QA"]
+    intent: Literal["POLICY_QA"]= Field(..., exclude=True)
     question: str
     answer: str
     references: List[PolicyReference]
