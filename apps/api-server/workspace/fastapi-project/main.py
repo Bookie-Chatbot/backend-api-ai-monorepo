@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, SessionLocal, Base
-from models import user, hotel, flight, reservation, admin_settings
+from models import user, hotel, flight, reservation, admin_settings, chat_log
 from routers import user_router, hotel_router, flight_router, reservation_router, chat_log
 import logging
 import os
@@ -39,10 +39,22 @@ def on_startup():
         # 3) 원하는 쿼리 실행
         users = db.query(user.User).all()
 
+
         # 4) 콘솔에 출력
         print("▶️ 현재 DB에 저장된 User 레코드들:")
         for u in users:
             print(f"  - id={u.id}, name={u.name}, email={u.email}")
+
+
+        # 챗 로그 불러오기 테스트
+        session_id = "wldls317@naver.com"
+        print(f"▶️ 세션 ID: {session_id}에 대한 로그:")
+        logs = db.query(chat_log.ChatLog)\
+                 .filter(chat_log.ChatLog.session_id == session_id)\
+                 .order_by(chat_log.ChatLog.timestamp.asc())\
+                 .all()
+        for log in logs:
+            print(f" 프린트 {log.timestamp}: {log.message} (role: {log.role})")
     except Exception as e:
         logging.error(f"DB 조회 중 에러: {e}")
     finally:

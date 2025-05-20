@@ -19,4 +19,7 @@ def get_chat_logs(session_id: str, db: Session = Depends(get_db)):
              .filter(ChatLog.session_id == session_id)\
              .order_by(ChatLog.timestamp.asc())\
              .all()
+    print(f"▶️ 세션 ID: {session_id}에 대한 로그:")
+    for log in logs:
+        print(f"  - {log.timestamp}: {log.message} (role: {log.role})")
     return logs
