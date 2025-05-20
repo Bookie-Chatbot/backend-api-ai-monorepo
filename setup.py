@@ -49,6 +49,8 @@ setup(
         "api_server":           "apps/api-server/workspace/fastapi-project",
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
         "core_backend":         "packages/core_backend",
+        "chatbot_contents":     "packages/chatbot_contents",
+
     },
 
     # 4) console_scripts 엔트리포인트
@@ -59,6 +61,9 @@ setup(
             "mcp-client    = mcp.mcp_client:main",
             "mcp-test      = runs.test.mcp:main",
             "mcp-test2    = runs.test.mcp2:main",
+
+            # 의도 분류 테스트
+            "intent-test   = runs.test.intent:main",
 
             # AI 서비스 전처리 & 메인 서비스
             "preprocess    = app_preprocess.main_preprocess:main",
