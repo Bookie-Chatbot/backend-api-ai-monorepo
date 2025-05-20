@@ -18,7 +18,12 @@ from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
 from fastapi.responses import JSONResponse,PlainTextResponse
+from fastapi import Depends
+
 import launch_api
+from contextlib import contextmanager
+
+
 
 import subprocess
 import sys
@@ -40,7 +45,17 @@ ROOT = Path(__file__).resolve().parent.parent
 WEATHER_PORT  = 8010
 AMADEUS_PORT  = int(os.getenv("AMADEUS_PORT", 8020))
 
-
+@contextmanager
+def get_db_ctx():
+    db_gen = get_db()     # this is a generator
+    db = next(db_gen)      # enter the generator to get the Session
+    try:
+        yield db
+    finally:
+        try:
+            next(db_gen)   # run the finally block inside get_db()
+        except StopIteration:
+            pass
 
 def wait_port(host: str, port: int, timeout: float = 2000.0):
     """포트가 열릴 때까지 블로킹 대기"""
@@ -60,6 +75,11 @@ def wait_port(host: str, port: int, timeout: float = 2000.0):
 # ──────────────────────────────────────────────────────────
 # 1. API 서버 (Uvicorn)
 # ──────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────
+# 1. API 서버 (Uvicorn)
+# ──────────────────────────────────────────────────────────
+
 def start_api_server():
     cmd = [
         sys.executable, "-m", "uvicorn",
@@ -69,26 +89,27 @@ def start_api_server():
         "--host", "0.0.0.0",
         "--port", "8000",
     ]
-    print(f"[DEBUG] start_api_server: 실행 → {cmd}")
+    print(f"[DEBUG] start_api_server: 실행할 명령 → {cmd}")
     proc = subprocess.Popen(
         cmd,
         cwd=str(ROOT),
         preexec_fn=os.setsid,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.STDOUT,
-        text=True,                # 텍스트 모드로 출력
+        text=True,
     )
+    print(f"[DEBUG] start_api_server: 프로세스 PID={proc.pid}")
     return proc
 
 
-
-
 def stop_api_server(proc):
+    print(f"[DEBUG] stop_api_server: 종료 신호 보냄 to PID={proc.pid}")
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGINT)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[DEBUG] stop_api_server: 예외 발생 {e}")
     proc.wait()
+    print("[DEBUG] stop_api_server: 완료")
 
 
 # ──────────────────────────────────────────────────────────
@@ -241,30 +262,25 @@ async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
 def main():
     load_dotenv()
 
-     # 1) API 서버 실행 및 포트 대기
-    api_proc = start_approc = start_api_server()
-# 1초 정도 대기한 뒤
+    print("[INFO] 메인 시작: API 서버, MCP 서버, Launcher 기동")
+    api_proc = start_api_server()
     time.sleep(1)
-   # print(api_proc.stdout.read())  # 또는 readline() 반복
     wait_port("127.0.0.1", 8000)
-    print("  - API 서버 시작 완료 (포트 8000)")
-    print("❄️  날씨 MCP  +  ✈️  Amadeus MCP + LangChain 런처 기동 중…")
+    print("[INFO] API 서버 준비 완료")
 
-    # 1) 날씨 서버
     weather_proc = start_weather()
-    print("  - 날씨 서버 시작...")
+    print("[INFO] 날씨 MCP 서버 시작 완료")
 
-    # 2) Amadeus
     try:
         build_amadeus()
         amadeus_proc = start_amadeus()
-        print("  - Amadeus 서버 시작...")
+        print("[INFO] Amadeus MCP 서버 시작 완료")
     except Exception as e:
-        print(f"[ERROR] Amadeus 빌드/기동 실패: {e}")
+        print(f"[ERROR] Amadeus 초기화 실패: {e}")
         stop_weather(weather_proc)
+        stop_api_server(api_proc)
         sys.exit(1)
 
-    # 3) 포트 대기
     try:
         wait_port("127.0.0.1", WEATHER_PORT)
         wait_port("127.0.0.1", AMADEUS_PORT)
@@ -273,37 +289,45 @@ def main():
         stop_amadeus(amadeus_proc)
         stop_weather(weather_proc)
         stop_api_server(api_proc)
-        print("  - API 서버 종료")
         sys.exit(1)
 
-    print("✅ MCP 서버들 기동 완료! 부엉이 부키와 대화 시작...")
+    print("[INFO] 모든 MCP 서버 기동 완료 — 대화 대기 중…")
 
-    # 시그널 핸들러
+    # 시그널 핸들러 등록
     def shutdown(sig, frame):
-        print("\n⏹️  종료 신호 감지, 모든 서버 종료 중…")
+        print("[INFO] 종료 신호 감지 — 서버 중단 시작")
         stop_amadeus(amadeus_proc)
         stop_weather(weather_proc)
         stop_api_server(api_proc)
-        print("✅ 모든 서버 종료 완료!")
+        print("[INFO] 모든 서버 종료 완료")
         sys.exit(0)
     for s in (signal.SIGINT, signal.SIGTERM, signal.SIGTSTP):
         signal.signal(s, shutdown)
 
-    # 사용자 인터랙션
     loop = asyncio.get_event_loop()
     try:
         while True:
+            print("[DEBUG] 사용자 입력 대기 중… (빈 줄 입력 시 종료)")
             q = input("You: ").strip()
             if not q:
+                print("[DEBUG] 빈 입력 감지 — 종료 루프")
                 break
-            answer = loop.run_until_complete(query_chain(
-                user_id=1,
-                question=q
-            ))
-            print(type(answer))
-            print("부키의 응답",answer.body.decode("utf-8"))
+            print(f"[DEBUG] 입력 값 = {q}")
+            try:
+                with get_db_ctx() as db:
+                    answer = loop.run_until_complete(query_chain(
+                        user_id=1,
+                        question=q,
+                        db=db  # FastAPI 의존성 주입
+                    ))
+                print(f"[DEBUG] query_chain 반환 타입 = {type(answer)}")
+                print(f"[BUKI 응답] {answer.body.decode('utf-8')}")
+            except Exception as e:
+                print(f"[ERROR] query_chain 실행 중 예외: {e}")
     finally:
+        print("[INFO] 메인 루프 종료 — 종료 핸들러 실행")
         shutdown(None, None)
+
 
 if __name__ == "__main__":
     main()
