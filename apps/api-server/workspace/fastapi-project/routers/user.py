@@ -65,3 +65,15 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+@router.post("/login")
+def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user is None or db_user.password != user.password:
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 일치하지 않습니다.")
+    
+    return {
+        "id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email
+    }

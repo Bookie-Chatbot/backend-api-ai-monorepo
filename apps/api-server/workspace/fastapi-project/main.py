@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, SessionLocal, Base
 from models import user, hotel, flight, reservation, admin_settings
-from routers import user_router, hotel_router, flight_router, reservation_router
+from routers import user_router, hotel_router, flight_router, reservation_router, chat_log
 import logging
 import os
 from dotenv import load_dotenv
@@ -20,8 +20,7 @@ origins = [
 # 2) Add the CORS middleware
 app.add_middleware(
     CORSMiddleware,
-  #  allow_origins=origins,       # <-- your front-end origin(s)
-    allow_origins=["*"]
+    allow_origins=["*"],       # <-- your front-end origin(s)
     allow_credentials=True,
     allow_methods=["*"],         # <-- allow all HTTP methods
     allow_headers=["*"],         # <-- allow all headers
@@ -58,6 +57,7 @@ app.include_router(user_router)
 app.include_router(hotel_router)
 app.include_router(flight_router)
 app.include_router(reservation_router)
+app.include_router(chat_log.router)
 
 @app.get("/")
 def read_root():

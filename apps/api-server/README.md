@@ -62,13 +62,16 @@ http://127.0.0.1:8000/docs
 - `PUT /hotels/{hotel_id}` - 호텔 정보 수정
 - `DELETE /hotels/{hotel_id}` - 호텔 삭제
 
+### Chat Log API
+- `POST /chat/log` - 사용자 메시지를 DB에 저장
+- `GET /chat/logs/{user_id}` - 특정 사용자의 전체 대화 내역 조회(예정)
+
+
 ## 📂 데이터베이스 설정 (`database.py`)
 - **MySQL** 사용 (`fastapi_project` 데이터베이스)
 - SQLAlchemy ORM 설정
 - 접속 URL 예시:
-  ```
-  mysql+pymysql://root@localhost/fastapi_project
-  ```
+
 
 ## 📂 API 문서화
 - FastAPI의 자동 문서화 기능 사용
@@ -77,3 +80,8 @@ http://127.0.0.1:8000/docs
 ## ✈️ Amadeus API 연동
 - `GET /flights/search` 엔드포인트를 통해 실제 항공권 검색 수행
 - Amadeus SDK 기반으로 구성되어 있으며 쿼리 파라미터 입력을 통해 결과 반환
+
+## 🧠 챗봇 대화 기록 관리
+
+- `chat_log` 라우터를 통해 사용자 메시지를 `chat_logs` 테이블에 저장하고, LLM 응답 생성을 위한 대화 기록 조회 기능을 제공
+- 추후 LangChain 또는 OpenAI API와 연동 시, 세션 기반 대화 관리 메모리로 활용 가능
