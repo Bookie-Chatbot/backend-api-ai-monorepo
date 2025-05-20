@@ -15,8 +15,14 @@ def log_chat_message(data: ChatLogCreate, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "유저 메시지 저장 완료"}
 
+@router.get("/log/{session_id}")
+def get_chat_logs(session_id: str, db: Session = Depends(get_db)):
+    logs = db.query(ChatLog)\
+             .filter(ChatLog.session_id == session_id)\
+             .order_by(ChatLog.timestamp.asc())\
+             .all()
+    return logs
 
-# POST endpoint for logging AI responses
 @router.post("/ai-response")
 def log_ai_response(data: ai_responseCreate, db: Session = Depends(get_db)):
     new_response = AI_Response(**data.dict())
