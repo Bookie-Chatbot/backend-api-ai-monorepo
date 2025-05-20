@@ -22,6 +22,7 @@ setup(
     # ── 여기에 쓸 최상위 패키지를 전부 나열 ──
     packages=[
       *find_packages(where="."),
+        "root",  # 루트 패키지
         "mcp",
         "app_preprocess",
         "service",
@@ -43,6 +44,7 @@ setup(
     package_dir={
         # 원래 일반 패키지들 인식될 수 있게끔 루트도 포함
         "": ".",
+        "root":                 "",
         "mcp":                  "apps/ai_preprocess/src/mcp",
         "app_preprocess":       "apps/ai_preprocess/src/app",
         "service":              "apps/ai_service/src",
