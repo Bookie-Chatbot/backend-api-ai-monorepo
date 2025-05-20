@@ -82,20 +82,6 @@ def stop_amadeus(proc):
     proc.wait()
 
 
-def _json_safe(obj: Any):
-    """LangChain Message 객체 등을 str로 바꿔 JSON 직렬화."""
-    try:
-        return json.dumps(obj, ensure_ascii=False, indent=2, default=str)
-    except TypeError:
-        # dict이지만 message 내부에 HumanMessage 같은 객체가 있을 때
-        def convert(o):
-            if isinstance(o, list):
-                return [convert(i) for i in o]
-            if isinstance(o, dict):
-                return {k: convert(v) for k, v in o.items()}
-            return str(o)
-        return json.dumps(convert(obj), ensure_ascii=False, indent=2)
-
 # ──────────────────────────────────────────────────────────
 # 4. LangChain → Intent 분류 & 라우팅 → Sub-chain
 # ──────────────────────────────────────────────────────────
