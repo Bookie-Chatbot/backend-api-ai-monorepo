@@ -5,9 +5,50 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 # (기존 FlightOffer 모델 임포트)
-from .price_search_base import FlightOffer
+# from .price_search_base import FlightOffer
+
+class FlightOption(BaseModel):
+    origin: str
+    destination: str
+    departureDate: str
+    returnDate: Optional[str]
+    price: float
+    currency: str
+    bookingUrl: Optional[str]
 
 
+class PriceSearchContent(BaseModel):
+    flights: List[FlightOption]
+
+{
+  "intent": "PRICE_SEARCH",
+  "contents": {
+    "flights": [
+      {
+        "origin": "ICN",
+        "destination": "LAX",
+        "departureDate": "2025-06-15",
+        "returnDate": "2025-06-22",
+        "price": 1250000.0,
+        "currency": "KRW",
+        "bookingUrl": "https://booking.example.com/ICN-LAX"
+      },
+      {
+        "origin": "ICN",
+        "destination": "LAX",
+        "departureDate": "2025-06-15",
+        "price": 1100000.0,
+        "currency": "KRW",
+        "bookingUrl": ""
+      }
+    ]
+  }
+}
+
+
+
+
+""" 가격 검색 결과를 담는 모델
 class PriceSearchContent(BaseModel):
     # — 고정 메타필드 —
     session_id: str
@@ -60,3 +101,4 @@ class PriceSearchContent(BaseModel):
                 }
             }
         }
+"""
