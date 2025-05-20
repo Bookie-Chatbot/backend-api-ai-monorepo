@@ -12,7 +12,7 @@ class MessageRead(BaseModel):
     user_id: int
     message: str
     answer: Any
-    created_at: datetime
+    timestamp: datetime
 
     class Config:
         orm_mode = True
