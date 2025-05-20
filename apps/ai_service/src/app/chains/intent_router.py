@@ -24,6 +24,7 @@ def route_and_run(inputs: dict) -> any:
     """
     intent_only = inputs["intent_only"]
     question    = inputs["question"]
+    history     = inputs.get("chat_history", [])
 
     chain, parser = INTENT_CHAIN_MAP.get(intent_only.intent, (None, None))
     if not chain:
@@ -32,7 +33,8 @@ def route_and_run(inputs: dict) -> any:
     # 서브체인 실행
     return chain.invoke({
         "question": question,
-        "format_instructions": parser.get_format_instructions()
+        "format_instructions": parser.get_format_instructions(),
+        "chat_history": history,
     })
 
 # RunnableLambda 에 넘겨주면 classification_chain + question → 바로 결과 반환

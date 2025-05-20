@@ -3,12 +3,11 @@ from typing import Any
 from datetime import datetime
 
 
-class ChatLogCreate(BaseModel):
-    session_id: str
-   # role: str  # "user" or "bot"
+class MessageCreate(BaseModel):
+    user_id: int
     message: str
 
-class ChatLogRead(BaseModel):
+class MessageRead(BaseModel):
     session_id: int
     user_id: int
     message: str

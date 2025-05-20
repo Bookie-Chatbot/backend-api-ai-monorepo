@@ -19,6 +19,8 @@ print(f"[DEBUG] SessionLocal: {SessionLocal}")
 
 Base = declarative_base()
 
+
+
 def get_db():
     db: Session = SessionLocal()
     try:

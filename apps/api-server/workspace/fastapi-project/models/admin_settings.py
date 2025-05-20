@@ -4,6 +4,8 @@ from datetime import datetime
 
 class AdminSettings(Base):
     __tablename__ = 'admin_settings'
+    __table_args__ = {'extend_existing': True}
+
 
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String(100), unique=True, nullable=False)

@@ -6,7 +6,6 @@
  - LangChain Intent Classification → Routing → Sub-chain 처리
 """
 
-
 import asyncio, socket, sys, os, signal, subprocess, time, json
 from pathlib import Path
 from dotenv import load_dotenv
@@ -30,6 +29,7 @@ from chains.intent_router import router
 import os
 from dotenv import load_dotenv
 
+from database import Base, get_db
 load_dotenv()
 
 
@@ -164,24 +164,63 @@ def stop_amadeus(proc):
 # ──────────────────────────────────────────────────────────
 # 4. LangChain → Intent 분류 & 라우팅 → Sub-chain
 # ──────────────────────────────────────────────────────────
-async def query_chain(question: str) -> str:
+async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
+    # Message 모델 import 지연
+    from api_server.models.chat_log import Message
+    print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question}")
+    print("[DEBUG] DB 세션 열기 완료")
+
+    # 이전 대화 조회
+    print("[DEBUG] DB에서 messages 쿼리 시작")
+    try:
+        chat_logs = db.query(Message) \
+            .filter(Message.user_id == user_id) \
+            .order_by(Message.timestamp.asc()) \
+            .all()
+        print(f"[DEBUG] {len(chat_logs)}개의 대화 내역 로드 완료")
+    except Exception as e:
+        print(f"[DEBUG] DB 쿼리 에러: {e}")
+        chat_logs = []
+
+    # 히스토리 구성
+    history = []
+    for log in chat_logs:
+        history.append(("human", log.message))
+        print(f"[DEBUG] history append user: {log.message}")
+        try:
+            bot_msg = log.answer if isinstance(log.answer, dict) else json.loads(log.answer)
+        except Exception:
+            bot_msg = log.answer
+        history.append(("chatbot", bot_msg))
+        print(f"[DEBUG] history append bot: {bot_msg}")
+    print(f"[DEBUG] 히스토리 구성 완료 ({len(history)} entries)")
+
     # 1) IntentOnly 분류
     parsed = await asyncio.get_event_loop().run_in_executor(
-        None,
-        classification_chain.invoke,
-        {
-            "question": question,
-            "format_instructions": intent_parser.get_format_instructions()
-        }
-    )
+    None,                             # executor: None은 기본 스레드 풀
+    classification_chain.invoke,     # func: 실행할 함수
+    {                                 # *args: 함수에 넘길 딕셔너리
+        "question": question,
+        "format_instructions": intent_parser.get_format_instructions(),
+        "chat_history": history,
+    }
+)
+
+
+
     print(f"  - IntentOnly: {parsed}")
 
-    # 2) 라우터에 분류 + question 전달 → 즉시 실행된 결과 반환
     raw = await asyncio.get_event_loop().run_in_executor(
-        None,
-        router.invoke,
-        {"intent_only": parsed, "question": question}
-    )
+    None,
+    router.invoke,
+    {
+        "intent_only": parsed,
+        "question": question,
+        "chat_history": history,
+    }
+)
+
+
     if hasattr(raw, "content"):
             try:
                 parsed = json.loads(raw.content)
@@ -257,7 +296,10 @@ def main():
             q = input("You: ").strip()
             if not q:
                 break
-            answer = loop.run_until_complete(query_chain(q))
+            answer = loop.run_until_complete(query_chain(
+                user_id=1,
+                question=q
+            ))
             print(type(answer))
             print("부키의 응답",answer.body.decode("utf-8"))
     finally:

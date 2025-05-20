@@ -29,7 +29,8 @@ price_search_chain = (
         "json의 contents.message 안에, 2줄짜리 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
         "가격 조회 결과를 아래 JSON 스키마에 맞춰 반환해줘.\n"
         "{format_instructions}\n"
-        "질문: {question}"
+        "질문: {question}\n"
+        "이전 대화 내역:\n{chat_history}\n"
     )
     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
     | safe_parser

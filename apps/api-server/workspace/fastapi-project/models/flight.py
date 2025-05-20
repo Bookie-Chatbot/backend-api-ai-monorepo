@@ -4,6 +4,8 @@ from datetime import datetime
 
 class Flight(Base):
     __tablename__ = 'flights'
+    __table_args__ = {'extend_existing': True}
+
 
     id = Column(Integer, primary_key=True, index=True)
     airline = Column(String(100), nullable=False)

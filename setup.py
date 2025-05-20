@@ -27,6 +27,7 @@ setup(
         "app_preprocess",
         "service",
         "chains",
+        "database",
         "app_service",
         "app_service.service",
         "api_server",
@@ -51,6 +52,7 @@ setup(
         "app_service":          "apps/ai_service/src/app",
         "app_service.service":  "apps/ai_service/src/app/service",
         "chains":               "apps/ai_service/src/app/chains",
+        "database":             "apps/api-server/workspace/fastapi-project/database",
         "api_server":           "apps/api-server/workspace/fastapi-project",
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
         "chatbot_contents":     "packages/chatbot_contents",
@@ -58,6 +60,7 @@ setup(
 
 
     },
+    py_directories=["apps/ai_service/src"],
 
     # 4) console_scripts 엔트리포인트
     entry_points={

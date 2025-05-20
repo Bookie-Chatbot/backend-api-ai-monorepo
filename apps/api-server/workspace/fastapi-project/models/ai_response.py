@@ -4,6 +4,8 @@ from datetime import datetime
 
 class AI_Response(Base):
     __tablename__ = "AI_responses"
+    __table_args__ = {'extend_existing': True}
+
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)
