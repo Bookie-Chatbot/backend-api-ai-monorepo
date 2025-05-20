@@ -12,3 +12,11 @@ def log_chat_message(data: ChatLogCreate, db: Session = Depends(get_db)):
     db.add(new_log)
     db.commit()
     return {"message": "📝 메시지 저장 완료"}
+
+@router.get("/log/{session_id}")
+def get_chat_logs(session_id: str, db: Session = Depends(get_db)):
+    logs = db.query(ChatLog)\
+             .filter(ChatLog.session_id == session_id)\
+             .order_by(ChatLog.timestamp.asc())\
+             .all()
+    return logs
