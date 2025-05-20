@@ -1,10 +1,13 @@
 from datetime import datetime, date
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
+
 from pydantic import BaseModel, Field
 
 class SlotClarificationContent(BaseModel):
+    intent: Literal["SLOT_CLARIFICATION"]
     message: str
     missingSlots: List[str]
+
 
 
 {

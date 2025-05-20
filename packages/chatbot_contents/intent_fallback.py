@@ -1,6 +1,8 @@
 from pydantic import BaseModel
+from typing import Literal
 
 class IntentFallbackContent(BaseModel):
+    intent: Literal["INTENT_FALLBACK"]
     message: str
 
 

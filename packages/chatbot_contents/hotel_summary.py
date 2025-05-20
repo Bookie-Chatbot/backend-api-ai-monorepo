@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from typing import List, Optional, Dict, Any, Boolean
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 class HotelSummary(BaseModel):
@@ -12,6 +12,7 @@ class HotelSummary(BaseModel):
 
 
 class HotelSummaryContent(BaseModel):
+    intent: Literal["HOTEL_SUMMARY"]
     hotels: List[HotelSummary]
 
 

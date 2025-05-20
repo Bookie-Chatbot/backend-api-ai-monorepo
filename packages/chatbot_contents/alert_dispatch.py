@@ -1,8 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from typing_extensions import Literal
 
 class AlertDispatchContent(BaseModel):
+    intent: Literal["ALERT_DISPATCH"]
     eventType: Literal["price_drop","wx_risk","cancel_deadline"]
     channel: Literal["email","kakao"]
     userId: Optional[str]

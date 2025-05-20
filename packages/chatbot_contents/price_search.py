@@ -1,7 +1,7 @@
 # chatbot_contents/price_search.py
 
 from datetime import datetime, date
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 # (기존 FlightOffer 모델 임포트)
@@ -18,11 +18,13 @@ class FlightOption(BaseModel):
 
 
 class PriceSearchContent(BaseModel):
+    intent: Literal["PRICE_SEARCH"]
     flights: List[FlightOption]
 
 {
   "intent": "PRICE_SEARCH",
   "contents": {
+    "message": "가격을 검색해보니, 2025년 6월 15일 출발, 2025년 6월 22일 귀국 항공편이 있습니다. 등등",
     "flights": [
       {
         "origin": "ICN",

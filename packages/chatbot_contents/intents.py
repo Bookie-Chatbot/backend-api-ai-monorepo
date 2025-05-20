@@ -1,5 +1,5 @@
 # chatbot_contents/intents.py
-
+from pydantic import BaseModel
 from enum import Enum
 
 class Intent(str, Enum):
@@ -14,5 +14,8 @@ class Intent(str, Enum):
     GENERAL_CHAT        = "GENERAL_CHAT"
     INTENT_FALLBACK     = "INTENT_FALLBACK"
     SLOT_CLARIFICATION  = "SLOT_CLARIFICATION"
-    SESSION_NEW         = "SESSION_NEW"
-    SESSION_CONTINUE    = "SESSION_CONTINUE"
+   # SESSION_NEW         = "SESSION_NEW"
+  #  SESSION_CONTINUE    = "SESSION_CONTINUE"
+
+class IntentOnly(BaseModel):
+    intent: Intent

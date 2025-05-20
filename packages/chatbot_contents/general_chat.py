@@ -1,6 +1,8 @@
 from pydantic import BaseModel
+from typing import Literal
 
 class GeneralChatContent(BaseModel):
+    intent: Literal["GENERAL_CHAT"]
     message: str
 
 {

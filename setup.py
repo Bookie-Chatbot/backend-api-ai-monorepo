@@ -25,10 +25,12 @@ setup(
         "mcp",
         "app_preprocess",
         "service",
+        "chains",
         "app_service",
         "app_service.service",
         "api_server",
         "api_server.routers",
+        "chatbot_contents",
         "core_backend",
     ],
 
@@ -46,10 +48,12 @@ setup(
         "service":              "apps/ai_service/src",
         "app_service":          "apps/ai_service/src/app",
         "app_service.service":  "apps/ai_service/src/app/service",
+        "chains":               "apps/ai_service/src/app/chains",
         "api_server":           "apps/api-server/workspace/fastapi-project",
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
-        "core_backend":         "packages/core_backend",
         "chatbot_contents":     "packages/chatbot_contents",
+        "core_backend":         "packages/core_backend",
+
 
     },
 
@@ -64,6 +68,7 @@ setup(
 
             # 의도 분류 테스트
             "intent-test   = runs.test.intent:main",
+            "main = runs.main:main",
 
             # AI 서비스 전처리 & 메인 서비스
             "preprocess    = app_preprocess.main_preprocess:main",

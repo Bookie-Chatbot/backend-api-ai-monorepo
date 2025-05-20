@@ -13,8 +13,8 @@ from .alert_dispatch import AlertDispatchContent
 from .general_chat import GeneralChatContent
 from .intent_fallback import IntentFallbackContent
 from .slot_clarification import SlotClarificationContent
-from .session import SessionNewContent, SessionContinueContent
-from ..intents import Intent
+#from .session import SessionNewContent, SessionContinueContent
+from .intents import Intent
 
 # Discriminated Union 모델
 class ChatbotMessage(BaseModel):
@@ -31,8 +31,8 @@ class ChatbotMessage(BaseModel):
         GeneralChatContent,
         IntentFallbackContent,
         SlotClarificationContent,
-        SessionNewContent,
-        SessionContinueContent,
+       # SessionNewContent,
+      #  SessionContinueContent,
     ] = Field(..., discriminator="intent")
 
 # 예시 파싱

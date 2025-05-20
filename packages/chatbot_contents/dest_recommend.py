@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 from pydantic import BaseModel
 
 class DestRecommendCard(BaseModel):
@@ -9,6 +9,7 @@ class DestRecommendCard(BaseModel):
     hashtags: List[str]
 
 class DestRecommendContent(BaseModel):
+    intent: Literal["DEST_RECOMMEND"]
     cards: List[DestRecommendCard]
     message: str
 

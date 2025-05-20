@@ -1,5 +1,6 @@
 from datetime import datetime, date
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any,Literal
+
 from pydantic import BaseModel, Field
 
 class PolicyReference(BaseModel):
@@ -8,6 +9,7 @@ class PolicyReference(BaseModel):
 
 
 class PolicyQAContent(BaseModel):
+    intent: Literal["POLICY_QA"]
     question: str
     answer: str
     references: List[PolicyReference]
