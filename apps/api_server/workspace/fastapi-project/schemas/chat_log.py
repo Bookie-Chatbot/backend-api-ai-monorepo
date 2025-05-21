@@ -17,3 +17,4 @@ class ChatLogRead(BaseModel):
 
     class Config:
         orm_mode = True
+

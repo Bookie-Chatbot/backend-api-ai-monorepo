@@ -15,4 +15,11 @@ class MessageRead(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # FastAPI V2에서 'orm_mode' 대신 사용
+
+class MessagesRead(BaseModel):
+    user_id: int
+    messages: list[MessageRead]
+
+    class Config:
+        from_attributes = True  # FastAPI V2에서 'orm_mode' 대신 사용

@@ -25,3 +25,4 @@ class Message(Base):
     message   = Column(Text, nullable=False)
     answer     = Column(JSON, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
