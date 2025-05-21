@@ -8,6 +8,9 @@ import asyncio, socket, sys, os, signal, subprocess, time
 from pathlib import Path
 from dotenv import load_dotenv
 
+# for window
+# import platform
+# import signal
 # ──────────────────────────────────────────────────────────
 # 1. 공통 유틸
 # ──────────────────────────────────────────────────────────
@@ -36,6 +39,15 @@ def wait_port(host: str, port: int, timeout: float = 2000.0):
 def start_weather():
     cmd = [sys.executable, "-m", "mcp.mcp_server"]
     print(f"[DEBUG] start_weather: 실행 → {cmd}")
+    # for window
+    # if platform.system() == "Windows":
+    #     return subprocess.Popen(
+    #         cmd,
+    #         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+    #         stdout=subprocess.DEVNULL,
+    #         stderr=subprocess.DEVNULL,
+    #     )
+    
     return subprocess.Popen(
         cmd,
         preexec_fn=os.setsid,
@@ -48,10 +60,11 @@ def start_weather():
 def stop_weather(proc):
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+        # for window
+        # proc.send_signal(signal.CTRL_BREAK_EVENT)
     except ProcessLookupError:
         pass
     proc.wait()
-
 # ──────────────────────────────────────────────────────────
 # 3. Amadeus 서버(Node) – cwd 지정 & 빌드 보장
 # ──────────────────────────────────────────────────────────
@@ -83,19 +96,31 @@ def start_amadeus():
     cwd = str(AMADEUS_DIR)
     print(f"[DEBUG] start_amadeus: cwd={cwd}")
     print(f"[DEBUG] start_amadeus: 실행 → {cmd}")
-    proc = subprocess.Popen(
-        cmd,
-        cwd=AMADEUS_DIR,
-        preexec_fn=os.setsid,
-        stdout=None,
-        stderr=None,
-    )
+
+    if platform.system() == "Windows":
+        proc = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdout=None,
+            stderr=None,
+        )
+    else:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=AMADEUS_DIR,
+            preexec_fn=os.setsid,
+            stdout=None,
+            stderr=None,
+        )
     print(f"[DEBUG] start_amadeus: PID={proc.pid}")
     return proc
 
 def stop_amadeus(proc):
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGINT)
+        # for window
+        # proc.send_signal(signal.CTRL_BREAK_EVENT)
     except ProcessLookupError:
         pass
     proc.wait()

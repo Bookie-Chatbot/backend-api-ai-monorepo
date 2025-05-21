@@ -106,3 +106,112 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+'''
+for window
+
+import asyncio
+import subprocess
+import time
+import signal
+import sys
+import os
+import platform
+from dotenv import load_dotenv
+
+# LangChain MCP client libraries
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+
+def start_server():
+    """
+    MCP 서버를 백그라운드에서 실행 (Windows 호환).
+    """
+    return subprocess.Popen(
+        [sys.executable, "-m", "mcp.mcp_server"],
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+def stop_server(proc):
+    """
+    MCP 서버 프로세스를 안전하게 종료 (Windows 호환).
+    """
+    try:
+        proc.send_signal(signal.CTRL_BREAK_EVENT)
+    except Exception:
+        pass
+    proc.wait()
+
+async def query_mcp(question: str) -> str:
+    """
+    주어진 질문을 MCP 서버에 보내고, 응답 콘텐츠를 반환.
+    """
+    load_dotenv()
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
+
+    server_connections = {
+        "test": {
+            "transport": "sse",
+            "url": "http://localhost:8010/sse",
+        },
+    }
+
+    client = MultiServerMCPClient(server_connections)
+    tools = await client.get_tools()
+    agent = create_react_agent(model=llm, tools=tools)
+
+    persona = (
+        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+        "모든 질문에 친절하고 상냥한 말투로 대답해주세요. "
+        "말끝마다 '부키!'를 붙여주세요."
+    )
+
+    messages = [
+        ("system", persona),
+        ("human", question)
+    ]
+
+    result = await agent.ainvoke({"messages": messages})
+    return result["messages"][-1].content
+
+def register_signals(cleanup):
+    """
+    Windows/Unix 호환 시그널 핸들러 등록 함수
+    """
+    signals = [signal.SIGINT, signal.SIGTERM]
+    for s in signals:
+        signal.signal(s, cleanup)
+
+def main():
+    proc = start_server()
+    print("부엉이 부키 MCP 서버를 시작했습니다...")
+    time.sleep(1)
+
+    def cleanup(sig, frame):
+        print("\n시그널 감지, MCP 서버를 종료합니다...")
+        stop_server(proc)
+        sys.exit(0)
+
+    register_signals(cleanup)
+
+    try:
+        loop = asyncio.get_event_loop()
+        print("부엉이 부키와 대화하기 (종료: 빈 입력 후 Enter)")
+        while True:
+            question = input("You: ")
+            if not question.strip():
+                break
+            answer = loop.run_until_complete(query_mcp(question))
+            print(f"부엉이 부키: {answer}\n")
+    finally:
+        print("MCP 서버를 종료합니다...")
+        stop_server(proc)
+
+if __name__ == "__main__":
+    main()
+
+'''
