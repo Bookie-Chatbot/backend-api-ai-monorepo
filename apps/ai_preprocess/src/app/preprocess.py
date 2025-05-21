@@ -26,7 +26,21 @@ def add_file_vectorstore(file_path, db):
     if isinstance(db, FAISS):
         vectorstore.add_doc_to_FAISS(db, split_doc=split_doc)
     elif isinstance(db, Chroma):
-        vectorstore.add_doc_Chroma(db, split_doc=split_doc)
+        vectorstore.add_doc_to_Chroma(db, split_doc=split_doc)
     
     return db
 
+
+if __name__ == "__main__":
+
+    # doc=create_file_vectorstore("root_data\koreanair.pdf")
+    # print(len(doc))    
+    # for docs in doc:
+    #     if docs.metadata["page"] < 5:
+    #         print(docs.page_content)
+    #         print(docs.metadata)
+    embedder = embedding.embed_document_openai()
+    db=FAISS.load_local("db_FAISS/", embeddings=embedder,
+                        allow_dangerous_deserialization=True)
+
+    db.docstore.__dict__

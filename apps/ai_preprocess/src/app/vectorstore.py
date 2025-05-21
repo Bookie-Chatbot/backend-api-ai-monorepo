@@ -74,6 +74,10 @@ def add_doc_to_Chroma(db: Chroma, new_docs):
         embedding=embedder,
 
     ) <- FAISS 벡터 저장소 생성
+    
+    in db_FAISS
+    > index.faiss : 벡터 인덱스
+    > index.pkl : 메타데이터(문서, id 등)
 
     db.add_documents([Document], ids=["new_id"])
     db.delete(ids)
@@ -103,10 +107,10 @@ os.environ["HF_HOME"] = "./cache/"
 def create_doc_FAISS(split_doc, persist_directory="db_FAISS"):
     # split doc들로 FAISS DB를 생성하는 메소드. persist_directory 폴더에 저장
 
-    # embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
-    embedder = HuggingFaceEmbeddings(
-        model_name= "intfloat/multilingual-e5-large-instruct",
-    )
+    embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
+    # embedder = HuggingFaceEmbeddings(
+    #     model_name= "intfloat/multilingual-e5-large-instruct",
+    # )
     db = FAISS.from_documents(
         split_doc, embedder,
     )

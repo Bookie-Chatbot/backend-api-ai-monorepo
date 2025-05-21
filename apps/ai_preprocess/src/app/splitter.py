@@ -1,6 +1,8 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
+from langchain_core.documents import Document
+import re
 
 def splitter_recursive(doc):
     # recursive. hyperparam은 여기서 조정 구분자도 조정 가능
@@ -8,10 +10,27 @@ def splitter_recursive(doc):
         chunk_size=500,
         chunk_overlap=100,
         length_function=len,
-        is_separator_regex=False
+        separators=[r"(?:제\s*\d+\s*조\s+[^\n\d항]+?)\n", "\n\n", "\n", ".", " ", ""],        
+        is_separator_regex=True
         )
-    
-    return splitter.split_documents(doc)
+
+    split_docs = splitter.split_documents(doc[1:])
+
+    split_docs[0].metadata["chapter_info"] = None
+    for i, d in enumerate(split_docs):
+        if i==0:
+            d.metadata["chapter_info"] = None
+            continue
+        match = re.search(r"(제\s*\d+\s*조\s+[^\n\d항]+?)\n", d.page_content)
+        if match:
+            full_t = match.group()
+            title = re.sub(r"^제\s*\d+\s*조", "", full_t).strip()
+            d.metadata["chapter_info"] = title
+        else:
+            d.metadata["chapter_info"] = split_docs[i-1].metadata["chapter_info"]
+        
+
+    return split_docs
 
 def splitter_semantic(doc):
     splitter = SemanticChunker(OpenAIEmbeddings())
