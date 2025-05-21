@@ -5,7 +5,7 @@ from datetime import datetime
 
 class ChatLogCreate(BaseModel):
     session_id: str
-   # role: str  # "user" or "bot"
+    role: str  # "user" or "bot"
     message: str
 
 class ChatLogRead(BaseModel):

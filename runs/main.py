@@ -85,7 +85,7 @@ def start_api_server():
         sys.executable, "-m", "uvicorn",
         "main:app",
         "--reload",
-        "--app-dir", "apps/api-server/workspace/fastapi-project",
+        "--app-dir", "apps/api_server/workspace/fastapi-project",
         "--host", "0.0.0.0",
         "--port", "8000",
     ]
@@ -187,7 +187,7 @@ def stop_amadeus(proc):
 # ──────────────────────────────────────────────────────────
 async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
     # Message 모델 import 지연
-    from api_server.models.chat_log import Message
+    from models.chat_log import Message
     print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question}")
     print("[DEBUG] DB 세션 열기 완료")
 
