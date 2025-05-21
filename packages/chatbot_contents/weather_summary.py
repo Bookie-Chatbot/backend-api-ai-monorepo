@@ -1,7 +1,7 @@
 from typing import Optional, Literal, List
 from pydantic import BaseModel, Field
 
-
+# 퓰리퀘용 주석
 class WeatherSummaryContent(BaseModel):
     intent: Literal["WEATHER_SUMMARY"]= Field(..., exclude=True)
     location: str
