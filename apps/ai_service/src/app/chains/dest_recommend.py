@@ -2,6 +2,8 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
 from chatbot_contents.dest_recommend import DestRecommendContent
+# for window
+# from packages.chatbot_contents.dest_recommend import DestRecommendContent
 import os
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
@@ -21,8 +23,6 @@ def parse_or_passthrough(text: str):
         return text
 
 safe_parser = RunnableLambda(parse_or_passthrough)
-
-
 
 dest_recommend_chain = (
     PromptTemplate.from_template(

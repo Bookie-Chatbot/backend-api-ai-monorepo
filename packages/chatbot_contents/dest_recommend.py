@@ -12,7 +12,6 @@ class ContentsList(BaseModel):
     message: str
     cards: List[DestRecommendCard]
 
-
 class DestRecommendContent(BaseModel):
     intent: Literal["DEST_RECOMMEND"] = Field(..., exclude=True)
     contents: ContentsList
@@ -37,3 +36,6 @@ if __name__ == "__main__":
 
     content = DestRecommendContent.parse_obj(raw["contents"])
     print(content.cards[0].city)  # 제주도
+    # for window
+    # content = DestRecommendContent.model_validate(raw)
+    # print(content.contents.cards[0].city)  # 제주도
