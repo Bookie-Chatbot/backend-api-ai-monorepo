@@ -4,12 +4,13 @@ from database import get_db
 from models.chat_log import ChatLog
 from schemas.chat_log import ChatLogCreate, ChatLogRead
 from models.chat_log import Message
-from schemas.message import MessageCreate, MessageRead
+from schemas.message import MessageCreate, MessageRead, MessagesRead
 from models.ai_response import AI_Response
 from schemas.ai_response import ai_responseCreate
 from runs.main import query_chain
 from fastapi.responses import JSONResponse
 import re,json
+from typing import List
 
 router = APIRouter(prefix="/chat")
 
@@ -110,3 +111,48 @@ async def chat_message(
     db.commit()
     db.refresh(db_msg)
     return db_msg
+
+
+@router.get("/messages/", response_model=MessagesRead)
+async def read_messages(
+    user_id: int,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    messages = db.query(Message).filter(Message.user_id == user_id).offset(skip).limit(limit).all()
+    messagesList = [MessageRead.from_orm(m) for m in messages]
+
+    response = MessagesRead(user_id=user_id, messages=messagesList)
+    print(f"read_messages: {messagesList}")
+    return response
+
+
+@router.delete("/messages/{user_id}/{session_id}")
+async def delete_message(
+    user_id: int,
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        db.query(Message).filter(Message.user_id == user_id, Message.session_id == session_id).delete()
+        db.commit()
+        return {"message": "Message deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete message")
+
+    
+
+@router.delete("/messages/{user_id}")
+async def delete_messages(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        db.query(Message).filter(Message.user_id == user_id).delete()
+        db.commit()
+        return {"message": "Messages deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete messages")
