@@ -22,7 +22,7 @@ def embed_document_openai(doc):
     load_dotenv()
     embedder = OpenAIEmbeddings(
         model = "text-embedding-3-small",
-        dimensions=1024,  # 1024차원
+        # dimensions=1024,  # 1024차원
     )
 
     doc_embed = embedder.embed_documents(doc)

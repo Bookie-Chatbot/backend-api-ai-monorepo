@@ -39,13 +39,13 @@ def create_doc_Chroma(split_doc, persist_directory="db_Chroma"):
     # split doc들로 Chroma DB를 생성하는 메소드. 해당 데이터는 persist_directory 폴더에 저장
 
     DB_PATH = "./chroma_db"
-    # embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
-    embedder = HuggingFaceEmbeddings(
-        model_name = "intfloat/multilingual-e5-large-instruct",
-        # task= "feature-extraction",
-        # huggingfacehub_api_token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
-        # model_kwargs={"device": "cpu"},
-    )
+    embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
+    # embedder = HuggingFaceEmbeddings(
+    #     model_name = "intfloat/multilingual-e5-large-instruct",
+    #     # task= "feature-extraction",
+    #     # huggingfacehub_api_token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
+    #     # model_kwargs={"device": "cpu"},
+    # )
     db = Chroma.from_documents(
         split_doc, embedder,
         persist_directory=persist_directory,
@@ -101,7 +101,7 @@ def add_doc_to_Chroma(db: Chroma, new_docs):
 '''
 
 warnings.filterwarnings("ignore")
-os.environ["HF_HOME"] = "./cache/"
+# os.environ["HF_HOME"] = "./cache/"
 # filterwarnings("module") 실제 운영 환경에서 이게 더 안전
 
 def create_doc_FAISS(split_doc, persist_directory="db_FAISS"):
