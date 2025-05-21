@@ -47,7 +47,7 @@ def strip_fence(s: str) -> str:
     """
     return re.sub(r"^```json\s*|\s*```$", "", s, flags=re.MULTILINE).strip()
 
-@router.post("/message", response_model=MessageRead)
+@router.post("/message", response_model=MessagesRead)
 async def chat_message(
     data: MessageCreate,
     db: Session = Depends(get_db),
@@ -110,7 +110,12 @@ async def chat_message(
     db.add(db_msg)
     db.commit()
     db.refresh(db_msg)
-    return db_msg
+    messages = db.query(Message).filter(Message.user_id == data.user_id).all()
+    messagesList = [MessageRead.from_orm(m) for m in messages]
+    response = MessagesRead(user_id=data.user_id, messages=messagesList)
+    print(f"    DB에 저장된 메시지: {messagesList}")
+    print(f"    응답: {response}")
+    return response
 
 
 @router.get("/messages/", response_model=MessagesRead)
@@ -142,7 +147,7 @@ async def delete_message(
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete message")
 
-    
+
 
 @router.delete("/messages/{user_id}")
 async def delete_messages(
