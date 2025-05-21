@@ -22,13 +22,17 @@ setup(
     # ── 여기에 쓸 최상위 패키지를 전부 나열 ──
     packages=[
       *find_packages(where="."),
+        "root",  # 루트 패키지
         "mcp",
         "app_preprocess",
         "service",
+        "chains",
+        "database",
         "app_service",
         "app_service.service",
         "api_server",
         "api_server.routers",
+        "chatbot_contents",
         "core_backend",
     ],
 
@@ -41,15 +45,22 @@ setup(
     package_dir={
         # 원래 일반 패키지들 인식될 수 있게끔 루트도 포함
         "": ".",
+        "root":                 "",
         "mcp":                  "apps/ai_preprocess/src/mcp",
         "app_preprocess":       "apps/ai_preprocess/src/app",
         "service":              "apps/ai_service/src",
         "app_service":          "apps/ai_service/src/app",
         "app_service.service":  "apps/ai_service/src/app/service",
+        "chains":               "apps/ai_service/src/app/chains",
+        "database":             "apps/api-server/workspace/fastapi-project/database",
         "api_server":           "apps/api-server/workspace/fastapi-project",
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
+        "chatbot_contents":     "packages/chatbot_contents",
         "core_backend":         "packages/core_backend",
+
+
     },
+    py_directories=["apps/ai_service/src"],
 
     # 4) console_scripts 엔트리포인트
     entry_points={
@@ -59,6 +70,10 @@ setup(
             "mcp-client    = mcp.mcp_client:main",
             "mcp-test      = runs.test.mcp:main",
             "mcp-test2    = runs.test.mcp2:main",
+
+            # 의도 분류 테스트
+            "intent-test   = runs.test.intent:main",
+            "main = runs.main:main",
 
             # AI 서비스 전처리 & 메인 서비스
             "preprocess    = app_preprocess.main_preprocess:main",

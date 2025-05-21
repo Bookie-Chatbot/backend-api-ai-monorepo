@@ -1,96 +1,94 @@
+// apps/amadeus_mcp_server/src/prompt.ts
 import { z } from 'zod';
-// Prompt for analyzing flight prices
 import { server } from './index.js';
 
 server.prompt(
   'analyze-flight-prices',
   'Analyze flight prices for a route',
   {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code (e.g., JFK)'),
-    destinationLocationCode: z
-      .string()
-      .length(3)
-      .describe('Destination airport IATA code (e.g., LHR)'),
-    departureDate: z.string().describe('Departure date in YYYY-MM-DD format'),
-    returnDate: z
-      .string()
-      .optional()
-      .describe('Return date in YYYY-MM-DD format (for round trips)'),
+    originIataCode:      z.string().length(3),
+    destinationIataCode: z.string().length(3),
+    departureDate:       z.string(),
+    returnDate:          z.string().optional(),
   },
-  async ({
-    originLocationCode,
-    destinationLocationCode,
-    departureDate,
-    returnDate,
-  }) => {
+  async ({ originIataCode, destinationIataCode, departureDate, returnDate }) => {
+    const schemaDesc = `
+다음 스키마에 **정확히** 맞는 JSON 객체 하나만 반환해주세요:
+
+{
+  "message": string,
+  "origin": string,
+  "destination": string,
+  "departureDate": string,
+  "currencyCode": string,
+  "oneWay": boolean,
+  "priceMetrics": [
+    { "quartileRanking": "MINIMUM"|"FIRST"|"MEDIUM"|"THIRD"|"MAXIMUM", "amount": number },
+    …
+  ]
+}`;
+
+    const userText = `
+${originIataCode}→${destinationIataCode} (${departureDate}${returnDate ? `, 복귀 ${returnDate}` : ''}) 편도 항공권 가격을 분석해주세요.
+–
+"message": string을 작성할 땐 아래를 고려해서, 2-3줄의 간단한 설명을 포함해주세요.
+가격 범위 개요
+– 평균 대비 가격 위치
+– 최적 예약 시기
+– 가성비 항공편 예시
+– 추가 인사이트
+
+예시 응답:
+{\n  "message": "...",\n  "origin": "...",\n  …\n}`;
+
     return {
       messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please analyze flight prices for a trip from ${originLocationCode} to ${destinationLocationCode} departing on ${departureDate}${
-              returnDate ? ` and returning on ${returnDate}` : ''
-            }.
-
-Please use the flight-price-analysis tool to get price metrics, and the search-flights tool to find actual flight options. Then provide:
-
-1. An overview of the price range
-2. Insights on whether current prices are high or low compared to average
-3. Recommendations on when to book
-4. A few specific flight options that offer good value
-5. Any additional insights that would be helpful for a traveler
-`,
-          },
-        },
+        { role: 'user', content: { type: 'text', text: `${schemaDesc}\n\n${userText}` } },
       ],
     };
-  },
+  }
 );
 
 // If you need to search for airport information, you can use the search-airports tool.
 // Prompt for finding the best flight deals
 server.prompt(
-  'find-best-deals',
-  'Find the best flight deals',
-  {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code (e.g., JFK)'),
-    destinationLocationCode: z
-      .string()
-      .length(3)
-      .describe('Destination airport IATA code (e.g., LHR)'),
-    departureDate: z.string().describe('Departure date in YYYY-MM-DD format'),
-    returnDate: z
-      .string()
-      .optional()
-      .describe('Return date in YYYY-MM-DD format (for round trips)'),
-    travelClass: z
-      .enum(['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'])
-      .optional()
-      .describe('Travel class'),
-  },
-  async ({
-    originLocationCode,
-    destinationLocationCode,
-    departureDate,
-    returnDate,
-    travelClass,
-  }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please find the best flight deals for a trip from ${originLocationCode} to ${destinationLocationCode} departing on ${departureDate}${
-              returnDate ? ` and returning on ${returnDate}` : ''
-            }${travelClass ? ` in ${travelClass} class` : ''}.
+	'find-best-deals',
+	'Find the best flight deals',
+	{
+		originLocationCode: z
+			.string()
+			.length(3)
+			.describe('Origin airport IATA code (e.g., JFK)'),
+		destinationLocationCode: z
+			.string()
+			.length(3)
+			.describe('Destination airport IATA code (e.g., LHR)'),
+		departureDate: z.string().describe('Departure date in YYYY-MM-DD format'),
+		returnDate: z
+			.string()
+			.optional()
+			.describe('Return date in YYYY-MM-DD format (for round trips)'),
+		travelClass: z
+			.enum(['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'])
+			.optional()
+			.describe('Travel class'),
+	},
+	async ({
+		originLocationCode,
+		destinationLocationCode,
+		departureDate,
+		returnDate,
+		travelClass,
+	}) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please find the best flight deals for a trip from ${originLocationCode} to ${destinationLocationCode} departing on ${departureDate}${
+							returnDate ? ` and returning on ${returnDate}` : ''
+						}${travelClass ? ` in ${travelClass} class` : ''}.
 
 Please use the search-flights tool to find options, and organize them by:
 
@@ -99,33 +97,33 @@ Please use the search-flights tool to find options, and organize them by:
 3. Most convenient options (fewest stops, best times)
 
 For each option, provide a brief summary of why it might be a good choice for different types of travelers.`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 
 // Prompt for planning a multi-city trip
 server.prompt(
-  'plan-multi-city-trip',
-  'Plan a multi-city trip',
-  {
-    cities: z
-      .string()
-      .describe('Comma-separated list of city or airport codes to visit'),
-    startDate: z.string().describe('Start date of trip in YYYY-MM-DD format'),
-    endDate: z.string().describe('End date of trip in YYYY-MM-DD format'),
-    homeAirport: z.string().length(3).describe('Home airport IATA code'),
-  },
-  async ({ cities, startDate, endDate, homeAirport }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please help me plan a multi-city trip visiting the following cities: ${cities}. I'll be starting from ${homeAirport} on ${startDate} and returning on ${endDate}.
+	'plan-multi-city-trip',
+	'Plan a multi-city trip',
+	{
+		cities: z
+			.string()
+			.describe('Comma-separated list of city or airport codes to visit'),
+		startDate: z.string().describe('Start date of trip in YYYY-MM-DD format'),
+		endDate: z.string().describe('End date of trip in YYYY-MM-DD format'),
+		homeAirport: z.string().length(3).describe('Home airport IATA code'),
+	},
+	async ({ cities, startDate, endDate, homeAirport }) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please help me plan a multi-city trip visiting the following cities: ${cities}. I'll be starting from ${homeAirport} on ${startDate} and returning on ${endDate}.
 
 
 For my trip plan, I would like:
@@ -136,56 +134,56 @@ For my trip plan, I would like:
 4. Any insights about potential challenges or considerations for this itinerary
 
 Please outline a complete trip plan with flight details and suggested stays in each location.`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 // Please use the search-airports tool to confirm airport codes for each city, and then use the search-flights tool to find optimal flight routes between each city.
 
 // Prompt for finding cheapest dates to travel
 server.prompt(
-  'find-cheapest-travel-dates',
-  'Find the cheapest dates to travel for a given route',
-  {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code (e.g., JFK)'),
-    destinationLocationCode: z
-      .string()
-      .length(3)
-      .describe('Destination airport IATA code (e.g., LHR)'),
-    earliestDepartureDate: z
-      .string()
-      .describe('Earliest possible departure date in YYYY-MM-DD format'),
-    latestDepartureDate: z
-      .string()
-      .describe('Latest possible departure date in YYYY-MM-DD format'),
-    tripDuration: z
-      .string()
-      .optional()
-      .describe('Desired trip duration in days (for round trips)'),
-  },
-  async ({
-    originLocationCode,
-    destinationLocationCode,
-    earliestDepartureDate,
-    latestDepartureDate,
-    tripDuration,
-  }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `I'm looking for the cheapest dates to fly from ${originLocationCode} to ${destinationLocationCode} between ${earliestDepartureDate} and ${latestDepartureDate}${
-              tripDuration
-                ? ` for a trip duration of approximately ${tripDuration} days`
-                : ''
-            }.
+	'find-cheapest-travel-dates',
+	'Find the cheapest dates to travel for a given route',
+	{
+		originLocationCode: z
+			.string()
+			.length(3)
+			.describe('Origin airport IATA code (e.g., JFK)'),
+		destinationLocationCode: z
+			.string()
+			.length(3)
+			.describe('Destination airport IATA code (e.g., LHR)'),
+		earliestDepartureDate: z
+			.string()
+			.describe('Earliest possible departure date in YYYY-MM-DD format'),
+		latestDepartureDate: z
+			.string()
+			.describe('Latest possible departure date in YYYY-MM-DD format'),
+		tripDuration: z
+			.string()
+			.optional()
+			.describe('Desired trip duration in days (for round trips)'),
+	},
+	async ({
+		originLocationCode,
+		destinationLocationCode,
+		earliestDepartureDate,
+		latestDepartureDate,
+		tripDuration,
+	}) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `I'm looking for the cheapest dates to fly from ${originLocationCode} to ${destinationLocationCode} between ${earliestDepartureDate} and ${latestDepartureDate}${
+							tripDuration
+								? ` for a trip duration of approximately ${tripDuration} days`
+								: ''
+						}.
 
 Please use the find-cheapest-dates tool to identify the most economical travel dates, and then provide:
 
@@ -196,47 +194,44 @@ Please use the find-cheapest-dates tool to identify the most economical travel d
 5. Specific flight options for the cheapest dates found
 
 Please organize this information clearly to help me make an informed decision about when to book my trip.`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 
 // Prompt for discovering flight destinations
 server.prompt(
-  'discover-destinations',
-  'Find inspiring flight destinations within your budget',
-  {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code (e.g., MAD)'),
-    maxPrice: z
-      .string()
-      .optional()
-      .describe('Maximum budget for flights'),
-    departureDate: z
-      .string()
-      .optional()
-      .describe('Preferred departure date or date range (YYYY-MM-DD)'),
-    tripDuration: z
-      .string()
-      .optional()
-      .describe('Desired trip duration in days (e.g., "7" or "2,8" for range)'),
-  },
-  async ({ originLocationCode, maxPrice, departureDate, tripDuration }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please help me discover interesting destinations I can fly to from ${originLocationCode}${
-              maxPrice ? ` within a budget of ${maxPrice}` : ''
-            }${departureDate ? ` around ${departureDate}` : ''}${
-              tripDuration ? ` for about ${tripDuration} days` : ''
-            }.
+	'discover-destinations',
+	'Find inspiring flight destinations within your budget',
+	{
+		originLocationCode: z
+			.string()
+			.length(3)
+			.describe('Origin airport IATA code (e.g., MAD)'),
+		maxPrice: z.string().optional().describe('Maximum budget for flights'),
+		departureDate: z
+			.string()
+			.optional()
+			.describe('Preferred departure date or date range (YYYY-MM-DD)'),
+		tripDuration: z
+			.string()
+			.optional()
+			.describe('Desired trip duration in days (e.g., "7" or "2,8" for range)'),
+	},
+	async ({ originLocationCode, maxPrice, departureDate, tripDuration }) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please help me discover interesting destinations I can fly to from ${originLocationCode}${
+							maxPrice ? ` within a budget of ${maxPrice}` : ''
+						}${departureDate ? ` around ${departureDate}` : ''}${
+							tripDuration ? ` for about ${tripDuration} days` : ''
+						}.
 
 Please use the flight-inspiration tool to find destinations and then:
 
@@ -249,37 +244,34 @@ Please use the flight-inspiration tool to find destinations and then:
 For the most interesting options, please use the search-flights tool to find specific flight details.
 
 Please organize the results to help me discover new travel possibilities within my constraints.`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 // If needed, use the search-airports tool to get more information about the destinations.
 
 // Prompt for exploring airport routes
 server.prompt(
-  'explore-airport-routes',
-  'Discover direct routes and connections from an airport',
-  {
-    airportCode: z
-      .string()
-      .length(3)
-      .describe('Airport IATA code (e.g., JFK)'),
-    maxResults: z
-      .string()
-      .optional()
-      .default("20")
-      .describe('Maximum number of routes to show'),
-  },
-  async ({ airportCode, maxResults }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please analyze the routes available from ${airportCode} airport.
+	'explore-airport-routes',
+	'Discover direct routes and connections from an airport',
+	{
+		airportCode: z.string().length(3).describe('Airport IATA code (e.g., JFK)'),
+		maxResults: z
+			.string()
+			.optional()
+			.default('20')
+			.describe('Maximum number of routes to show'),
+	},
+	async ({ airportCode, maxResults }) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please analyze the routes available from ${airportCode} airport.
 
 Please use the airport-routes tool to find direct destinations, and then:
 
@@ -296,44 +288,43 @@ Please organize this information to help understand:
 - Best connection possibilities
 - Popular destinations served
 - Unique route opportunities`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 
 // Use the search-airports tool to get more details about the connected airports.
 
-
 // Prompt for finding nearby airports
 server.prompt(
-  'find-nearby-airports',
-  'Find convenient airports near a specific location',
-  {
-    latitude: z.string().describe('Location latitude'),
-    longitude: z.string().describe('Location longitude'),
-    radius: z
-      .string()
-      .optional()
-      .default("500")
-      .describe('Search radius in kilometers'),
-    maxResults: z
-      .string()
-      .optional()
-      .default("10")
-      .describe('Maximum number of airports to show'),
-  },
-  async ({ latitude, longitude, radius, maxResults }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please help me find convenient airports near latitude ${latitude}, longitude ${longitude}${
-              radius ? ` within ${radius} kilometers` : ''
-            }.
+	'find-nearby-airports',
+	'Find convenient airports near a specific location',
+	{
+		latitude: z.string().describe('Location latitude'),
+		longitude: z.string().describe('Location longitude'),
+		radius: z
+			.string()
+			.optional()
+			.default('500')
+			.describe('Search radius in kilometers'),
+		maxResults: z
+			.string()
+			.optional()
+			.default('10')
+			.describe('Maximum number of airports to show'),
+	},
+	async ({ latitude, longitude, radius, maxResults }) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please help me find convenient airports near latitude ${latitude}, longitude ${longitude}${
+							radius ? ` within ${radius} kilometers` : ''
+						}.
 
 Please use the nearest-airports tool to find airports, and then:
 
@@ -353,54 +344,54 @@ Please organize this information to help choose the most suitable airport based 
 - Flight options and frequencies
 - Typical prices
 - Overall convenience for different types of travel`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );
 
 // Prompt for comprehensive trip planning
 server.prompt(
-  'plan-complete-trip',
-  'Get comprehensive trip planning assistance',
-  {
-    originLocationCode: z
-      .string()
-      .length(3)
-      .describe('Origin airport IATA code'),
-    budget: z.string().optional().describe('Total budget for flights'),
-    departureDate: z
-      .string()
-      .optional()
-      .describe('Preferred departure date or date range'),
-    tripDuration: z
-      .string()
-      .optional()
-      .describe('Desired trip duration in days'),
-    preferences: z
-      .string()
-      .optional()
-      .describe('Travel preferences (e.g., "beach, culture, food")'),
-  },
-  async ({
-    originLocationCode,
-    budget,
-    departureDate,
-    tripDuration,
-    preferences,
-  }) => {
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Please help me plan a trip from ${originLocationCode}${
-              budget ? ` with a budget of ${budget}` : ''
-            }${departureDate ? ` around ${departureDate}` : ''}${
-              tripDuration ? ` for ${tripDuration} days` : ''
-            }${preferences ? ` focusing on ${preferences}` : ''}.
+	'plan-complete-trip',
+	'Get comprehensive trip planning assistance',
+	{
+		originLocationCode: z
+			.string()
+			.length(3)
+			.describe('Origin airport IATA code'),
+		budget: z.string().optional().describe('Total budget for flights'),
+		departureDate: z
+			.string()
+			.optional()
+			.describe('Preferred departure date or date range'),
+		tripDuration: z
+			.string()
+			.optional()
+			.describe('Desired trip duration in days'),
+		preferences: z
+			.string()
+			.optional()
+			.describe('Travel preferences (e.g., "beach, culture, food")'),
+	},
+	async ({
+		originLocationCode,
+		budget,
+		departureDate,
+		tripDuration,
+		preferences,
+	}) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please help me plan a trip from ${originLocationCode}${
+							budget ? ` with a budget of ${budget}` : ''
+						}${departureDate ? ` around ${departureDate}` : ''}${
+							tripDuration ? ` for ${tripDuration} days` : ''
+						}${preferences ? ` focusing on ${preferences}` : ''}.
 
 Please use multiple tools to create a comprehensive trip plan:
 
@@ -422,9 +413,9 @@ Please provide:
    - Travel tips and considerations
 
 Please organize all this information into a clear, actionable trip plan.`,
-          },
-        },
-      ],
-    };
-  },
+					},
+				},
+			],
+		};
+	}
 );

@@ -4,7 +4,7 @@
  - 날씨  : Python FastMCP  → 8010/sse
  - Amadeus : Node(TypeScript) → 8020/sse
 """
-import asyncio, socket, sys, os, signal, subprocess, time
+import asyncio, socket, sys, os, signal, subprocess, time, json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -200,7 +200,14 @@ def main():
             q = input("You: ").strip()
             if not q:
                 break
-            a = loop.run_until_complete(ask_mcp(q))
+            a = loop.run_until_complete(ask_mcp(q))  # Indented this line
+        try:
+            # if the tool returned a JSON resource, it will already be a JSON string:
+            parsed = json.loads(a)
+            print(json.dumps(parsed, ensure_ascii=False, indent=2))
+            print()  # blank line
+        except (json.JSONDecodeError, TypeError):
+            # fallback to natural-language response
             print(f"부엉이 부키: {a}\n")
     finally:
         shutdown(None, None)

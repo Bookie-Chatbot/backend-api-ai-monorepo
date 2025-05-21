@@ -14,7 +14,10 @@ server.tool(
   {
     originLocationCode: z.string().length(3).describe('Origin airport IATA code (e.g., ICN)'),
     destinationLocationCode: z.string().length(3).describe('Destination airport IATA code (e.g., FRA)'),
-    departureDate: z.string().describe('Departure date in YYYY-MM-DD format'),
+    departureDate: z
+  .string()
+  //.refine(d => new Date(d) >= new Date(), { message: '출발일은 오늘 이후여야 합니다.' }),
+  ,
     returnDate: z.string().optional().describe('Return date in YYYY-MM-DD format'),
     maxPrice: z.number().optional().describe('Maximum price limit per ticket'),
     nonStop: z.boolean().optional().default(false).describe('Only non-stop flights'),
@@ -34,6 +37,10 @@ server.tool(
     maxResults,
   }) => {
     try {
+
+          // 0) 출발일이 과거면 오늘로 대체
+          const today = new Date().toISOString().split('T')[0];
+          const validDepartureDate = departureDate < today ? today : departureDate;
       // 1) v2FlightOffersSearch 파라미터 세팅
       const params: Record<string, any> = {
         originLocationCode,
@@ -89,11 +96,14 @@ server.tool(
 
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
+            {
+              type: 'resource',
+              resource: {
+                mimeType: 'application/json',
+                text: JSON.stringify(result),
+              },
+            },
+          ],
       };
     } catch (error: unknown) {
       console.error('Error finding cheapest dates:', error);

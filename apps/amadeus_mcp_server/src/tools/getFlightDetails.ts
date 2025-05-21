@@ -51,12 +51,14 @@ server.tool(
 
       return {
         content: [
-          {
-            type: 'text',
-            text: JSON.stringify(details, null, 2),
-          },
-        ],
-      };
+            {
+              type: 'resource',
+              resource: {
+                mimeType: 'application/json',
+                text: JSON.stringify(details, null, 2),
+              },
+            },
+          ],      };
     } catch (error: unknown) {
       console.error('Error getting flight details:', error);
       return {

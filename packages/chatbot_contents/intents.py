@@ -1,0 +1,21 @@
+# chatbot_contents/intents.py
+from pydantic import BaseModel
+from enum import Enum
+
+class Intent(str, Enum):
+    PRICE_SEARCH        = "PRICE_SEARCH"
+    PRICE_PREDICTION    = "PRICE_PREDICTION"
+    PRICE_ANALYSIS      = "PRICE_ANALYSIS"
+    POLICY_QA           = "POLICY_QA"
+    DEST_RECOMMEND      = "DEST_RECOMMEND"
+    HOTEL_SUMMARY       = "HOTEL_SUMMARY"
+    WEATHER_SUMMARY     = "WEATHER_SUMMARY"
+    ALERT_DISPATCH      = "ALERT_DISPATCH"
+    GENERAL_CHAT        = "GENERAL_CHAT"
+    INTENT_FALLBACK     = "INTENT_FALLBACK"
+    SLOT_CLARIFICATION  = "SLOT_CLARIFICATION"
+   # SESSION_NEW         = "SESSION_NEW"
+  #  SESSION_CONTINUE    = "SESSION_CONTINUE"
+
+class IntentOnly(BaseModel):
+    intent: Intent
