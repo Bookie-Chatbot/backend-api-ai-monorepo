@@ -12,7 +12,7 @@ from chatbot_contents.common import (          # 이미 존재하는 Pydantic �
     FlightDetailsContent,
     WeatherSummaryContent,
 )
-from mcp_client import ask_mcp                 # 기존 async-ReAct 호출 래퍼
+from runs.test.mcp_client import ask_mcp                 # 기존 async-ReAct 호출 래퍼
 
 from langchain_core.messages import BaseMessage  # 타입힌트용
 
@@ -51,8 +51,14 @@ def _mk_chain(parser: PydanticOutputParser):
 
     # (b) LLM으로 한 번 더 포맷
     reformat_prompt = PromptTemplate.from_template(
-        "아래의 JSON 응답을 주어진 스키마 지침에 맞춰 **변형 없이** 그대로 출력하세요.\n"
-        "{format_instructions}\n\nJSON:\n```json\n{raw_json}\n```"
+        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+        "json의 contents.message 안에, 2줄짜리 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
+        "추천 도시 아래 JSON 스키마에 맞춰 반환해줘.\n"
+        "아래의 JSON 응답을 주어진 스키마 지침에 출력해줘.\n"
+        "{format_instructions}\n"
+        "질문: {question}\n"
+        "이전 대화 내역:\n{chat_history}\n"
+        "```json\n{raw_json}\n```"
     )
     llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)                 # :contentReference[oaicite:3]{index=3}
     llm_chain = reformat_prompt | llm
