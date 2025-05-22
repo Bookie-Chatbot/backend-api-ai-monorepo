@@ -7,7 +7,7 @@ from packages.chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
 from chains.policy_qa import create_policy_chain, policy_qa_parser
-
+from chains.alert_dispatch import price_drop_chain, price_drop_parser
 # 지원하지 않는 intent 대응
 def fallback_run(question: str):
     return {"message": "죄송해요, 아직 지원하지 않는 기능입니다."}
@@ -16,7 +16,8 @@ def fallback_run(question: str):
 INTENT_CHAIN_MAP = {
     Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
-    Intent.POLICY_QA:      (create_policy_chain, policy_qa_parser)
+    Intent.POLICY_QA:      (create_policy_chain, policy_qa_parser),
+    Intent.ALERT_DISPATCH: (price_drop_chain, price_drop_parser),
 }
 
 def route_and_run(inputs: dict) -> any:
