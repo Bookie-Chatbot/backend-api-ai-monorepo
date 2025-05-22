@@ -10,7 +10,7 @@ server.tool(
 	{
 		originIataCode: z.string().length(3).describe('출발지 IATA 코드'),
 		destinationIataCode: z.string().length(3).describe('도착지 IATA 코드'),
-		departureDate: z.string().describe('출발일 (YYYY-MM-DD)'),
+		departureDate: z.string().describe('출발일 (2025-MM-DD)'),
 		currencyCode: z.string().length(3).default('KRW').describe('통화 코드'),
 		oneWay: z.boolean().optional().describe('편도 여부 (기본 true)'),
 	},

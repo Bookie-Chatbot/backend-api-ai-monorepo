@@ -6,17 +6,15 @@ import * as Types from './types/index.js';
 import { asText } from './utils.js';
 import { DateTime } from 'luxon';
 
-
 // helpers/date.ts
 export const shiftPastToTomorrow = (iso: string): string => {
 	const today = DateTime.utc().startOf('day');
 	let d = DateTime.fromISO(iso, { zone: 'utc' });
 	if (d <= today) {
-	  d = today.plus({ days: 1 });   // 최소 내일
+		d = today.plus({ days: 1 }); // 최소 내일
 	}
-	return d.toISODate();            // 'YYYY-MM-DD'
-  };
-
+	return d.toISODate(); // 'YYYY-MM-DD'
+};
 
 // apps/amadeus_mcp_server/src/tools.ts
 
@@ -38,7 +36,7 @@ server.tool(
 		returnDate: z
 			.string()
 			.optional()
-			.describe('Return date in YYYY-MM-DD format'),
+			.describe('Return date in 2025-MM-DD format'),
 		maxPrice: z
 			.number()
 			//	.nullable()
