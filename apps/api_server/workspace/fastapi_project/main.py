@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, SessionLocal, Base
 from models import user, hotel, flight, reservation, admin_settings, chat_log
-from routers import user_router, hotel_router, flight_router, reservation_router, chat_log
+from routers import user_router, hotel_router, flight_router, reservation_router, chat_log, price_track
 import logging
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')))
 from dotenv import load_dotenv
 
 
@@ -70,6 +72,7 @@ app.include_router(hotel_router)
 app.include_router(flight_router)
 app.include_router(reservation_router)
 app.include_router(chat_log.router)
+app.include_router(price_track.router)
 
 @app.get("/")
 def read_root():
