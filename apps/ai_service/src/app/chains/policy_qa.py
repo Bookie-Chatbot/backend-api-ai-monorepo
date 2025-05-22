@@ -111,7 +111,8 @@ def create_policy_chain() -> RunnableMap:
         "chat_history": lambda d: d.get("chat_history", ""),
     })
 
-    chain = mapper | policy_qa_chain | policy_qa_parser 
+    chain = mapper | policy_qa_chain | safe_parser
+
     print("[INFO] Policy QA chain ready.")
     return chain
 

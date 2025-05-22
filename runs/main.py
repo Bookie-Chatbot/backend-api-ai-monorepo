@@ -316,7 +316,7 @@ def main():
             try:
                 with get_db_ctx() as db:
                     answer = loop.run_until_complete(query_chain(
-                        user_id=1,
+                        user_id=10,
                         question=q,
                         db=db  # FastAPI 의존성 주입
                     ))
