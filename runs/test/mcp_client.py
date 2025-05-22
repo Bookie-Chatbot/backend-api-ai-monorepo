@@ -10,7 +10,12 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import ToolMessage
-from chatbot_contents.weather_summary import WeatherSummaryContent, WeatherForecastResponse
+import time
+from datetime import datetime
+import pytz,re
+from .mcpWeather import WeatherForecastResponse
+from pydantic import BaseModel, ValidationError
+from typing import List, Dict, Type, Optional, Literal
 
 
 class FlightOffer(BaseModel):
@@ -29,8 +34,6 @@ SCHEMA_MAP: Dict[str, Type[BaseModel]] = {
     # 날씨 mcp 응답
     "get_weather": WeatherForecastResponse,
     # flight details 응답
-    "get-flight-details": FlightOffersResponse,
-    # ... 필요 시 추가
 }
 
 # ──────────────────────────────────────────────────────────

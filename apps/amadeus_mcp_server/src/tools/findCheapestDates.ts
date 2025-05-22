@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { amadeus, cachedApiCall, server } from '../index.js';
 import { cache } from '../index.js';
 import * as Types from './types/index.js';
+import { asText } from './utils.js';
 
 // apps/amadeus_mcp_server/src/tools.ts
 
@@ -128,14 +129,7 @@ server.tool(
 				//  link:      rsp.meta?.links?.self,
 			};
 
-			return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result),
-          },
-        ],
-      };
+			return { content: [asText(result)] };
 
 		} catch (error: unknown) {
 			console.error('Error finding cheapest dates:', error);

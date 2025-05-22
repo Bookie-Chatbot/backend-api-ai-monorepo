@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { amadeus, cachedApiCall, server } from '../index.js';
 import { cache } from '../index.js';
 import * as Types from './types/index.js';
-
+import { asText} from './utils.js'
 
 
 server.tool(
@@ -50,17 +50,8 @@ server.tool(
         travelerScore: route.analytics?.travelers?.score || 'N/A',
       }));
 
-      return {
-        content: [
-            {
-              type: 'resource',
-              resource: {
-                mimeType: 'application/json',
-                text: JSON.stringify(formattedResults, null, 2),
-              },
-            },
-          ],
-      };
+      return { content: [asText(formattedResults)], isError: false };
+
     } catch (error: unknown) {
       console.error('Error searching airport routes:', error);
       return {

@@ -4,12 +4,9 @@
  - 날씨  : Python FastMCP  → 8010/sse
  - Amadeus : Node(TypeScript) → 8020/sse
 """
-import asyncio, socket, sys, os, signal, subprocess, time, json
+import asyncio, socket, sys, os, signal, subprocess, time, json,re 
 from pathlib import Path
 from dotenv import load_dotenv
-import time
-from datetime import datetime
-import pytz,re
 
 
 def strip_fence(s: str) -> str:

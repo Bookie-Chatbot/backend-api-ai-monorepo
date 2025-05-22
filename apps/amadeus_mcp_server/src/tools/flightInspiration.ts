@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { amadeus, cachedApiCall, server } from '../index.js';
 import { cache } from '../index.js';
 import * as Types from './types/index.js';
+import { asText } from './utils.js';
+
 
 
 
@@ -82,7 +84,7 @@ server.tool(
         links: destination.links,
       }));
 
-      return {
+      return { content: [asText(formattedResults)], isError: false };
         /*
         content: [
           {
@@ -100,7 +102,7 @@ server.tool(
               },
             },
           ],*/
-      };
+      
     } catch (error: unknown) {
       console.error('Error searching flight inspiration:', error);
       return {
