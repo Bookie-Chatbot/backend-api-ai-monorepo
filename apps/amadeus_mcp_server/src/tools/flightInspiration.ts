@@ -90,6 +90,7 @@ server.tool(
             text: JSON.stringify(formattedResults, null, 2),
           },
         ],*/
+        /**
         content: [
             {
               type: 'resource',
@@ -98,7 +99,7 @@ server.tool(
                 text: JSON.stringify(formattedResults, null, 2),
               },
             },
-          ],
+          ],*/
       };
     } catch (error: unknown) {
       console.error('Error searching flight inspiration:', error);

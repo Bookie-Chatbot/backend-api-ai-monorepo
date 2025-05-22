@@ -25,6 +25,32 @@ class PriceSearchContent(BaseModel):
     intent: Literal["PRICE_SEARCH"]
     contents : ContentsList
 
+
+"""
+sample = {
+  message: "가격을 검색해보니, 2025년 6월 15일 출발, 2025년 6월 22일 귀국 항공편이 있습니다. 등등",
+  flights: [
+    {
+      origin: "ICN",
+      destination: "LAX",
+      departureDate: "2025-06-15",
+      returnDate: "2025-06-22",
+      price: 1250000.0,
+      currency: "KRW",
+      bookingUrl: "https://booking.example.com/ICN-LAX"
+    },
+    {
+      origin: "ICN",
+      destination: "LAX",
+      departureDate: "2025-06-15",
+      returnDate: null,
+      price: 1100000.0,
+      currency: "KRW",
+      bookingUrl: ""
+    }
+  ]
+}}
+"""
 {
   "intent": "PRICE_SEARCH",
   "contents": {

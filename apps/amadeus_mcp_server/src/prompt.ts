@@ -104,42 +104,6 @@ For each option, provide a brief summary of why it might be a good choice for di
 	}
 );
 
-// Prompt for planning a multi-city trip
-server.prompt(
-	'plan-multi-city-trip',
-	'Plan a multi-city trip',
-	{
-		cities: z
-			.string()
-			.describe('Comma-separated list of city or airport codes to visit'),
-		startDate: z.string().describe('Start date of trip in YYYY-MM-DD format'),
-		endDate: z.string().describe('End date of trip in YYYY-MM-DD format'),
-		homeAirport: z.string().length(3).describe('Home airport IATA code'),
-	},
-	async ({ cities, startDate, endDate, homeAirport }) => {
-		return {
-			messages: [
-				{
-					role: 'user',
-					content: {
-						type: 'text',
-						text: `Please help me plan a multi-city trip visiting the following cities: ${cities}. I'll be starting from ${homeAirport} on ${startDate} and returning on ${endDate}.
-
-
-For my trip plan, I would like:
-
-1. The most logical order to visit these cities to minimize backtracking
-2. Flight options between each city
-3. Recommended number of days in each location based on the total trip duration
-4. Any insights about potential challenges or considerations for this itinerary
-
-Please outline a complete trip plan with flight details and suggested stays in each location.`,
-					},
-				},
-			],
-		};
-	}
-);
 // Please use the search-airports tool to confirm airport codes for each city, and then use the search-flights tool to find optimal flight routes between each city.
 
 // Prompt for finding cheapest dates to travel
@@ -200,6 +164,48 @@ Please organize this information clearly to help me make an informed decision ab
 		};
 	}
 );
+
+
+
+
+
+// Prompt for planning a multi-city trip
+server.prompt(
+	'plan-multi-city-trip',
+	'Plan a multi-city trip',
+	{
+		cities: z
+			.string()
+			.describe('Comma-separated list of city or airport codes to visit'),
+		startDate: z.string().describe('Start date of trip in YYYY-MM-DD format'),
+		endDate: z.string().describe('End date of trip in YYYY-MM-DD format'),
+		homeAirport: z.string().length(3).describe('Home airport IATA code'),
+	},
+	async ({ cities, startDate, endDate, homeAirport }) => {
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: {
+						type: 'text',
+						text: `Please help me plan a multi-city trip visiting the following cities: ${cities}. I'll be starting from ${homeAirport} on ${startDate} and returning on ${endDate}.
+
+
+For my trip plan, I would like:
+
+1. The most logical order to visit these cities to minimize backtracking
+2. Flight options between each city
+3. Recommended number of days in each location based on the total trip duration
+4. Any insights about potential challenges or considerations for this itinerary
+
+Please outline a complete trip plan with flight details and suggested stays in each location.`,
+					},
+				},
+			],
+		};
+	}
+);
+
 
 // Prompt for discovering flight destinations
 server.prompt(

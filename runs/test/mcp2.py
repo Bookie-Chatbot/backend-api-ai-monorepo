@@ -7,6 +7,19 @@
 import asyncio, socket, sys, os, signal, subprocess, time, json
 from pathlib import Path
 from dotenv import load_dotenv
+import time
+from datetime import datetime
+import pytz,re
+
+
+def strip_fence(s: str) -> str:
+    """
+    ai 응답에 ```json ... ``` 형태로 감싸진 경우
+    ```json ... ``` 로 감싸진 부분을 제거하고
+    순수 JSON 문자열만 리턴함.
+    """
+    return re.sub(r"^```json\s*|\s*```$", "", s, flags=re.MULTILINE).strip()
+
 
 # ──────────────────────────────────────────────────────────
 # 1. 공통 유틸
@@ -100,38 +113,90 @@ def stop_amadeus(proc):
         pass
     proc.wait()
 
-# ──────────────────────────────────────────────────────────
-# 4. LangChain → MCP 클라이언트
-# ──────────────────────────────────────────────────────────
+# ----------------------------------------
+# LangChain ⇄ MCP 통합: ask_mcp 함수
+# ----------------------------------------
 async def ask_mcp(question: str) -> str:
     load_dotenv()
-    # import 가 늦으면 느리게 불러오기
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_openai import ChatOpenAI
     from langgraph.prebuilt import create_react_agent
 
+    # 1) MCP 서버 연결
+    print("[DEBUG] 1) Initializing MultiServerMCPClient")
     connections = {
-        "weather": {
-            "transport": "sse",
-            "url": f"http://localhost:{WEATHER_PORT}/sse",
-        },
-        "amadeus": {
-            "transport": "sse",
-            "url": f"http://localhost:{AMADEUS_PORT}/sse",
-        },
+        "weather": {"transport": "sse", "url": f"http://localhost:{WEATHER_PORT}/sse"},
+        "amadeus": {"transport": "sse", "url": f"http://localhost:{AMADEUS_PORT}/sse"},
     }
-
     client = MultiServerMCPClient(connections)
-    tools   = await client.get_tools()
+    print(f"[DEBUG] 1) client initialized: {client}")
+    print(f"[DEBUG] 1) client connections: {client.connections}")
 
-    llm  = ChatOpenAI(model_name="gpt-3.5-turbo")
-    agent = create_react_agent(model=llm, tools=tools)
+    # 2) available tools 가져오기
+    raw_tools = await client.get_tools()
+    print(f"[DEBUG] 2) got tools: {[t.name for t in raw_tools]}")
 
-    persona = ("당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-               "모든 답변 끝에 ‘부키!’를 붙여줘.")
+    # 3) 불필요 툴 필터링
+    skip = {"query_llm", "initialize", "get_weather"}
+    tools = [t for t in raw_tools if t.name not in skip]
+    print(f"[DEBUG] 3) filtered tools: {[t.name for t in tools]}")
+
+    limited = {"search-flights", "find-cheapest-dates"}
+    tool_cache = {}
+    wrapped_tools = []
+    print("[DEBUG] 4) wrapping tools with cache guard if needed", flush=True)
+    for idx, tool in enumerate(tools):
+        print(f"[DEBUG]    tool[{idx}] name => {tool.name}", flush=True)
+        if tool.name not in limited:
+            wrapped_tools.append(tool)
+            continue
+        async def arun_wrapper(*args, _tool=tool, **kwargs):
+            if _tool.name in tool_cache:
+                return tool_cache[_tool.name]
+            result = await _tool.arun(*args, **kwargs)
+            tool_cache[_tool.name] = result
+            return result
+        def run_wrapper(*args, _tool=tool, **kwargs):
+            if _tool.name in tool_cache:
+                return tool_cache[_tool.name]
+            result = _tool.run(*args, **kwargs)
+            tool_cache[_tool.name] = result
+            return result
+        tool.arun = arun_wrapper
+        tool.run = run_wrapper
+        wrapped_tools.append(tool)
+
+        print(f"[DEBUG]      ✅ '{tool.name}' wrapped and added")
+
+    print("[DEBUG] 5) Creating ChatOpenAI agent", flush=True)
+    tz = pytz.timezone("Asia/Seoul")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
+    agent = create_react_agent(model=llm, tools=wrapped_tools, verbose=True)
+    print(f"[DEBUG] 5) Agent created with tools: {[t.name for t in wrapped_tools]}")
+
+    # 6) 시스템 + 유저 메시지
+    persona = (
+        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+        "항공권 질문에는 반드시 search-flights 또는 find-cheapest-dates 툴을 사용해야 해. "
+        "모든 답변 끝에 ‘부키!’를 붙여줘. 오늘 날짜는 "
+        f"{today}입니다."
+    )
     msgs = [("system", persona), ("human", question)]
+    print(f"[DEBUG] 6) Sending messages to agent: {msgs}")
+
+    # 7) 에이전트 호출
     result = await agent.ainvoke({"messages": msgs})
-    return result["messages"][-1].content
+    print(f"[DEBUG] 7) raw agent result: {result}")
+
+    # 8) 최종 응답 추출
+    final = result["messages"][-1].content
+    print(f"[DEBUG] 8) final content: {final}")
+
+    return final
+
+
 
 # ──────────────────────────────────────────────────────────
 # 5. 메인
