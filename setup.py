@@ -52,9 +52,9 @@ setup(
         "app_service":          "apps/ai_service/src/app",
         "app_service.service":  "apps/ai_service/src/app/service",
         "chains":               "apps/ai_service/src/app/chains",
-        "database":             "apps/api-server/workspace/fastapi-project/database",
-        "api_server":           "apps/api-server/workspace/fastapi-project",
-        "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
+        "database":             "apps/api_server/workspace/fastapi_project/database",
+        "api_server":           "apps/api_server/workspace/fastapi_project",
+        "api_server.routers":   "apps/api_server/workspace/fastapi_project/routers",
         "chatbot_contents":     "packages/chatbot_contents",
         "core_backend":         "packages/core_backend",
 

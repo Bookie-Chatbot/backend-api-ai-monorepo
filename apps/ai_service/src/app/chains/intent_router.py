@@ -1,9 +1,9 @@
 # chains/intent_router.py
 
 from langchain_core.runnables import RunnableLambda
-from chatbot_contents.intents import IntentOnly, Intent
+# from chatbot_contents.intents import IntentOnly, Intent
 # for window
-# from packages.chatbot_contents.intents import IntentOnly, Intent
+from packages.chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
 from chains.policy_qa import create_policy_chain, policy_qa_parser

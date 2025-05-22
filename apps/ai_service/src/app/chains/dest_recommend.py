@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
 
+
 load_dotenv()
 
 dest_recommend_parser = PydanticOutputParser(pydantic_object=DestRecommendContent)
