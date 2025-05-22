@@ -13,13 +13,14 @@ from .mcp_client import ask_mcp
 load_dotenv()
 
 
-def strip_fence(s: str) -> str:
+def strip_fence(s: any) -> str:
     """
     ai 응답에 ```json ... ``` 형태로 감싸진 경우
     ```json ... ``` 로 감싸진 부분을 제거하고
     순수 JSON 문자열만 리턴함.
     """
-    return re.sub(r"^```json\s*|\s*```$", "", s, flags=re.MULTILINE).strip()
+    msg_str = str(s)  # 문자열로 변환
+    return re.sub(r"^```json\s*|\s*```$", "", msg_str, flags=re.MULTILINE).strip()
 
 
 # ──────────────────────────────────────────────────────────

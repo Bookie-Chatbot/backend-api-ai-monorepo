@@ -21,6 +21,30 @@ from fastapi import Depends
 
 import launch_api
 from contextlib import contextmanager
+from langchain_core.messages import AIMessage, BaseMessage
+from pydantic import BaseModel
+
+def _to_plain(obj: Any) -> Any:
+    """
+    ✅  AIMessage            → obj.content
+    ✅  list[ ... ]          → 각 원소 재귀 변환
+    ✅  dict / pydantic Base → value 재귀 변환
+    나머지는 그대로 반환
+    """
+    if isinstance(obj, AIMessage):
+        return obj.content
+
+    if isinstance(obj, list):
+        return [_to_plain(x) for x in obj]
+
+    if isinstance(obj, dict):
+        return {k: _to_plain(v) for k, v in obj.items()}
+
+    # pydantic BaseModel 도 dict 로 내려치기
+    if isinstance(obj, BaseModel):
+        return _to_plain(obj.model_dump())
+
+    return obj
 
 
 
@@ -206,15 +230,17 @@ async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
     # 히스토리 구성
     history = []
     for log in chat_logs:
-        history.append(("human", log.message))
+        history.append(("human", _to_plain(log.message)))
         print(f"[DEBUG] history append user: {log.message}")
         try:
-            bot_msg = log.answer if isinstance(log.answer, dict) else json.loads(log.answer)
+           bot_msg = log.answer if isinstance(log.answer, dict) \
+            else json.loads(log.answer)
         except Exception:
             bot_msg = log.answer
-        history.append(("chatbot", bot_msg))
+        history.append(("chatbot", _to_plain(bot_msg)))   # ⭐️ 여기서 변환
         print(f"[DEBUG] history append bot: {bot_msg}")
     print(f"[DEBUG] 히스토리 구성 완료 ({len(history)} entries)")
+    print
 
     # 1) IntentOnly 분류
     parsed = await asyncio.get_event_loop().run_in_executor(
