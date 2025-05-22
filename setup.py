@@ -34,6 +34,7 @@ setup(
         "api_server.routers",
         "chatbot_contents",
         "core_backend",
+        "test",
     ],
 
     # “싱글 파일 모듈”은 find_packages 로 잡히지 않으므로 명시 필요
@@ -57,6 +58,7 @@ setup(
         "api_server.routers":   "apps/api-server/workspace/fastapi-project/routers",
         "chatbot_contents":     "packages/chatbot_contents",
         "core_backend":         "packages/core_backend",
+        "test":                 "runs/test",
 
 
     },
