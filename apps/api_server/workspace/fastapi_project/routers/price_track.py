@@ -20,8 +20,6 @@ def track_price(req: PriceTrackCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_track)
 
-    # Celery 비동기 작업 실행
-    print("🔥 Calling check_price task...") 
     check_price.delay(
         new_track.user_id,
         new_track.search_params,
