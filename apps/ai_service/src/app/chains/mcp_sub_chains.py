@@ -28,7 +28,6 @@ load_dotenv()
 price_search_parser   = PydanticOutputParser(pydantic_object=PriceSearchContent)
 price_analysis_parser = PydanticOutputParser(pydantic_object=PriceAnalysisContent)
 cheapest_date_parser  = PydanticOutputParser(pydantic_object=CheapestDateContent)
-flight_details_parser = PydanticOutputParser(pydantic_object=FlightDetailsContent)
 weather_parser        = PydanticOutputParser(pydantic_object=WeatherSummaryContent)
 
 # ── 2) MCP → LLM(재포맷) → Pydantic 체인 팩토리 ───────────────────
@@ -43,8 +42,8 @@ def _mk_chain(parser: PydanticOutputParser):
         return asyncio.run(
             ask_mcp(
                 question            = inputs["question"],
-                chat_history        = inputs.get("chat_history", []),
-                format_instructions = parser.get_format_instructions(),  # 전달
+               # chat_history        = inputs.get("chat_history", []),
+              #  format_instructions = parser.get_format_instructions(),  # 전달
             )
         )
 
@@ -76,10 +75,10 @@ def _mk_chain(parser: PydanticOutputParser):
     )
 
 # ── 3) Intent ↔ 체인 맵 ───────────────────────────────────────────
+# mcp_sub_chains.py  ── 마지막 부분만 고치면 OK
 MCP_INTENT_MAP = {
-    "PRICE_SEARCH":    _mk_chain(price_search_parser),
-    "PRICE_ANALYSIS":  _mk_chain(price_analysis_parser),
-    "CHEAPEST_DATE":   _mk_chain(cheapest_date_parser),
-    "FLIGHT_DETAILS":  _mk_chain(flight_details_parser),
-    "WEATHER_SUMMARY": _mk_chain(weather_parser),
+    "PRICE_SEARCH":   (_mk_chain(price_search_parser),   price_search_parser),
+    "PRICE_ANALYSIS": (_mk_chain(price_analysis_parser), price_analysis_parser),
+    "CHEAPEST_DATE":  (_mk_chain(cheapest_date_parser),  cheapest_date_parser),
+    "WEATHER_SUMMARY":(_mk_chain(weather_parser),        weather_parser),
 }

@@ -6,7 +6,13 @@ from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
 #from chains.alert_dispatch_router import alert_dispatch_router
 #from chains.weather_summary import weather_summary_chain, weather_parser
-from mcp_sub_chains import MCP_INTENT_MAP    # ← NEW!
+from .mcp_sub_chains import MCP_INTENT_MAP    # ← NEW!
+from .mcp_sub_chains import (
+    price_analysis_parser,
+    cheapest_date_parser,
+    weather_parser,
+)
+
 
 
 # 지원하지 않는 intent 대응
@@ -17,12 +23,13 @@ def fallback_run(question: str):
 INTENT_CHAIN_MAP = {
     Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
-  #  Intent.ALERT_DISPATCH: (alert_dispatch_router, None),
-   # Intent.WEATHER_SUMMARY: (weather_summary_chain, weather_parser),
+
 
 
 }
 
+    #Intent.ALERT_DISPATCH: (alert_dispatch_router, None),
+   # Intent.WEATHER_SUMMARY: (weather_summary_chain, weather_parser),
 
 def route_and_run(inputs: dict) -> any:
     """
