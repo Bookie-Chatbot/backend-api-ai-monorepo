@@ -7,8 +7,7 @@ def check_price(user_id: int, search_params: dict, threshold: int):
     flights = search_flight_offers(
         origin=search_params["origin"],
         destination=search_params["destination"],
-        departure_date=search_params["departure_date"],
-        currency=search_params["KRW"]
+        departure_date=search_params["departure_date"]
     )
     if not flights:
         print("항공편 없음")
