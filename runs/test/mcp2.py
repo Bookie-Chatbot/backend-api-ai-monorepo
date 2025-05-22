@@ -39,6 +39,7 @@ def wait_port(host: str, port: int, timeout: float = 2000.0):
 def start_weather():
     cmd = [sys.executable, "-m", "mcp.mcp_server"]
     print(f"[DEBUG] start_weather: 실행 → {cmd}")
+    
     # for window
     # if platform.system() == "Windows":
     #     return subprocess.Popen(
@@ -47,7 +48,6 @@ def start_weather():
     #         stdout=subprocess.DEVNULL,
     #         stderr=subprocess.DEVNULL,
     #     )
-    
     return subprocess.Popen(
         cmd,
         preexec_fn=os.setsid,

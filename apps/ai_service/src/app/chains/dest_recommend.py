@@ -7,7 +7,8 @@ from packages.chatbot_contents.dest_recommend import DestRecommendContent
 import os
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
-
+from apps.ai_service.src.app.service.dest_recommend.dest_reco_chain import dest_reco_executor
+import asyncio
 
 load_dotenv()
 
@@ -25,15 +26,30 @@ def parse_or_passthrough(text: str):
 
 safe_parser = RunnableLambda(parse_or_passthrough)
 
-dest_recommend_chain = (
-    PromptTemplate.from_template(
-        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-        "json의 contents.message 안에, 2줄짜리 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
-        "추천 도시 아래 JSON 스키마에 맞춰 반환해줘.\n"
-        "{format_instructions}\n"
-        "질문: {question}\n"
-        "이전 대화 내역:\n{chat_history}\n"
-    )
-    | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
-    | safe_parser
-)
+dest_recommend_chain = dest_reco_executor | safe_parser
+# (
+#     PromptTemplate.from_template(
+#         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+#         "json의 contents.message 안에, 2줄짜리 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
+#         "추천 도시 아래 JSON 스키마에 맞춰 반환해줘.\n"
+#         "{format_instructions}\n"
+#         "질문: {question}\n"
+#         "이전 대화 내역:\n{chat_history}\n"
+#     )
+#     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
+#     | safe_parser
+# )
+
+
+async def main():
+    chain = dest_recommend_chain
+    response = await chain.ainvoke({
+        "question": "6월에 가기 좋은 여행지 추천해줘",
+        "format_instructions": dest_recommend_parser.get_format_instructions(),
+        "chat_history": None
+    })
+
+    print(response)
+
+if __name__ == "__main__" :
+    asyncio.run(main())
