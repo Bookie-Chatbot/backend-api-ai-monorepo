@@ -83,80 +83,49 @@ server.tool(
 				params
 			)) as Types.FlightOfferResponse;
 
-			await cache.set('last_search_offers', response.data, 600);
-			await cache.set('last_search_params', JSON.stringify(params), 600);
+			// ── 항공편 카드 생성 ───────────────────────────────────────────────
+			const flights = response.data
+				.slice(0, maxResults)
+				.map((offer: Types.FlightOffer) => {
+					const firstSeg = offer.itineraries[0].segments[0];
+					const lastSegArr = offer.itineraries.at(-1)!.segments;
+					const lastSeg = lastSegArr[lastSegArr.length - 1];
 
-			const formattedResults = response.data.map((offer: Types.FlightOffer) => {
-				const {
-					price,
-					itineraries,
-					validatingAirlineCodes,
-					numberOfBookableSeats,
-				} = offer;
+					return {
+						price: Number(offer.price.total), // ▶ number
+						currency: offer.price.currency, // ▶ e.g. KRW
+						origin: firstSeg.departure.iataCode,
+						destination: lastSeg.arrival.iataCode,
+						departureDate: firstSeg.departure.at, // ISO-8601
+						returnDate: returnDate ?? null,
+						bookingUrl: null, // 예약 링크 미구현
+					};
+				});
 
-				// Format itineraries with more details
-				const formattedItineraries = itineraries.map(
-					(itinerary: Types.FlightItinerary, idx: number) => {
-						// Calculate total duration in minutes
-						const totalDurationMinutes = Number.parseInt(
-							itinerary.duration.slice(2, -1)
-						);
-						// Format as hours and minutes
-						const hours = Math.floor(totalDurationMinutes / 60);
-						const minutes = totalDurationMinutes % 60;
-						const formattedDuration = `${hours}h ${minutes}m`;
+			// ── 자연어 메시지 생성 ────────────────────────────────────────────
+			const cheapest = flights.reduce(
+				(min, f) => (f.price < min.price ? f : min),
+				flights[0]
+			);
+			const message =
+				`부엉이 부키가 추천하는 항공편 ${flights.length}개를 찾았어요! ` +
+				`가장 저렴한 편은 ${cheapest.origin}→${cheapest.destination} ` +
+				`${cheapest.departureDate.split('T')[0]} 출발 · ` +
+				`${cheapest.price.toLocaleString()} ${cheapest.currency}, 부키!`;
 
-						// Count stops
-						const numStops = itinerary.segments.length - 1;
-						const stopsText =
-							numStops === 0
-								? 'Non-stop'
-								: `${numStops} stop${numStops > 1 ? 's' : ''}`;
-
-						// Format segments with times
-						const segments = itinerary.segments
-							.map((segment: Types.FlightSegment) => {
-								const departureTime = new Date(
-									segment.departure.at
-								).toLocaleTimeString('en-US', {
-									hour: '2-digit',
-									minute: '2-digit',
-									hour12: true,
-								});
-								const arrivalTime = new Date(
-									segment.arrival.at
-								).toLocaleTimeString('en-US', {
-									hour: '2-digit',
-									minute: '2-digit',
-									hour12: true,
-								});
-
-								return `${segment.departure.iataCode} (${departureTime}) → ${segment.arrival.iataCode} (${arrivalTime}) - ${segment.carrierCode}${segment.number}`;
-							})
-							.join(' | ');
-
-						return {
-							type: idx === 0 ? 'Outbound' : 'Return',
-							duration: formattedDuration,
-							stops: stopsText,
-							segments,
-						};
-					}
-				);
-
-				return {
-					price: `${price.total} ${price.currency}`,
-					bookableSeats: numberOfBookableSeats || 'Unknown',
-					airlines: validatingAirlineCodes.join(', '),
-					itineraries: formattedItineraries,
-				};
-			});
-
+			// ── 툴 응답 반환 ──────────────────────────────────────────────────
 			return {
 				content: [
 					{
 						type: 'text',
-						text: JSON.stringify(formattedResults, null, 2),
+						text: JSON.stringify(
+							{
+								flights,
+								message,
+							},
+							null,
+							2
+						),
 					},
 				],
 			};

@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
 # ✈️✈️ 당신이 이미 선언해 둔 모델/SCHEMA_MAP 임포트
-from .mcpFlight import (
+from .mcpFlight2 import (
     FlightOffersResponse,
     CheapestDateResult,
     PriceAnalysisContent,
@@ -26,6 +26,7 @@ WEATHER_PORT  = 8010
 AMADEUS_PORT  = int(os.getenv("AMADEUS_PORT", 8020))
 
 # ────────── 1. SCHEMA_MAP ──────────
+
 SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "search-flights":       FlightOffersResponse,
     "find-cheapest-dates":  CheapestDateResult,
@@ -33,6 +34,7 @@ SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "get-flight-details":   FlightDetailsResponse,
     "get_weather":          WeatherForecastResponse,   # ← 날씨 툴
 }
+
 
 # ────────── 2. JSON fence 제거 ──────────
 def _strip_fence(txt: str) -> str:
@@ -150,12 +152,36 @@ async def ask_mcp(question: str) -> str:
         traceback.print_exc()
         raise
 
+    from .mcpFlight import FlightCard
     # 5) ToolMessage 검증 후 최종 메시지 추출
     state = parse_and_validate_by_tool(state)
-    final_msg = state["messages"][-1]
-    content   = final_msg.content
+   # final_msg = state["messages"][-1]
+    last_tool: ToolMessage = state["messages"][-2]   # ToolMessage
+    nl_msg: str        = state["messages"][-1].content  # 부키! 자연어
+    print(f"[ask_mcp] 🗨️  요약 메시지: {nl_msg}")
+    print(f"[ask_mcp] 🧩 원시 tool_result: {last_tool.content}")
+
+    # 5️⃣ tool_result 직렬화 --------------------------------------------
+    if isinstance(last_tool.content, BaseModel):
+        tool_json = last_tool.content.model_dump()   # 안전 직렬화 :contentReference[oaicite:2]{index=2}
+    else:
+        tool_json = last_tool.content
+    print(f"[ask_mcp] 🧩 직렬화된 tool_result: {tool_json}"
+          f" ({type(tool_json)})")
+    print()
+
+
+
+
+
+    return {
+        "message": nl_msg,
+        "tool_result": tool_json
+    }
+
+
 
     # 6) 출력 포맷 결정
-    if isinstance(content, (dict, list)):
-        return json.dumps(content, ensure_ascii=False, indent=2)
-    return str(content)
+   # if isinstance(content, (dict, list)):
+    #    return json.dumps(content, ensure_ascii=False, indent=2)
+    #return str(content)

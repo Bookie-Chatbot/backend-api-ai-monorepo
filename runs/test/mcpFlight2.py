@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, RootModel
 
 
 # ───────── 1. search-flights ─────────
-"""
+
 
 class FlightItinerary(BaseModel):
     type: str
@@ -66,7 +66,7 @@ class FlightDetailsResponse(BaseModel):
     bookableSeats: Union[int, str]
     airlines: str
     segments: List[SegmentDetail]
-"""
+
 
 # ───────── 5. weather (기존 유지) ─────────
 class WeatherItem(BaseModel):
@@ -139,7 +139,7 @@ class WeatherForecastResponse(BaseModel):
 
 
 # ───────── 6. SCHEMA_MAP ─────────
-"""
+
 SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "search-flights": FlightOffersResponse,
     "find-cheapest-dates": CheapestDateResult,
@@ -148,29 +148,3 @@ SCHEMA_MAP: dict[str, type[BaseModel]] = {
     "get_weather": WeatherForecastResponse,
 }
 
-"""
-
-
-# 최종 mcp flight
-
-class FlightItinerary(BaseModel):
-    type: str
-    duration: str
-    stops: str
-    segments: str
-
-class FlightOfferSummary(BaseModel):
-    price: str
-    bookableSeats: int
-    airlines: str
-    itineraries: List[FlightItinerary]
-
-# 🔽  이게 최종 스키마 (프론트에 넘길 형태)
-class FlightCard(BaseModel):
-    price: float
-    currency: str
-    origin: str
-    destination: str
-    departureDate: str
-    returnDate: str | None = None
-    bookingUrl: str | None = None
