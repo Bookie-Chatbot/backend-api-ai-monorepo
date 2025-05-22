@@ -1,126 +1,161 @@
-import os
-import json
-import asyncio
-from dotenv import load_dotenv
+# ── mcp_client.py ───────────────────────────────────────────
+import json, re, traceback, os
+from pathlib import Path
+from typing import Any, Dict
 
-from typing import List, Dict, Type
-from pydantic import BaseModel, ValidationError
+from langchain_core.messages import ToolMessage
+from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import ToolMessage
-import time
-from datetime import datetime
-import pytz,re
+
+# ✈️✈️ 당신이 이미 선언해 둔 모델/SCHEMA_MAP 임포트
+from .mcpFlight import (
+    FlightOffersResponse,
+    CheapestDateResult,
+    PriceAnalysisContent,
+    FlightDetailsResponse,
+)
 from .mcpWeather import WeatherForecastResponse
-from pydantic import BaseModel, ValidationError
-from typing import List, Dict, Type, Optional, Literal
 
+# ────────── 0. 전역 설정 ──────────
+ROOT          = Path(__file__).resolve().parent
+WEATHER_PORT  = 8010
+AMADEUS_PORT  = int(os.getenv("AMADEUS_PORT", 8020))
 
-class FlightOffer(BaseModel):
-    airline: str
-    flightNumber: str
-    departureDate: str
-    arrivalDate: str
-    price: float
-    currency: str
-
-class FlightOffersResponse(BaseModel):
-    offers: List[FlightOffer]
-
-# MCP 툴 이름 → 스키마 매핑
-SCHEMA_MAP: Dict[str, Type[BaseModel]] = {
-    # 날씨 mcp 응답
-    "get_weather": WeatherForecastResponse,
-    # flight details 응답
+# ────────── 1. SCHEMA_MAP ──────────
+SCHEMA_MAP: dict[str, type[BaseModel]] = {
+    "search-flights":       FlightOffersResponse,
+    "find-cheapest-dates":  CheapestDateResult,
+    "analyze-flight-prices": PriceAnalysisContent,
+    "get-flight-details":   FlightDetailsResponse,
+    "get_weather":          WeatherForecastResponse,   # ← 날씨 툴
 }
 
-# ──────────────────────────────────────────────────────────
-# pre_model_hook: 중복된 tool_calls 제거
-# ──────────────────────────────────────────────────────────
-def dedupe_tool_calls(state: dict) -> dict:
+# ────────── 2. JSON fence 제거 ──────────
+def _strip_fence(txt: str) -> str:
+    return re.sub(r"^```(?:json)?\s*|\s*```$", "", txt.strip(),
+                  flags=re.IGNORECASE | re.MULTILINE)
+
+# ────────── 3. ★ ToolMessage 검증 훅 ★ ──────────
+def parse_and_validate_by_tool(state: Dict[str, Any]) -> Dict[str, Any]:
+    """마지막 ToolMessage.content → SCHEMA_MAP 기준 Pydantic 검증."""
+    msgs = state.get("messages", [])
+    last_tool: ToolMessage | None = next(
+        (m for m in reversed(msgs) if isinstance(m, ToolMessage)), None
+    )
+    if last_tool is None:
+        return {}          # 검증할 ToolMessage 없음
+
+    tool_name = last_tool.name
+    raw_json = last_tool.content
+
+    # ① content 추출 (Text / EmbeddedResource / str 모두 지원)
+    if isinstance(raw_json, list) and raw_json:
+        first = raw_json[0]
+        if first.get("type") == "text":
+            raw_json = first["text"]
+        elif first.get("type") == "resource":
+            raw_json = first["resource"]["text"]
+
+    if isinstance(raw_json, str):
+        raw_json = _strip_fence(raw_json)
+
+    # ② JSON → Python
+    try:
+        parsed = json.loads(raw_json)
+    except Exception as e:
+        print(f"[parse_hook] JSON 파싱 실패 ⇒ {e}")
+        return {}
+
+    # ③ Pydantic 검증 (스키마 없으면 건너뜀)
+    schema_cls = SCHEMA_MAP.get(tool_name)
+    if not schema_cls:
+        last_tool.content = parsed
+        return {"messages": msgs}
+
+    try:
+        validated = schema_cls.model_validate(parsed)
+        last_tool.content = validated
+        print(f"[parse_hook] ✔️  {tool_name} 응답 검증 통과")
+    except Exception as e:
+        print(f"[parse_hook] ❌ {tool_name} 검증 오류: {e}")
+        traceback.print_exc()
+        last_tool.content = parsed  # 검증 실패해도 파싱 결과는 넣어 둠
+
+    return {"messages": msgs}
+
+# ────────── 4. 중복 tool_call 제거 ──────────
+def dedupe_tool_calls(state: Dict[str, Any]) -> Dict[str, Any]:
     msgs = state.get("messages", [])
     if not msgs:
         return {}
-    last = msgs[-1]
-    calls = getattr(last, "tool_calls", None)
+
+    last_msg = msgs[-1]
+    calls = getattr(last_msg, "tool_calls", None)
     if not calls:
         return {}
+
     seen, unique = set(), []
-    for c in calls:
-        key = (c["name"], json.dumps(c.get("args", {}), sort_keys=True))
-        if key in seen:
-            print(f"[DEBUG] 중복 제거: {c['name']} args={c.get('args')}")
+    for call in calls:
+        sig = (call["name"], json.dumps(call.get("args", {}), sort_keys=True))
+        if sig in seen:
+            print(f"[pre_hook] 🔁 중복 제거 → {call['name']} {call['args']}")
         else:
-            seen.add(key)
-            unique.append(c)
-    last.tool_calls = unique
+            seen.add(sig)
+            unique.append(call)
+
+    last_msg.tool_calls = unique
     return {"messages": msgs}
 
-# ──────────────────────────────────────────────────────────
-# post_model_hook: 마지막 툴 실행 기반 JSON 파싱 + 스키마 검증
-# ──────────────────────────────────────────────────────────
-def parse_and_validate_by_tool(state: dict) -> dict:
-    msgs = state.get("messages", [])
-    # 마지막 ToolMessage 찾기
-    last_tool = next((m for m in reversed(msgs) if isinstance(m, ToolMessage)), None)
-    if not last_tool:
-        print("[DEBUG] 실행된 툴을 찾을 수 없음.")
-        return {}
-    tool_name = last_tool.name
-    schema = SCHEMA_MAP.get(tool_name)
-    if not schema:
-        print(f"[DEBUG] '{tool_name}' 스키마 없음.")
-        return {}
-    # 마지막 assistant 메시지
-    assistant = msgs[-1]
-    raw = assistant.content
-    try:
-        parsed = json.loads(raw)
-        print(f"[DEBUG] '{tool_name}' JSON 파싱 성공: {parsed}")
-    except json.JSONDecodeError:
-        print(f"[DEBUG] '{tool_name}' JSON 파싱 실패.")
-        return {}
-    try:
-        validated = schema.parse_obj(parsed)
-        print(f"[DEBUG] '{tool_name}' 스키마 검증 성공")
-        assistant.content = validated.dict()
-    except ValidationError as e:
-        print(f"[ERROR] '{tool_name}' 검증 실패:\n{e}")
-    return {"messages": msgs}
-
-# ──────────────────────────────────────────────────────────
-# ask_mcp 함수: Main 에서 import 해서 사용
-# ──────────────────────────────────────────────────────────
-WEATHER_PORT = 8010
-AMADEUS_PORT = int(os.getenv("AMADEUS_PORT", 8020))
-
-async def ask_mcp(question: str):
+# ────────── 5. 메인 진입 함수 ──────────
+async def ask_mcp(question: str) -> str:
+    """사용자 질문을 → MCP ReAct 에이전트로 전달하고 응답 반환"""
     load_dotenv()
-    # MCP 서버 연결 설정
-    connections = {
-        "weather": {"transport": "sse", "url": f"http://localhost:{WEATHER_PORT}/sse"},
-        "amadeus": {"transport": "sse", "url": f"http://localhost:{AMADEUS_PORT}/sse"},
-    }
-    client = MultiServerMCPClient(connections)
-    tools  = await client.get_tools()
+    print(f"\n[ask_mcp] 📥 입력: {question!r}")
 
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-    persona = "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. 모든 답변 끝에 ‘부키!’를 붙여줘."
+    # 1) MCP 서버 연결
+    client = MultiServerMCPClient({
+        "weather":  {"transport": "sse", "url": f"http://localhost:{WEATHER_PORT}/sse"},
+        "amadeus":  {"transport": "sse", "url": f"http://localhost:{AMADEUS_PORT}/sse"},
+    })
+
+    # 2) LangChain tool 로딩
+    tools = await client.get_tools()
+    print(f"[ask_mcp] 🛠️  tools = {[t.name for t in tools]}")
+
+    # 3) LLM + ReAct agent (❗ post_model_hook 제거)
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     agent = create_react_agent(
         model=llm,
         tools=tools,
-        prompt=persona,
-        debug=True,
+        prompt="당신은 ‘부엉이 부키’라는 귀여운 부엉이야. 모든 답변 끝에 ‘부키!’를 붙여줘.",
         version="v2",
+        debug=True,
         pre_model_hook=dedupe_tool_calls,
-        post_model_hook=parse_and_validate_by_tool,
     )
 
-    inputs = {"messages":[
-        {"role":"system","content":persona},
-        {"role":"user","content":question},
-    ]}
-    result = await agent.ainvoke(inputs)
-    return result["messages"][-1].content
+    # 4) 실행
+    try:
+        state = await agent.ainvoke({
+            "messages": [
+                {"role": "system", "content": "당신은 … ‘부키!’"},
+                {"role": "user",   "content": question},
+            ]
+        })
+    except Exception:
+        print("[ask_mcp] ❌ agent 실행 중 예외")
+        traceback.print_exc()
+        raise
+
+    # 5) ToolMessage 검증 후 최종 메시지 추출
+    state = parse_and_validate_by_tool(state)
+    final_msg = state["messages"][-1]
+    content   = final_msg.content
+
+    # 6) 출력 포맷 결정
+    if isinstance(content, (dict, list)):
+        return json.dumps(content, ensure_ascii=False, indent=2)
+    return str(content)

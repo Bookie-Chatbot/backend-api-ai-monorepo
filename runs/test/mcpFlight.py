@@ -1,40 +1,47 @@
-# models_amadeus.py  ── 신규(또는 기존 models.py에 합쳐도 OK)
-from typing import List, Union
-from pydantic import BaseModel, Field
+# models_amadeus.py
+from __future__ import annotations
+
+from datetime import datetime
+from typing import List, Union, Literal
+
+from pydantic import BaseModel, Field, RootModel
 
 
-# ─────────────── 1. search-flights ───────────────
+# ───────── 1. search-flights ─────────
 class FlightItinerary(BaseModel):
-    type: str                # "Outbound" | "Return"
-    duration: str            # "14h 35m"
-    stops: str               # "Non-stop" or "1 stop"
-    segments: str            # 문자열 하나에 모든 구간을 파이프(|)로 연결
+    type: str
+    duration: str
+    stops: str
+    segments: str
+
 
 class FlightOfferSummary(BaseModel):
-    price: str               # "912000 KRW"
+    price: str
     bookableSeats: Union[int, str]
-    airlines: str            # "KE, DL"
+    airlines: str
     itineraries: List[FlightItinerary]
 
-class FlightOffersResponse(BaseModel):
-    """search-flights 결과 = offer 리스트"""
-    __root__: List[FlightOfferSummary]
+
+class FlightOffersResponse(RootModel[List[FlightOfferSummary]]):  # ✅
+    """`search-flights` 툴이 반환하는 리스트형 루트 모델"""
+    pass
 
 
-# ─────────────── 2. find-cheapest-dates ───────────────
+# ───────── 2. find-cheapest-dates ─────────
 class CheapestDateResult(BaseModel):
-    route: str               # "ICN-LAX"
-    carrier: str             # "KE"
-    departure: str           # ISO 8601
-    arrival: str             # ISO 8601
-    price: str               # "840000 KRW"
+    route: str
+    carrier: str
+    departure: str
+    arrival: str
+    price: str
     offer_id: str
 
 
-# ─────────────── 3. analyze-flight-prices ───────────────
+# ───────── 3. analyze-flight-prices ─────────
 class PriceMetric(BaseModel):
-    quartileRanking: str     # MINIMUM | FIRST | MEDIUM | THIRD | MAXIMUM
+    quartileRanking: str
     amount: float
+
 
 class PriceAnalysisContent(BaseModel):
     message: str
@@ -46,29 +53,95 @@ class PriceAnalysisContent(BaseModel):
     priceMetrics: List[PriceMetric]
 
 
-# ─────────────── 4. get-flight-details ───────────────
+# ───────── 4. get-flight-details ─────────
 class SegmentDetail(BaseModel):
-    from_: str = Field(..., alias="from")   # "ICN @ 2025-06-03T20:00"
-    to:   str                               # "LAX @ 2025-06-03T15:20"
-    carrier: str                            # "KE17"
+    from_: str = Field(..., alias='from')
+    to: str
+    carrier: str
+
 
 class FlightDetailsResponse(BaseModel):
-    price: str                              # "912000 KRW"
+    price: str
     bookableSeats: Union[int, str]
     airlines: str
     segments: List[SegmentDetail]
 
 
-# ─────────────── 5. SCHEMA_MAP 확장 ───────────────
+# ───────── 5. weather (기존 유지) ─────────
+class WeatherItem(BaseModel):
+    id: int
+    main: str
+    description: str
+    icon: str
+
+
+class Clouds(BaseModel):
+    all: int
+
+
+class Wind(BaseModel):
+    speed: float
+    deg: int
+    gust: float
+
+
+class SysPod(BaseModel):
+    pod: Literal["d", "n"]
+
+
+class MainInfo(BaseModel):
+    temp: float
+    feels_like: float
+    temp_min: float
+    temp_max: float
+    pressure: int
+    sea_level: int
+    grnd_level: int
+    humidity: int
+    temp_kf: float
+
+
+class ForecastEntry(BaseModel):
+    dt: int
+    main: MainInfo
+    weather: List[WeatherItem]
+    clouds: Clouds
+    wind: Wind
+    visibility: int
+    pop: float
+    sys: SysPod
+    dt_txt: datetime
+
+
+class Coord(BaseModel):
+    lat: float
+    lon: float
+
+
+class CityInfo(BaseModel):
+    id: int
+    name: str
+    coord: Coord
+    country: str
+    population: int
+    timezone: int
+    sunrise: int
+    sunset: int
+
+
+class WeatherForecastResponse(BaseModel):
+    cod: str
+    message: int
+    cnt: int
+    list: List[ForecastEntry]
+    city: CityInfo
+
+
+# ───────── 6. SCHEMA_MAP ─────────
 SCHEMA_MAP: dict[str, type[BaseModel]] = {
-    "search-flights":       FlightOffersResponse,
-    "find-cheapest-dates":  CheapestDateResult,
+    "search-flights": FlightOffersResponse,
+    "find-cheapest-dates": CheapestDateResult,
     "analyze-flight-prices": PriceAnalysisContent,
-    "get-flight-details":   FlightDetailsResponse,
+    "get-flight-details": FlightDetailsResponse,
+    "get_weather": WeatherForecastResponse,
 }
-SCHEMA_MAP.update({
-    "search-flights":       FlightOffersResponse,
-    "find-cheapest-dates":  CheapestDateResult,
-    "analyze-flight-prices": PriceAnalysisContent,
-    "get-flight-details":   FlightDetailsResponse,
-})

@@ -65,11 +65,4 @@ class WeatherForecastResponse(BaseModel):
     city: CityInfo
 
 
-    
-
-SCHEMA_MAP: dict[str, type[BaseModel]]= {
-    "get_weather": WeatherForecastResponse,
-
-}
-
 

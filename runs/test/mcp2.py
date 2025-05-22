@@ -4,9 +4,13 @@
  - 날씨  : Python FastMCP  → 8010/sse
  - Amadeus : Node(TypeScript) → 8020/sse
 """
-import asyncio, socket, sys, os, signal, subprocess, time, json,re 
+import asyncio, socket, sys, os, signal, subprocess, time, json,re
 from pathlib import Path
 from dotenv import load_dotenv
+from .mcp_client import SCHEMA_MAP
+from .mcp_client import ask_mcp
+
+load_dotenv()
 
 
 def strip_fence(s: str) -> str:
@@ -110,6 +114,7 @@ def stop_amadeus(proc):
         pass
     proc.wait()
 
+"""
 async def ask_mcp(question: str) -> str:
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_openai import ChatOpenAI
@@ -185,6 +190,7 @@ async def ask_mcp(question: str) -> str:
     content = final_msg.content
     print(f"[ask_mcp] 🏁 최종 응답: {content!r}")
     return content
+"""
 
 
 # ──────────────────────────────────────────────────────────
