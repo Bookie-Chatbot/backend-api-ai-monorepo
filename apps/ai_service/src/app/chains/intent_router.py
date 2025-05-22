@@ -4,8 +4,8 @@ from langchain_core.runnables import RunnableLambda
 from chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
-from chains.alert_dispatch_router import alert_dispatch_router
-from chains.weather_summary import weather_summary_chain, weather_parser
+#from chains.alert_dispatch_router import alert_dispatch_router
+#from chains.weather_summary import weather_summary_chain, weather_parser
 
 
 # 지원하지 않는 intent 대응
@@ -17,8 +17,8 @@ INTENT_CHAIN_MAP = {
     Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
   #  Intent.ALERT_DISPATCH: (alert_dispatch_router, None),
-    Intent.WEATHER_SUMMARY: (weather_summary_chain, weather_parser),
-    
+   # Intent.WEATHER_SUMMARY: (weather_summary_chain, weather_parser),
+
 
 
 }

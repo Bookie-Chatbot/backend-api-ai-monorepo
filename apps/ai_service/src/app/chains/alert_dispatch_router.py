@@ -1,4 +1,5 @@
 # chains/alert_dispatch_router.py
+"""
 from langchain_core.runnables import RunnableLambda
 from chains.alert_price_drop import price_drop_chain
 from chains.alert_wx_risk import wx_risk_chain
@@ -23,3 +24,4 @@ def route_alert_dispatch(inputs: dict):
     }
 
 alert_dispatch_router = RunnableLambda(route_alert_dispatch)
+"""
