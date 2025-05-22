@@ -4,6 +4,19 @@ import { amadeus, cachedApiCall, server } from '../index.js';
 import { cache } from '../index.js';
 import * as Types from './types/index.js';
 import { asText } from './utils.js';
+import { DateTime } from 'luxon';
+
+
+// helpers/date.ts
+export const shiftPastToTomorrow = (iso: string): string => {
+	const today = DateTime.utc().startOf('day');
+	let d = DateTime.fromISO(iso, { zone: 'utc' });
+	if (d <= today) {
+	  d = today.plus({ days: 1 });   // 최소 내일
+	}
+	return d.toISODate();            // 'YYYY-MM-DD'
+  };
+
 
 // apps/amadeus_mcp_server/src/tools.ts
 
@@ -61,29 +74,36 @@ server.tool(
 		maxResults,
 	}) => {
 		try {
-			// 0) 출발일이 과거면 오늘로 대체
-			const today = new Date().toISOString().split('T')[0];
+			const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+			// ▸ 1) 요청 파라미터 만들기 전에 '과거 → 오늘' 보정
 			const validDepartureDate = departureDate < today ? today : departureDate;
-			// 1) v2FlightOffersSearch 파라미터 세팅
+			let validReturnDate = returnDate;
+			if (returnDate && returnDate < validDepartureDate) {
+				// 왕복인데 복귀일이 출발일 이전이면 출발일 + 7일 정도로 보정
+				const tmp = new Date(validDepartureDate);
+				tmp.setDate(tmp.getDate() + 7);
+				validReturnDate = tmp.toISOString().slice(0, 10);
+			}
+
+			// ▸ 2) 파라미터에 **보정된 날짜** 넣기
 			const params: Record<string, any> = {
 				originLocationCode,
 				destinationLocationCode,
-				departureDate,
+				departureDate: validDepartureDate, // ★ 수정
 				adults,
 				nonStop,
 				currencyCode,
 				max: maxResults,
 			};
-			if (returnDate) params.returnDate = returnDate;
+			if (validReturnDate) params.returnDate = validReturnDate;
 			if (maxPrice) params.maxPrice = maxPrice;
 
-			// 2) 실제 Amadeus v2 쇼핑 Flight Offers Search 호출
-			const rsp = await amadeus.shopping.flightOffersSearch.get(params);
+			// ▸ 3) 충분한 디버그 로그
+			console.log('[find-cheapest-dates] params →', params);
 
-			// (3) 캐시에 저장
-			// → get-flight-details 도구가 이 키를 읽어 세부 정보를 가져감
-			await cache.set('last_search_offers', rsp.data, 600);
-			await cache.set('last_search_params', JSON.stringify(params), 600);
+			// ▸ 4) API 호출
+			const rsp = await amadeus.shopping.flightOffersSearch.get(params);
 
 			console.log(`res: ${params.originLocationCode}
         ${params.destinationLocationCode} ${params.departureDate}
@@ -109,11 +129,23 @@ server.tool(
 				};
 			}
 
-			// 4) 가장 저렴한 offer 선택
 			const cheapest = rsp.data.reduce((prev: any, curr: any) => {
 				const prevPrice = parseFloat(prev.price.total);
 				const currPrice = parseFloat(curr.price.total);
 				return currPrice < prevPrice ? curr : prev;
+			});
+
+			// departure/arrival year를 2025로 고정
+			cheapest.itineraries.forEach((itinerary: any) => {
+				itinerary.segments.forEach((seg: any) => {
+					const depDate = new Date(seg.departure.at);
+					depDate.setFullYear(2025);
+					seg.departure.at = depDate.toISOString();
+
+					const arrDate = new Date(seg.arrival.at);
+					arrDate.setFullYear(2025);
+					seg.arrival.at = arrDate.toISOString();
+				});
 			});
 
 			// 5) 응답 포맷
@@ -130,7 +162,6 @@ server.tool(
 			};
 
 			return { content: [asText(result)] };
-
 		} catch (error: unknown) {
 			console.error('Error finding cheapest dates:', error);
 			return {

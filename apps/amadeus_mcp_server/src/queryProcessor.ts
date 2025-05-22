@@ -1,5 +1,16 @@
 import { type AnalyzedQuery, TravelQueryType } from './queryAnalyzer.js';
 import { server } from './index.js';
+import { DateTime } from 'luxon';
+
+// helpers/date.ts
+export const shiftPastToTomorrow = (iso: string): string => {
+	const today = DateTime.utc().startOf('day');
+	let d = DateTime.fromISO(iso, { zone: 'utc' });
+	if (d <= today) {
+		d = today.plus({ days: 1 }); // 최소 내일
+	}
+	return d.toISODate(); // 'YYYY-MM-DD'
+};
 
 // Interface for tool selection and parameter mapping
 interface ToolMapping {
@@ -26,17 +37,21 @@ const toolMappings: Record<TravelQueryType, ToolMapping> = {
 	[TravelQueryType.SPECIFIC_ROUTE]: {
 		primaryTool: 'find-best-deals',
 		secondaryTools: ['analyze-flight-prices', 'find-cheapest-dates'],
-		async parameterMap(query) {
+		async parameterMap(q) {
+			const rawDepart = Array.isArray(q.timeFrame.value)
+				? q.timeFrame.value[0]
+				: q.timeFrame.value;
+
+			const rawReturn = Array.isArray(q.timeFrame.value)
+				? q.timeFrame.value[1]
+				: undefined;
+
 			return {
-				originLocationCode: query.origin?.code || '',
-				destinationLocationCode: query.destinations[0]?.code || '',
-				departureDate: Array.isArray(query.timeFrame.value)
-					? query.timeFrame.value[0]
-					: query.timeFrame.value,
-				returnDate: Array.isArray(query.timeFrame.value)
-					? query.timeFrame.value[1]
-					: undefined,
-				travelClass: query.preferences?.class?.toUpperCase(),
+				originLocationCode: q.origin?.code ?? '',
+				destinationLocationCode: q.destinations[0]?.code ?? '',
+				departureDate: shiftPastToTomorrow(rawDepart),
+				returnDate: rawReturn ? shiftPastToTomorrow(rawReturn) : undefined,
+				travelClass: q.preferences?.class?.toUpperCase(),
 			};
 		},
 	},

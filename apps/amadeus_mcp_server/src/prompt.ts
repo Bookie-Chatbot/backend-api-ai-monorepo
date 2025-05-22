@@ -3,16 +3,21 @@ import { z } from 'zod';
 import { server } from './index.js';
 
 server.prompt(
-  'analyze-flight-prices',
-  'Analyze flight prices for a route',
-  {
-    originIataCode:      z.string().length(3),
-    destinationIataCode: z.string().length(3),
-    departureDate:       z.string(),
-    returnDate:          z.string().optional(),
-  },
-  async ({ originIataCode, destinationIataCode, departureDate, returnDate }) => {
-    const schemaDesc = `
+	'analyze-flight-prices',
+	'Analyze flight prices for a route',
+	{
+		originIataCode: z.string().length(3),
+		destinationIataCode: z.string().length(3),
+		departureDate: z.string(),
+		returnDate: z.string().optional(),
+	},
+	async ({
+		originIataCode,
+		destinationIataCode,
+		departureDate,
+		returnDate,
+	}) => {
+		const schemaDesc = `
 다음 스키마에 **정확히** 맞는 JSON 객체 하나만 반환해주세요:
 
 {
@@ -28,8 +33,10 @@ server.prompt(
   ]
 }`;
 
-    const userText = `
-${originIataCode}→${destinationIataCode} (${departureDate}${returnDate ? `, 복귀 ${returnDate}` : ''}) 편도 항공권 가격을 분석해주세요.
+		const userText = `
+${originIataCode}→${destinationIataCode} (${departureDate}${
+			returnDate ? `, 복귀 ${returnDate}` : ''
+		}) 편도 항공권 가격을 분석해주세요.
 –
 "message": string을 작성할 땐 아래를 고려해서, 2-3줄의 간단한 설명을 포함해주세요.
 가격 범위 개요
@@ -41,12 +48,15 @@ ${originIataCode}→${destinationIataCode} (${departureDate}${returnDate ? `, �
 예시 응답:
 {\n  "message": "...",\n  "origin": "...",\n  …\n}`;
 
-    return {
-      messages: [
-        { role: 'user', content: { type: 'text', text: `${schemaDesc}\n\n${userText}` } },
-      ],
-    };
-  }
+		return {
+			messages: [
+				{
+					role: 'user',
+					content: { type: 'text', text: `${schemaDesc}\n\n${userText}` },
+				},
+			],
+		};
+	}
 );
 
 // If you need to search for airport information, you can use the search-airports tool.
@@ -105,69 +115,86 @@ For each option, provide a brief summary of why it might be a good choice for di
 );
 
 // Please use the search-airports tool to confirm airport codes for each city, and then use the search-flights tool to find optimal flight routes between each city.
+// utils/dateGuards.ts
+import { DateTime } from 'luxon';
+
+// ISO-date string that must be today or later
+export const futureISO = z.string().refine(
+	(d) => {
+		const dt = DateTime.fromISO(d, { zone: 'utc' });
+		return dt.isValid && dt.startOf('day') >= DateTime.utc().startOf('day');
+	},
+	{ message: 'Date must be today or in the future (YYYY-MM-DD).' }
+);
+
+// convenience: return a corrected (future) date string
+export const shiftPastToToday = (iso: string) => {
+	const dt = DateTime.fromISO(iso, { zone: 'utc' });
+	return dt.isValid && dt < DateTime.utc().startOf('day')
+		? DateTime.utc().toISODate()
+		: iso;
+};
 
 // Prompt for finding cheapest dates to travel
 server.prompt(
 	'find-cheapest-dates',
-	'Find the cheapest dates to travel for a given route',
+	'Find the cheapest future-dated flight deals',
 	{
-		originLocationCode: z
-			.string()
-			.length(3)
-			.describe('Origin airport IATA code (e.g., JFK)'),
-		destinationLocationCode: z
-			.string()
-			.length(3)
-			.describe('Destination airport IATA code (e.g., LHR)'),
-		earliestDepartureDate: z
-			.string()
-			.describe('Earliest possible departure date in YYYY-MM-DD format'),
-		latestDepartureDate: z
-			.string()
-			.describe('Latest possible departure date in YYYY-MM-DD format'),
+		originLocationCode: z.string().length(3),
+		destinationLocationCode: z.string().length(3),
+		earliestDepartureDate: futureISO,
+		latestDepartureDate: futureISO,
 		tripDuration: z
 			.string()
-			.optional()
-			.describe('Desired trip duration in days (for round trips)'),
+			.regex(/^\d+$/, 'Duration must be an integer (days)')
+			.optional(),
 	},
-	async ({
+	({
 		originLocationCode,
 		destinationLocationCode,
 		earliestDepartureDate,
 		latestDepartureDate,
 		tripDuration,
 	}) => {
+		// 1️⃣ Auto-correct dates -------------------------------------------
+		let earliest = shiftPastToToday(earliestDepartureDate);
+		let latest = shiftPastToToday(latestDepartureDate);
+
+		// If the user reversed them, swap & log
+		if (DateTime.fromISO(latest) < DateTime.fromISO(earliest)) {
+			[earliest, latest] = [latest, earliest];
+		}
+
+		// 2️⃣ Optional round-trip duration logic ----------------------------
+		let durationLine = '';
+		if (tripDuration) {
+			durationLine = ` for roughly ${tripDuration}-day stays`;
+		}
+
+		// 3️⃣ Compose the *corrected* user prompt ---------------------------
+		const promptText = `
+  I'm looking for the **cheapest dates** to fly from **${originLocationCode} → ${destinationLocationCode}**
+  between **${earliest}** and **${latest}**${durationLine}.
+
+  • Please call **find-cheapest-dates** with these corrected parameters.
+  • After you retrieve results, provide
+	1. the top cheapest date pairs
+	2. a brief price-trend analysis across the window
+	3. which days of the week are consistently cheapest
+	4. any holidays/events pushing prices up (use public-holiday/major-event data)
+	5. sample nonstop flight options for the very cheapest dates.
+  `;
+
 		return {
 			messages: [
 				{
 					role: 'user',
-					content: {
-						type: 'text',
-						text: `I'm looking for the cheapest dates to fly from ${originLocationCode} to ${destinationLocationCode} between ${earliestDepartureDate} and ${latestDepartureDate}${
-							tripDuration
-								? ` for a trip duration of approximately ${tripDuration} days`
-								: ''
-						}.
-
-Please use the find-cheapest-dates tool to identify the most economical travel dates, and then provide:
-
-1. A list of the cheapest date combinations
-2. An analysis of price trends during this period
-3. Recommendations on the best days of the week to travel for this route
-4. Any holidays or events that might be affecting pricing
-5. Specific flight options for the cheapest dates found
-
-Please organize this information clearly to help me make an informed decision about when to book my trip.`,
-					},
+					content: { type: 'text', text: promptText.trim() },
 				},
 			],
 		};
 	}
 );
-
-
-
-
 
 // Prompt for planning a multi-city trip
 server.prompt(
@@ -205,7 +232,6 @@ Please outline a complete trip plan with flight details and suggested stays in e
 		};
 	}
 );
-
 
 // Prompt for discovering flight destinations
 server.prompt(
