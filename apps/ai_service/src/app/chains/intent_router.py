@@ -6,6 +6,7 @@ from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
 #from chains.alert_dispatch_router import alert_dispatch_router
 #from chains.weather_summary import weather_summary_chain, weather_parser
+from mcp_sub_chains import MCP_INTENT_MAP    # ← NEW!
 
 
 # 지원하지 않는 intent 대응
@@ -20,8 +21,8 @@ INTENT_CHAIN_MAP = {
    # Intent.WEATHER_SUMMARY: (weather_summary_chain, weather_parser),
 
 
-
 }
+
 
 def route_and_run(inputs: dict) -> any:
     """
@@ -34,7 +35,13 @@ def route_and_run(inputs: dict) -> any:
     question    = inputs["question"]
     history     = inputs.get("chat_history", [])
 
-    chain, parser = INTENT_CHAIN_MAP.get(intent_only.intent, (None, None))
+
+    # 1) MCP 전용 체인 우선
+    if intent_only.intent in MCP_INTENT_MAP:
+        chain, parser = MCP_INTENT_MAP[intent_only.intent]
+    else:
+        chain, parser = INTENT_CHAIN_MAP.get(intent_only.intent, (None, None))
+
     if not chain:
         return fallback_run(question)
 
