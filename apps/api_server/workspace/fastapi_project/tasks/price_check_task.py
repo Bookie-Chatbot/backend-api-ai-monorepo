@@ -1,9 +1,12 @@
 from celery_app import celery_app
 from apps.api_server.workspace.fastapi_project.amadeus_client import search_flight_offers
 from time import sleep
+import logging
+logger = logging.getLogger(__name__)
 
 @celery_app.task
 def check_price(user_id: int, search_params: dict, threshold: int):
+    logger.info(f"[📦 Celery Task] Checking price for user {user_id} with threshold {threshold}")
     flights = search_flight_offers(
         origin=search_params["origin"],
         destination=search_params["destination"],

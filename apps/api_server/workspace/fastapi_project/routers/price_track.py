@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.price_track import PriceTrackRequestModel
 from schemas.price_track import PriceTrackCreate, PriceTrackResponse
-from tasks.price_check_task import check_price
+from apps.api_server.workspace.fastapi_project.tasks.price_check_task import check_price
 
 router = APIRouter()
 
@@ -21,6 +21,12 @@ def track_price(req: PriceTrackCreate, db: Session = Depends(get_db)):
     db.refresh(new_track)
 
     # Celery 비동기 작업 실행
-    #check_price.delay(new_track.id)
+    print("🔥 Calling check_price task...") 
+    check_price.delay(
+        new_track.user_id,
+        new_track.search_params,
+        new_track.price_threshold
+    )
+    
 
     return new_track
