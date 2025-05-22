@@ -162,6 +162,8 @@ def main():
         try:
             # if the tool returned a JSON resource, it will already be a JSON string:
             parsed = json.loads(a)
+            # if the tool returned a JSON string, we need to parse it:
+            print(f"[DEBUG] JSON 응답: {a}")
             print(json.dumps(parsed, ensure_ascii=False, indent=2))
             print()  # blank line
         except (json.JSONDecodeError, TypeError):
