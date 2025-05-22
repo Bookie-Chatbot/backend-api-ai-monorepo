@@ -13,8 +13,8 @@ import asyncio
 load_dotenv()
 
 dest_recommend_parser = PydanticOutputParser(pydantic_object=DestRecommendContent)
-
-
+ 
+ 
 # 2) 파싱 함수 + RunnableLambda 래퍼
 def parse_or_passthrough(text: str):
     try:
@@ -26,7 +26,7 @@ def parse_or_passthrough(text: str):
 
 safe_parser = RunnableLambda(parse_or_passthrough)
 
-dest_recommend_chain = dest_reco_executor | safe_parser
+dest_recommend_chain = dest_reco_executor | safe_parser # 얘가 뭐가 문젤까
 # (
 #     PromptTemplate.from_template(
 #         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
@@ -39,6 +39,7 @@ dest_recommend_chain = dest_reco_executor | safe_parser
 #     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
 #     | safe_parser
 # )
+
 
 
 async def main():
