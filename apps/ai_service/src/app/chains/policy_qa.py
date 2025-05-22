@@ -5,7 +5,7 @@ from langchain.output_parsers.pydantic import PydanticOutputParser
 # for window
 from packages.chatbot_contents.policy_qa import PolicyQAContent
 from dotenv import load_dotenv
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough, RunnableMap
 
 from langchain_community.vectorstores import FAISS
 from apps.ai_preprocess.src.app import config
@@ -84,10 +84,14 @@ def create_policy_chain():
     )
     print("[INFO] Compression Retriever Initialize")
 
-    new_chain = (
-        {"context": compression_retriever}
-        | policy_qa_chain
-    )
+    input_mapper = RunnableMap({
+        "context": lambda x: compression_retriever.invoke(x["question"]),
+        "question": lambda x: x["question"],
+        "format_instructions": lambda x: x["format_instructions"],
+        "chat_history": lambda x: x.get("chat_history", None),
+    })
+
+    new_chain = input_mapper | policy_qa_chain
     print("[INFO] New Chain Production")
 
     return new_chain
