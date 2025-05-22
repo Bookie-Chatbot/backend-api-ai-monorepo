@@ -110,52 +110,93 @@ def dedupe_tool_calls(state: Dict[str, Any]) -> Dict[str, Any]:
     last_msg.tool_calls = unique
     return {"messages": msgs}
 
-# ────────── 5. 메인 진입 함수 ──────────
-async def ask_mcp(question: str) -> str:
-    """사용자 질문을 → MCP ReAct 에이전트로 전달하고 응답 반환"""
+# ── mcp_client.py (수정된 ask_mcp) ────────────────────────────
+
+# ... 상단 import/헬퍼 그대로 ...
+
+# 5) 메인 진입 함수 (★ 시그니처·프롬프트·메시지 빌드 변경)
+from langchain_core.messages import BaseMessage  # ← 타입힌트용
+
+async def ask_mcp(
+    *,
+    question: str,
+    chat_history: list[BaseMessage] | str = "",
+    format_instructions: str = "",
+) -> str:
+    """
+    MCP ReAct 에이전트를 호출해 JSON(Pydantic) 응답을 돌려준다.
+
+    Parameters
+    ----------
+    question : str
+        사용자 최종 질문
+    chat_history : list[BaseMessage] | str, optional
+        이전 대화 기록. 없으면 "" (default)
+    format_instructions : str, optional
+        LL​M에게 강제할 JSON 스키마(= parser.get_format_instructions())
+    """
     load_dotenv()
     print(f"\n[ask_mcp] 📥 입력: {question!r}")
 
-    # 1) MCP 서버 연결
+    # 1) MCP 서버 연결 ---------------------------------------
     client = MultiServerMCPClient({
         "weather":  {"transport": "sse", "url": f"http://localhost:{WEATHER_PORT}/sse"},
         "amadeus":  {"transport": "sse", "url": f"http://localhost:{AMADEUS_PORT}/sse"},
     })
 
-    # 2) LangChain tool 로딩
+    # 2) MCP → LangChain tools 로딩 -------------------------
     tools = await client.get_tools()
     print(f"[ask_mcp] 🛠️  tools = {[t.name for t in tools]}")
 
-    # 3) LLM + ReAct agent (❗ post_model_hook 제거)
+    # 3) LLM + ReAct agent -----------------------------------
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+
+    prompt_template = (
+        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+        "아래 JSON 스키마를 반드시 지켜서 답변해줘.\n"
+        f"{format_instructions}\n\n"
+        "그리고 get_weather 툴을 호출할 때, input parameter city는 "
+        "반드시 대문자로 변환해줘.\n(예시 : 서울 → SEOUL)\n"
+        "모든 답변 끝에는 ‘부키!’를 붙여줘."
+    )
+
     agent = create_react_agent(
         model=llm,
         tools=tools,
-        prompt="당신은 ‘부엉이 부키’라는 귀여운 부엉이야. 모든 답변 끝에 ‘부키!’를 붙여줘. 그리고 get_weather 툴을 호출할 때, input parameter city는 반드시 대문자로 변환해줘.(예시 :)",
+        prompt=prompt_template,
         version="v2",
         debug=True,
         pre_model_hook=dedupe_tool_calls,
     )
 
-    # 4) 실행
+    # 4) 메시지 스택 구성 ------------------------------------
+    msgs: list[dict[str, str]] = [{"role": "system", "content": "당신은 … ‘부키!’"}]
+
+    # chat_history 는 list 또는 str 모두 허용
+    if chat_history:
+        if isinstance(chat_history, list):
+            msgs.extend([m.dict() for m in chat_history])
+        else:
+            # 문자열 히스토리는 하나의 사용자 메시지로 취급
+            msgs.append({"role": "user", "content": str(chat_history)})
+
+    # 마지막에 현재 질문 삽입
+    msgs.append({"role": "user", "content": question})
+
+    # 5) 실행 ------------------------------------------------
     try:
-        state = await agent.ainvoke({
-            "messages": [
-                {"role": "system", "content": "당신은 … ‘부키!’"},
-                {"role": "user",   "content": question},
-            ]
-        })
+        state = await agent.ainvoke({"messages": msgs})
     except Exception:
         print("[ask_mcp] ❌ agent 실행 중 예외")
         traceback.print_exc()
         raise
 
-    # 5) ToolMessage 검증 후 최종 메시지 추출
+    # 6) ToolMessage 검증 후 최종 메시지 추출 ----------------
     state = parse_and_validate_by_tool(state)
     final_msg = state["messages"][-1]
     content   = final_msg.content
 
-    # 6) 출력 포맷 결정
+    # 7) 출력 포맷 결정 --------------------------------------
     if isinstance(content, (dict, list)):
         return json.dumps(content, ensure_ascii=False, indent=2)
     return str(content)
