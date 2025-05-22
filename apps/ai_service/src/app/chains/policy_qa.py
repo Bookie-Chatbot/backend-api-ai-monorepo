@@ -1,11 +1,18 @@
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
-from chatbot_contents.policy_qa import PolicyQAContent
+# from chatbot_contents.policy_qa import PolicyQAContent
 # for window
-# from packages.chatbot_contents.policy_qa import PolicyQAContent
+from packages.chatbot_contents.policy_qa import PolicyQAContent
 from dotenv import load_dotenv
-from langchain_core.runnables import RunnableLambda
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+
+from langchain_community.vectorstores import FAISS
+from apps.ai_preprocess.src.app import config
+import os
+import argparse
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain_community.document_compressors import FlashrankRerank
 
 load_dotenv()
 
@@ -29,8 +36,79 @@ policy_qa_chain = (
         "{format_instructions}\n"
         "질문: {question}\n"
         "이전 대화 내역:\n{chat_history}\n"
+        "Context: {context}\n"
     )
     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
     | safe_parser
 )
+
+def load_vecDB(path: str) -> FAISS:
+    embedder = config.Embedding_Model
+
+    # 상대경로로 vectorDB load. 
+    # 절대경로로 바꾸는 코드
+    # abs_path = os.path.abspath(path)
+    # store_dir = abs_path if os.path.isdir(abs_path) else os.path.dirname(abs_path)
+    # store_dir를 path대신 사용
+    print(f"[INFO] Loading FAISS vectorstore from: {path}")
+    db = FAISS.load_local(path, embeddings=embedder,
+                          allow_dangerous_deserialization=True)
+    print(f"[INFO] Vectorstore loaded: {type(db)}")
+    
+    return db
+
+def create_policy_chain():
+    parser = argparse.ArgumentParser(
+        description='Policy-related 질문에 대해 PDF RAG를 테스트합니다. (귀여운 부엉이 모드)'
+    )
+    parser.add_argument(
+        '--db-path', default='db_FAISS',
+        help='FAISS DB 경로 (디렉터리 또는 index 파일의 경로)'
+    )
+    args = parser.parse_args()
+
+    # 1. vectorstore load
+    vectorstore = load_vecDB(args.db_path)
+
+    # 2. Retriever 및 Reranker 생성
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    print("[INFO] Retriever created.")
+    
+    # 2.1. 문서 압축기 초기화
+    compressor = FlashrankRerank(model="ms-marco-MultiBERT-L-12")
+    print("[INFO] Comperssor Created")
+
+    # 2.2. 문맥 압축 검색기 초기화
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=retriever
+    )
+    print("[INFO] Compression Retriever Initialize")
+
+    new_chain = (
+        {"context": compression_retriever}
+        | policy_qa_chain
+    )
+    print("[INFO] New Chain Production")
+
+    return new_chain
+
+
+if __name__ == "__main__" :
+
+    # vecstore = load_vecDB("db_FAISS/")
+    chain = create_policy_chain()
+    print(chain.invoke({
+        "question": "화물 수행인에 대해 설명해줘",
+        "format_instructions": policy_qa_parser.get_format_instructions(),
+        "chat_history": None
+    }))
+    
+
+
+
+
+
+    
+
+
 

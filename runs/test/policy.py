@@ -7,16 +7,17 @@ from dotenv import load_dotenv
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 
-from app_service.service.retrievers import create_retriever
-from app_service.service.chains import create_rag_chain
-from app_preprocess.embedding import embed_document_openai
+# from app_service.service.retrievers import create_retriever
+# from app_service.service.chains import create_rag_chain
+# from app_preprocess.embedding import embed_document_openai
+# for window
+from apps.ai_service.src.app.service.retrievers import create_retriever
+from apps.ai_service.src.app.service.chains import create_rag_chain
+from apps.ai_preprocess.src.app.embedding import embed_document_openai
+
 
 import faiss, os
-
-
 from langchain_openai import OpenAIEmbeddings
-
-
 
 # 환경 변수 로드 (OpenAI API 키 등)
 load_dotenv()

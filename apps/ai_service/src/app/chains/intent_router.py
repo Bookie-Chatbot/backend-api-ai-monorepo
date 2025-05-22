@@ -6,7 +6,7 @@ from chatbot_contents.intents import IntentOnly, Intent
 # from packages.chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
-from chains.policy_qa import policy_qa_chain, policy_qa_parser
+from chains.policy_qa import create_policy_chain, policy_qa_parser
 
 # 지원하지 않는 intent 대응
 def fallback_run(question: str):
@@ -16,7 +16,7 @@ def fallback_run(question: str):
 INTENT_CHAIN_MAP = {
     Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
-    Intent.POLICY_QA:      (policy_qa_chain, policy_qa_parser)
+    Intent.POLICY_QA:      (create_policy_chain, policy_qa_parser)
 }
 
 def route_and_run(inputs: dict) -> any:
