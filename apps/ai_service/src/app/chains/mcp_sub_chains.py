@@ -9,7 +9,6 @@ from chatbot_contents.common import (          # 이미 존재하는 Pydantic �
     PriceSearchContent,
     PriceAnalysisContent,
     CheapestDateContent,
-    FlightDetailsContent,
     WeatherSummaryContent,
 )
 from runs.test.mcp_client import ask_mcp                 # 기존 async-ReAct 호출 래퍼

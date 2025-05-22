@@ -27,6 +27,10 @@ class PriceSearchContent(BaseModel):
 
 
 
+
+
+
+
 # ── PRICE_ANALYSIS ─────────────────────────────
 class Quartile(BaseModel):
     quartileRanking: str
@@ -62,7 +66,15 @@ class FlightDetailsContent(BaseModel):
     intent: Literal["FLIGHT_DETAILS"] = "FLIGHT_DETAILS"
     contents: dict
 
+
+
+class WeatherContentsList(BaseModel):
+    message: str
+
+
 # ── WEATHER_SUMMARY ───────────────────────────
 class WeatherSummaryContent(BaseModel):
-    intent: Literal["WEATHER_SUMMARY"] = "WEATHER_SUMMARY"
-    contents: dict           # {location,date,summary,alerts}
+    intent: Literal["WEATHER_SUMMARY"] = Field(..., exclude=True)
+    contents: WeatherContentsList
+
+
