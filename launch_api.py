@@ -8,7 +8,7 @@ def main():
         sys.executable, "-m", "uvicorn",
         "main:app",
         "--reload",
-        "--app-dir", "apps/api-server/workspace/fastapi-project",
+        "--app-dir", "apps/api_server/workspace/fastapi_project",
         "--host", "0.0.0.0",
         "--port", "8000",
     ]
