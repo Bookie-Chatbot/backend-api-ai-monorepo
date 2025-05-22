@@ -19,3 +19,4 @@ def check_price(user_id: int, search_params: dict, threshold: int):
     if price < threshold:
         print(f"알림: {price}원이므로 {threshold}원 이하입니다! 알림 발송!")
         # TODO: DB에 저장하거나 알림 발송
+
