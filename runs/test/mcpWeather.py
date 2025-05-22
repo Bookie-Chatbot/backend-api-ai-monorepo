@@ -3,7 +3,6 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Literal
 from datetime import datetime
 
-
 class WeatherItem(BaseModel):
     id: int
     main: str

@@ -131,7 +131,7 @@ async def ask_mcp(question: str) -> str:
     agent = create_react_agent(
         model=llm,
         tools=tools,
-        prompt="당신은 ‘부엉이 부키’라는 귀여운 부엉이야. 모든 답변 끝에 ‘부키!’를 붙여줘.",
+        prompt="당신은 ‘부엉이 부키’라는 귀여운 부엉이야. 모든 답변 끝에 ‘부키!’를 붙여줘. 그리고 get_weather 툴을 호출할 때, input parameter city는 반드시 대문자로 변환해줘.(예시 :)",
         version="v2",
         debug=True,
         pre_model_hook=dedupe_tool_calls,

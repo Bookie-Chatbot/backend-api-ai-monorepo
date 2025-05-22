@@ -8,7 +8,7 @@ import httpx
 
 mcp = FastMCP(
     "test",  # Name of the MCP server
-    instructions="You are a weather assistant that can answer questions about the weather in a given location.",  # LLM이 이 MCP에서 제공하는 tool을 어떻게 사용할지 이해하도록 돕는 설명(prompt)
+    instructions="You are a weather assistant that always returns 5-day / 3-hour forecast data.",
     host="0.0.0.0",  # Host address (0.0.0.0 allows connections from any IP)
     port=8010,  # Port number for the server
 )
@@ -29,41 +29,52 @@ mcp.mount()
 """
 
 @mcp.tool()
-async def get_weather(city: str) -> json:
+async def get_weather(city: str) -> dict:
     """
-    Args: 날씨 조회할 도시 이름(eng)
-
-    Body: weathermapapi_key로 openweathermap.org에 접속해서
+    5일 / 3시간 예보( /forecast )를 조회해 원본 JSON을 반환
     """
     load_dotenv()
     api_key = os.getenv("WEATHERMAPAPI_KEY")
+    if not api_key:
+        return {"error": "WEATHERMAPAPI_KEY 가 설정되어 있지 않습니다."}
 
-    http_params = {
-        "q": city,
-        "appid": api_key,
-        "units": "metric",
-        "lang": "kr"  # 한국어로 응답
-    }
+    # 도시명 통일
+    city = city.upper()
+    print(f"[DEBUG] get_weather → city='{city}'")
+
+    # URL 직접 포맷
+    url = (
+        "http://api.openweathermap.org/data/2.5/"
+        f"forecast?appid={api_key}&q={city}&units=metric&lang=kr"
+    )
+    print(f"[DEBUG] request URL: {url}")
 
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(
-                f"http://api.openweathermap.org/data/2.5/forecast",
-                params=http_params
-            )
-            response.raise_for_status()
-            data = response.json()
-    # return {
-    #     "temperature": data["main"]["temp"],
-    #     "conditions": data["weather"][0]["description"],
-    #     "humidity": data["main"]["humidity"],
-    #     "wind_speed": data["wind"]["speed"],
-    # }
+            resp = await client.get(url, timeout=10)
+            print(f"[DEBUG] status_code={resp.status_code}")
+            resp.raise_for_status()
         except httpx.HTTPStatusError as e:
-            return {"error": f"HTTP error occurred: {e.response.status_code} - {e.response.text}"}
+            print(f"[DEBUG] HTTPStatusError: {e.response.text}")
+            try:
+                return {"error": e.response.json()}
+            except Exception:
+                return {"error": f"HTTP error {e.response.status_code}"}
         except Exception as e:
-            return {"error": f"An unexpected error occurred: {str(e)}"}
+            print(f"[DEBUG] unexpected error: {e}")
+            return {"error": f"요청 중 예기치 못한 오류: {e}"}
+
+    data = resp.json()
+    print(f"[DEBUG] raw 'cod' type = {type(data.get('cod'))}")
+
+    # 'cod'를 문자열로 캐스팅
+    if isinstance(data.get("cod"), int):
+        data["cod"] = str(data["cod"])
+
+    print("[DEBUG] 반환 준비 완료")
     return data
+
+
 
 @mcp.tool()
 async def query_llm(prompt: str) -> str:

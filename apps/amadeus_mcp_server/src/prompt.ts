@@ -108,7 +108,7 @@ For each option, provide a brief summary of why it might be a good choice for di
 
 // Prompt for finding cheapest dates to travel
 server.prompt(
-	'find-cheapest-travel-dates',
+	'find-cheapest-dates',
 	'Find the cheapest dates to travel for a given route',
 	{
 		originLocationCode: z
