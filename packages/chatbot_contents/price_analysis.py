@@ -3,15 +3,23 @@ from typing import List, Optional, Dict, Any, Literal
 
 from pydantic import BaseModel, Field
 
-class PriceAnalysisContent(BaseModel):
-    intent: Literal["PRICE_ANALYSIS"]= Field(..., exclude=True)
+class PriceMetricsList(BaseModel):
+    quartileRanking: str
+    amount: int
+
+class ContentsList(BaseModel):
     message: str
     origin: str
     destination: str
     departureDate: str
     currencyCode: str
     oneWay: bool
-    priceMetrics: List[dict]
+    priceMetrics: List[PriceMetricsList]
+    
+
+class PriceAnalysisContent(BaseModel):
+    intent: Literal["PRICE_ANALYSIS"]= Field(..., exclude=True)
+    contents: ContentsList
 
 {
     "intent": "PRICE_ANALYSIS",
