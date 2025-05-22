@@ -13,10 +13,13 @@ def splitter_recursive(doc):
         separators=[r"(?:제\s*\d+\s*조\s+[^\n\d항]+?)\n", "\n\n", "\n", ".", " ", ""],        
         is_separator_regex=True
         )
+    
+    start_page = 1
+    end_page = len(doc)
 
-    split_docs = splitter.split_documents(doc[1:])
+    split_docs = splitter.split_documents(doc[start_page:end_page])
 
-    split_docs[0].metadata["chapter_info"] = None
+    # split_docs[0].metadata["chapter_info"] = None
     for i, d in enumerate(split_docs):
         if i==0:
             d.metadata["chapter_info"] = None
