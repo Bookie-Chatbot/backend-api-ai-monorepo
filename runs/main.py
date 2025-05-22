@@ -36,6 +36,8 @@ from dotenv import load_dotenv
 from database import Base, get_db
 load_dotenv()
 
+from mcp_client import ask_mcp
+
 
 # ──────────────────────────────────────────────────────────
 # 1. 공통 유틸
@@ -254,7 +256,7 @@ async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
     # 3) contents 가 있으면 JSON, 아니면 문자열
    # if hasattr(raw, "contents"):
    # return str(raw)
-
+""""""
 # ──────────────────────────────────────────────────────────
 # 5. 메인
 # ──────────────────────────────────────────────────────────

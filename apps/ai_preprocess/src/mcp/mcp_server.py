@@ -41,13 +41,14 @@ async def get_weather(city: str) -> json:
     http_params = {
         "q": city,
         "appid": api_key,
-        "units": "metric"
+        "units": "metric",
+        "lang": "kr"  # 한국어로 응답
     }
 
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
-                f"http://api.openweathermap.org/data/2.5/weather",
+                f"http://api.openweathermap.org/data/2.5/forecast",
                 params=http_params
             )
             response.raise_for_status()
