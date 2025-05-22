@@ -36,7 +36,7 @@ from dotenv import load_dotenv
 from database import Base, get_db
 load_dotenv()
 
-from mcp_client import ask_mcp
+from .mcp_client import ask_mcp
 
 
 # ──────────────────────────────────────────────────────────

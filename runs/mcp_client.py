@@ -9,9 +9,8 @@ from pydantic import BaseModel, ValidationError
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import ToolMessage
+from langchain_core.messages import ToolMessage
 from chatbot_contents.weather_summary import WeatherSummaryContent, WeatherForecastResponse
-
 
 
 class FlightOffer(BaseModel):
@@ -29,7 +28,7 @@ class FlightOffersResponse(BaseModel):
 SCHEMA_MAP: Dict[str, Type[BaseModel]] = {
     # 날씨 mcp 응답
     "get_weather": WeatherForecastResponse,
-    # flight details 응답 
+    # flight details 응답
     "get-flight-details": FlightOffersResponse,
     # ... 필요 시 추가
 }
