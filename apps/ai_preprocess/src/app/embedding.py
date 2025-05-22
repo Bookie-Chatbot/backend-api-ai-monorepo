@@ -22,7 +22,7 @@ def embed_document_openai(doc):
     load_dotenv()
     embedder = OpenAIEmbeddings(
         model = "text-embedding-3-small",
-        # dimensions=1024,  # 1024차원
+        # dimensions=1024,  # 1024차원 -> 이제 FAISS도 OpenAI로 만들어서 차원 괜찮을거에요
     )
 
     doc_embed = embedder.embed_documents(doc)
@@ -56,7 +56,7 @@ def embed_document_openai(doc):
 def embed_document_huggingface(doc):
     # List[str] input을 HuggingFaceEmbedding 사용해서 embed하는 메소드. List[str] type이어야됨
     load_dotenv()
-    os.environ["HF_HOME"]="./cache"
+    # os.environ["HF_HOME"]="./cache"
     embedder = HuggingFaceEmbeddings(
         model_name = "intfloat/multilingual-e5-large-instruct",
     )
