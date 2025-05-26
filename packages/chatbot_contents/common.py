@@ -46,8 +46,8 @@ class PriceAnalysisContent(BaseModel):
 class CheapDays(BaseModel):
     route: str
     carrier: str
-    departure: datetime
-    arrival: datetime
+    departure: str
+    arrival: Optional[str]
     price: int
 
 
@@ -57,7 +57,7 @@ class ContentsList(BaseModel):
 
 
 class CheapestDateContent(BaseModel):
-    intent: Literal["CHEAPEST_DAYS"] = Field(..., exclude=True)
+    intent: Literal["CHEAPEST_DATE"] = Field(..., exclude=True)
     contents: ContentsList
 
 
@@ -74,7 +74,7 @@ class WeatherContentsList(BaseModel):
 
 # ── WEATHER_SUMMARY ───────────────────────────
 class WeatherSummaryContent(BaseModel):
-    intent: Literal["WEATHER_SUMMARY"] = Field(..., exclude=True)
+    intent: Literal["WEATHER_SUMMARY"] = "WEATHER_SUMMARY"
     contents: WeatherContentsList
 
 

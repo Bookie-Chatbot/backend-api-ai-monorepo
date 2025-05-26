@@ -216,7 +216,7 @@ from sqlalchemy.orm import Session                       # DB 타입 힌트
 
 async def query_chain(user_id: int,
                       question: str,
-                      db: Session) -> JSONResponse:
+                      db: Session) -> dict[str, Any]:
     """
     ① DB 에서 과거 대화 이력 조회
     ② LangChain 분류 체인으로 IntentOnly 얻기
@@ -282,17 +282,28 @@ async def query_chain(user_id: int,
 
     # ── 4) 결과 직렬화 & 응답 --------------------------------------------------
     try:
-        # LangChain 일부 실행기는 AIMessage 를 줄 수 있음
-        if hasattr(chain_output, "content"):
-            chain_output = json.loads(chain_output.content)
+     # 3) 라우팅 후
+      if isinstance(chain_output, BaseModel):
+       chain_output = chain_output.model_dump(mode="python")
 
-        payload = jsonable_encoder(chain_output, custom_encoder={Intent: lambda v: v.value})
-        return JSONResponse(content=payload)
-
+       answer = {
+        "answer": {
+            "intent": intent_only.intent.value,
+            "contents": chain_output["contents"]   # 이미 dict
+        }
+    }
     except Exception as err:
         # 마지막 보루 – 문자열로라도 반환
         print(f"[ERROR] 직렬화 실패: {err}")
-        return PlainTextResponse(content=str(chain_output), status_code=200)
+        answer = {
+            "answer": {
+                "intent": intent_only.intent.value,  # Intent 문자열로 변환
+                "contents": chain_output.contents,       # Pydantic 모델이나 dict
+            }
+        }
+    return answer
+
+
 
 
 
@@ -365,7 +376,7 @@ def main():
                         db=db  # FastAPI 의존성 주입
                     ))
                 print(f"[DEBUG] query_chain 반환 타입 = {type(answer)}")
-                print(f"[BUKI 응답] {answer.body.decode('utf-8')}")
+                print(f"[BUKI 응답] {answer['answer']['contents']}")
             except Exception as e:
                 print(f"[ERROR] query_chain 실행 중 예외: {e}")
     finally:

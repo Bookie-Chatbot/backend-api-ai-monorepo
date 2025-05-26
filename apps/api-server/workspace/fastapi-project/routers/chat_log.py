@@ -111,6 +111,7 @@ async def chat_message(
             user_id=data.user_id,
             db=db
         )
+        print(f"[DEBUG] query_chain 결과: {payload!r}")
     except Exception as exc:
         # 내부 예외를 502 Bad Gateway 로 래핑
         raise HTTPException(
@@ -122,7 +123,7 @@ async def chat_message(
     db_msg = Message(
         user_id=data.user_id,
         message=data.message,
-        answer=jsonable_encoder(payload)            # enum/decimal 변환 안전 :contentReference[oaicite:5]{index=5}
+        answer=payload.get("answer", ""),
     )
     db.add(db_msg)
     db.commit()

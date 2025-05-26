@@ -12,6 +12,8 @@ import os
 import re
 from pprint import pprint
 from typing import Any, Dict
+from chatbot_contents.intents import IntentOnly, Intent
+
 
 # -- 서드파티 ────────────────────────────────────────────────
 from dotenv import load_dotenv
@@ -132,10 +134,11 @@ def _mk_chain(parser: PydanticOutputParser):
         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
         "json의 contents.message 안에 2줄 설명을 작성하고 항상 ‘부키!’로 끝내. "
         "intent 가 WEATHER_SUMMARY 면 raw_json 의 긴 메시지도 생략하지 말고 그대로 넣어.\n"
+        "찾은 결과 : raw_json:을 가지고, 결과를 아래 JSON 스키마에 맞춰 반환해줘.\n"
         "{format_instructions}\n"
         "질문: {question}\n"
         "이전 대화 내역:\n{chat_history}\n"
-        "아래 JSON을 스키마에 맞게 변환해:\n```json\n{raw_json}\n```"
+        "raw_json: {raw_json}\n"
     )
     llm_chain = reformat_prompt | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
 
@@ -163,10 +166,10 @@ def _mk_chain(parser: PydanticOutputParser):
 # │   Intent → 체인 매핑      │
 # ╰───────────────────────────╯
 MCP_INTENT_MAP = {
-    "PRICE_SEARCH":    (_mk_chain(price_search_parser),   price_search_parser),
-    "PRICE_ANALYSIS":  (_mk_chain(price_analysis_parser), price_analysis_parser),
-    "CHEAPEST_DATE":   (_mk_chain(cheapest_date_parser),  cheapest_date_parser),
-    "WEATHER_SUMMARY": (_mk_chain(weather_parser),        weather_parser),
+    Intent.PRICE_SEARCH:    (_mk_chain(price_search_parser),   price_search_parser),
+    Intent.PRICE_ANALYSIS:  (_mk_chain(price_analysis_parser), price_analysis_parser),
+    Intent.CHEAPEST_DATE:   (_mk_chain(cheapest_date_parser),  cheapest_date_parser),
+    Intent.WEATHER_SUMMARY: (_mk_chain(weather_parser),        weather_parser),
 }
 
 

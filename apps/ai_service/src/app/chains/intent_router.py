@@ -21,7 +21,7 @@ def fallback_run(question: str):
 
 # Intent → (chain, parser) 맵
 INTENT_CHAIN_MAP = {
-    Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
+  #  Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
 
 
