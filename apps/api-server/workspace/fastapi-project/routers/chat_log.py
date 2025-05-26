@@ -88,61 +88,58 @@ def _safe_json(text: str) -> Union[str, dict, list]:
 
 
 
-@router.post("/message", response_model=MessagesRead)
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
+from sqlalchemy.orm import Session
+
+router = APIRouter()
+
+@router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
 async def chat_message(
     data: MessageCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
-    print(">>> [chat_message] 시작")
-    print(f"    입력: user_id={data.user_id}, message={data.message!r}")
-
-    # ① LLM / tool 호출
+    """
+    1) LangChain → query_chain 호출
+    2) 결과를 DB에 저장
+    3) 전체 히스토리를 반환
+    """
+    # ── 1. LLM / 툴 호출 ───────────────────────────────────────────────
     try:
-        ai_resp: JSONResponse = await query_chain(
+        payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
             question=data.message,
             user_id=data.user_id,
             db=db
         )
-    except Exception as e:
-        # LLM 자체 호출 실패 → “fallback” 메시지 구성
-        print("!!! query_chain 예외:", repr(e))
-        fallback = {
-            "intent":   "ERROR",
-            "contents": {
-                "message": "죄송해요! 잠시 오류가 발생했어요. 나중에 다시 시도해 주세요. 🙏"
-            }
-        }
-        return MessagesRead(user_id=data.user_id, messages=[fallback])
+    except Exception as exc:
+        # 내부 예외를 502 Bad Gateway 로 래핑
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI 호출 실패: {exc!s}"
+        ) from exc
 
-    # ② 성공적으로 돌아온 경우에도 JSON 파싱에 실패할 수 있음
-    raw_text = ai_resp.body.decode("utf-8")
-    parsed   = _safe_json(raw_text)
-
-    # 여전히 문자열이면 contents 에 그대로 담아서 리턴
-    if isinstance(parsed, str):
-        parsed = {
-            "intent":   "RAW_TEXT",
-            "contents": {"message": parsed}
-        }
-
-    # ③ 내부 contents 도 안전 파싱
-    contents = parsed.get("contents", "")
-    parsed["contents"] = _safe_json(contents)
-
-    # ④ DB 저장
+    # ── 2. DB 저장 ───────────────────────────────────────────────────
     db_msg = Message(
-        user_id = data.user_id,
-        message = data.message,
-        answer  = parsed
+        user_id=data.user_id,
+        message=data.message,
+        answer=jsonable_encoder(payload)            # enum/decimal 변환 안전 :contentReference[oaicite:5]{index=5}
     )
-    db.add(db_msg);  db.commit();  db.refresh(db_msg)
+    db.add(db_msg)
+    db.commit()
+    db.refresh(db_msg)
 
-    # ⑤ 전체 대화 리스트 반환
-    messages = db.query(Message).filter(Message.user_id == data.user_id).all()
+    # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
+    msgs = (
+        db.query(Message)
+          .filter(Message.user_id == data.user_id)
+          .order_by(Message.timestamp.asc())
+          .all()
+    )
     return MessagesRead(
         user_id=data.user_id,
-        messages=[MessageRead.from_orm(m) for m in messages],
+        messages=[MessageRead.from_orm(m) for m in msgs]
     )
+
 
 
 @router.get("/messages/", response_model=MessagesRead)

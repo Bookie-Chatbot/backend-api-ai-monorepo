@@ -265,7 +265,7 @@ async def ask_mcp(question: str) -> str:
             ]
         })
     except Exception:
-        print("[ask_mcp] ❌ agent 실행 중 예외")
+        print("[] ❌ agent 실행 중 예외")
         traceback.print_exc()
         raise
 

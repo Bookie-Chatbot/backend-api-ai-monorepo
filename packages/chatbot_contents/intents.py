@@ -17,5 +17,16 @@ class Intent(str, Enum):
    # SESSION_NEW         = "SESSION_NEW"
   #  SESSION_CONTINUE    = "SESSION_CONTINUE"
 
+# chatbot_contents/intents.py
 class IntentOnly(BaseModel):
     intent: Intent
+
+    # (1) json.dumps 가 바로 먹히도록 key/value 를 yield
+    def __iter__(self):
+        # {"intent": "PRICE_SEARCH"} 처럼 직렬화되도록
+        yield from {"intent": self.intent.value}.items()
+
+    # (2) pydantic 의 V1 · V2 모두를 위해 json_encoders 도 명시
+    model_config = {
+        "json_encoders": {Intent: lambda v: v.value}
+    }

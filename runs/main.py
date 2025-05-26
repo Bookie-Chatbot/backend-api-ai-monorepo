@@ -206,76 +206,94 @@ def stop_amadeus(proc):
         pass
     proc.wait()
 
-# ──────────────────────────────────────────────────────────
-# 4. LangChain → Intent 분류 & 라우팅 → Sub-chain
-# ──────────────────────────────────────────────────────────
-async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
-    # Message 모델 import 지연
-    from api_server.models.chat_log import Message
-    print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question}")
-    print("[DEBUG] DB 세션 열기 완료")
+# ----------------------------------------------------------------------
+# query_chain  ──  LangChain → Intent 분류 → 서브체인 호출 → 결과 반환
+# ----------------------------------------------------------------------
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse, PlainTextResponse
+from chatbot_contents.intents import IntentOnly, Intent   # 타입 힌트용
+from sqlalchemy.orm import Session                       # DB 타입 힌트
 
-    # 이전 대화 조회
-    print("[DEBUG] DB에서 messages 쿼리 시작")
+async def query_chain(user_id: int,
+                      question: str,
+                      db: Session) -> JSONResponse:
+    """
+    ① DB 에서 과거 대화 이력 조회
+    ② LangChain 분류 체인으로 IntentOnly 얻기
+    ③ Intent 라우터(chain) 실행 → 결과(Pydantic | dict | str)
+    ④ 언제나 JSON 직렬화 가능한 형태로 감싸서 JSONResponse 반환
+    """
+    # 지연 import – 순환 참조 방지
+    from api_server.models.chat_log import Message
+
+    print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question!r}")
+
+    # ── 1) 대화 이력 ----------------------------------------------------------
+    history: list[tuple[str, Any]] = []
     try:
-        chat_logs = db.query(Message) \
-            .filter(Message.user_id == user_id) \
-            .order_by(Message.timestamp.asc()) \
-            .all()
-        print(f"[DEBUG] {len(chat_logs)}개의 대화 내역 로드 완료")
+        chat_logs = (
+            db.query(Message)
+              .filter(Message.user_id == user_id)
+              .order_by(Message.timestamp.asc())
+              .all()
+        )
     except Exception as e:
-        print(f"[DEBUG] DB 쿼리 에러: {e}")
+        print(f"[WARN] DB 조회 실패: {e}")
         chat_logs = []
 
-    # 히스토리 구성
-    history = []
     for log in chat_logs:
+        # human
         history.append(("human", _to_plain(log.message)))
-        print(f"[DEBUG] history append user: {log.message}")
+        # bot
         try:
-           bot_msg = log.answer if isinstance(log.answer, dict) \
-            else json.loads(log.answer)
+            bot_payload = (
+                log.answer
+                if isinstance(log.answer, dict)
+                else json.loads(log.answer)
+            )
         except Exception:
-            bot_msg = log.answer
-        history.append(("chatbot", _to_plain(bot_msg)))   # ⭐️ 여기서 변환
-        print(f"[DEBUG] history append bot: {bot_msg}")
-    print(f"[DEBUG] 히스토리 구성 완료 ({len(history)} entries)")
-    print
+            bot_payload = log.answer
+        history.append(("chatbot", _to_plain(bot_payload)))
 
-    # 1) IntentOnly 분류
-    parsed = await asyncio.get_event_loop().run_in_executor(
-    None,                             # executor: None은 기본 스레드 풀
-    classification_chain.invoke,     # func: 실행할 함수
-    {                                 # *args: 함수에 넘길 딕셔너리
-        "question": question,
-        "format_instructions": intent_parser.get_format_instructions(),
-        "chat_history": history,
-    }
-)
+    print(f"[DEBUG] history 길이 = {len(history)}")
 
+    # ── 2) IntentOnly 분류 ----------------------------------------------------
+    intent_only: IntentOnly = await asyncio.get_event_loop().run_in_executor(
+        None,
+        classification_chain.invoke,
+        {
+            "question": question,
+            "format_instructions": intent_parser.get_format_instructions(),
+            "chat_history": history,
+        },
+    )
+    print(f"[DEBUG] IntentOnly = {intent_only}")
 
+    # ── 3) Intent 라우팅 체인 --------------------------------------------------
+    chain_output = await asyncio.get_event_loop().run_in_executor(
+        None,
+        router.invoke,
+        {
+            "intent_only": intent_only,
+            "question":    question,
+            "chat_history": history,
+        },
+    )
 
-    print(f"  - IntentOnly: {parsed}")
+    # ── 4) 결과 직렬화 & 응답 --------------------------------------------------
+    try:
+        # LangChain 일부 실행기는 AIMessage 를 줄 수 있음
+        if hasattr(chain_output, "content"):
+            chain_output = json.loads(chain_output.content)
 
-    raw = await asyncio.get_event_loop().run_in_executor(
-    None,
-    router.invoke,
-    {
-        "intent_only": parsed,
-        "question": question,
-        "chat_history": history,
-    }
-)
+        payload = jsonable_encoder(chain_output, custom_encoder={Intent: lambda v: v.value})
+        return JSONResponse(content=payload)
 
+    except Exception as err:
+        # 마지막 보루 – 문자열로라도 반환
+        print(f"[ERROR] 직렬화 실패: {err}")
+        return PlainTextResponse(content=str(chain_output), status_code=200)
 
-    if hasattr(raw, "content"):
-            try:
-                parsed = json.loads(raw.content)
-            except json.JSONDecodeError:
-                # 혹시 유효 JSON이 아닐 경우, 그냥 문자열로 래핑
-                return JSONResponse(content=raw.content)
-    return JSONResponse(content=parsed)
-    #return  _json_safe(raw)
 
 
     # 3) contents 가 있으면 JSON, 아니면 문자열
