@@ -6,6 +6,18 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 
 공용 패키지(`packages/core-backend`)에는 도메인 모델, Amadeus·OpenWeather(MCP) 클라이언트, 알림 템플릿이 포함돼 있어 **하나의 레포만으로 개발-테스트-배포**가 가능합니다.
 
+## 0. 아키텍처 구성
+### High Level 아키텍처
+![image](https://github.com/user-attachments/assets/85a5c331-b636-4689-a88e-467687f9516c)
+
+
+### 기본 상세 아키텍처
+![image](https://github.com/user-attachments/assets/4e3be0f4-77bb-4314-bde8-fe19d19d1ffd)
+
+### intent 기반 아키텍처
+![image](https://github.com/user-attachments/assets/fe02a6d0-486f-4677-ae3b-2a2c04576526)
+
+
 ## 1. 레이어 구성
 
 | 레이어 | 기술 스택 | 핵심 기능 |
@@ -16,63 +28,28 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 
 # A. 프로젝트 구조
 **디렉토리 구조**
-아래는 실제 디렉터리 구조를 반영한 backend-api-ai-monorepo/의 상위 4레벨입니다. 
+아래는 실제 디렉터리 구조를 반영한 backend-api-ai-monorepo/의 구조입니다.
 ```
 backend-api-ai-monorepo/
-backend-api-ai-monorepo/
-├── README.md                        # 프로젝트 최상위 문서
-├── setup.py                         # 패키지 설치 & CLI 엔트리포인트 설정
-├── launch_api.py                   # FastAPI(Uvicorn) 기동 스크립트
-├── requirements.txt                # pip 종속성 정의
-├── pyproject.toml                  # Poetry/빌드 설정 (비활성 시 무시)
-├── infra/                          # 인프라 구성 (docker-compose 등)
-│   └── docker-compose.yml
-├── cache/                          # HuggingFace 모델 캐시
-│   └── hub/…
-├── db_FAISS/                       # FAISS 인덱스 파일
-│   ├── index.faiss  
-│   └── index.pkl
-├── root_data/                      # 샘플 PDF 등 원본 데이터
-│   └── koreanair.pdf
-├── apps/                           # 주요 애플리케이션 모듈
-│   ├── ai_preprocess/              # PDF 전처리 → 텍스트 청크 → FAISS 저장
-│   │   ├── README.md  
-│   │   ├── backendAI.ipynb  
-│   │   └── src/  
-│   │       ├── mcp/                # MCP 연동 테스트 코드  
-│   │       ├── app/                # 전처리 로직 모듈  
-│   │       ├── main_preprocess.py  # CLI용 전처리 진입점  
-│   │       └── tests/  
-│   ├── ai_service/                 # AI 챗봇 및 RAG 서비스
-│   │   ├── README.md  
-│   │   ├── backendAI.ipynb  
-│   │   └── src/  
-│   │       ├── app/                # llm 어플리케이션 로직 
-│   │       ├── data/               # 샘플·테스트 입력 데이터  
-│   │       ├── evaluators/         # LangSmith 평가 로직  
-│   │       ├── experiments/        # Prompt/시나리오 테스트  
-│   │       ├── main_preprocess.py  # 빈 파일 현재
-│   │       ├── main_service.py     # CLI 챗봇 진입점 (bookie-chat으로 실행)  
-│   │       ├── tests/              # 단위·통합 테스트  
-│   │       └── tmp/  
-│   └── api-server/                 # FastAPI 서버 프로젝트
-│       ├── README.md  
-│       ├── pyproject.toml  
-│       └── workspace/fastapi-project/  
-├── packages/                       # 공통 유틸리티·클라이언트 모듈
-│   └── core_backend/  
-│       ├── amadeus_client.py  
-│       └── …  
-├── runs/                           # 스크립트 기반 테스트 모음
-│   └── test/  
-│       ├── imports.py              # console_scripts 경로·모듈 임포트 테스트  
-│       ├── mcp.py                  # MCP 서버/클라이언트 통합 테스트  
-│       ├── policy.py               # FAISS-RAG Q&A 테스트 스크립트  
-│       ├── preprocess.py           # PDF→FAISS 전처리 테스트  
-│       └── …  
-└── tmp/                            # 런타임 생성 파일 (HTML 등)
-    ├── dest_reco_full.html  
-    └── dest_reco_test.html  
+```text
+.
+├── apps/                            # 독립 실행 서비스 모음
+│   ├── ai_preprocess/               # · 전처리용 모듈 
+│   ├── ai_service/                  # · 전처리된 데이터로 실제 RAG 서비스 (챗봇 응답 생성) 수행
+│   ├── amadeus_mcp_server/          # · Amadeus API를 MCP(SSE)로 노출하는 Node.js 서버
+│   └── api-server/                  # · 챗봇 클라이언트용 메인 FastAPI REST 서버
+├── bookie.egg-info/                 # Python 패키지 배포 메타데이터
+├── cache/                           # · HuggingFace·OpenAI 모델 캐시 저장소
+├── db_FAISS/                        # · 벡터 검색용 FAISS 인덱스 파일(index.faiss, index.pkl)
+├── launch_api.py                    # · 전체 서버(FastAPI + MCP) 실행·모니터링 진입 스크립트
+├── packages/                        # · 사내 공통 모듈
+│   ├── chatbot_contents/            #   – Intent별 응답 핸들러 & Pydantic 스키마
+│   └── core_backend/                #   – Amadeus 클라이언트 래퍼, 유틸리티
+├── requirements.txt                 # · Python 종속성 목록
+├── root_data/                       # · 원본 참조 데이터(e.g. koreanair.pdf)
+├── runs/                            # · 테스트·실험 스크립트 모음(main.py, mcp_client.py 등)
+├── setup.py                         # · 패키지 설치용 설정 파일
+└── tmp/                             # · 임시 결과물(dest_reco_*.html 등)
 
 
 ```
