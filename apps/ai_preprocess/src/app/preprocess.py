@@ -13,10 +13,10 @@ def create_file_vectorstore(file_path):
 
     # doc, _ = embedding.embed_document_huggingface(doc=split_doc[3].page_content)
 
-    db=vectorstore.create_doc_FAISS(split_doc=split_doc)
+    # db=vectorstore.create_doc_FAISS(split_doc=split_doc)
     # db=vectorstore.create_doc_Chroma(split_doc=split_doc)
     
-    return db
+    return split_doc
 
 def add_file_vectorstore(file_path, db):
     docs = loader.load_pdf_plumber(file_path)
@@ -34,20 +34,20 @@ def add_file_vectorstore(file_path, db):
 
 
 if __name__ == "__main__":
-    # db=create_file_vectorstore("root_data/koreanair.pdf")
+    doc=create_file_vectorstore("root_data/koreanair.pdf")
     # print(doc.docstore.__dict__)
-    # for docs in doc:
-        # if(docs.metadata['page'] < 7) :
-            # print(docs.page_content)
-            # print(docs.metadata)
+    for docs in doc:
+        if(docs.metadata['page'] > 16) :
+            print(docs.page_content)
+            print(docs.metadata)
     
         
 
-    _, embedder = embedding.embed_document_openai([])
-    db=FAISS.load_local("db_FAISS/", embeddings=embedder,
-                        allow_dangerous_deserialization=True)
-    print(len(db.index_to_docstore_id))
+    # _, embedder = embedding.embed_document_openai([])
+    # db=FAISS.load_local("db_FAISS/", embeddings=embedder,
+    #                     allow_dangerous_deserialization=True)
+    # print(len(db.index_to_docstore_id))
     
     # add_file_vectorstore("root_data/asiana_air_domestic.pdf", db)
 
-    print(db.docstore.__dict__)
+    # print(db.docstore.__dict__)
