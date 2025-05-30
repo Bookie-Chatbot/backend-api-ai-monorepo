@@ -6,20 +6,23 @@ from datetime import date
 class PayloadList(BaseModel):
     origin: str
     dest: str
-    departure_date: date
+    departure_date: str
     selling_price: int
     price_threshold: int
-    deadline: Optional[date]
+    deadline: Optional[str] = None  # Optional로 변경, 기본값은 None
 
-
-class AlertDispatchContent(BaseModel):
-    intent: Literal["ALERT_DISPATCH"]= Field(..., exclude=True)
+class ContentList(BaseModel):
+    message: str
     eventType: Literal["price_drop","wx_risk","cancel_deadline"]
     channel: Literal["email","kakao"]
-    message: str
     userId: str
     emailId: str
     payload: PayloadList
+
+class AlertDispatchContent(BaseModel):
+    intent: Literal["ALERT_DISPATCH"]= Field(..., exclude=True)
+    contents: ContentList
+
 
 
 

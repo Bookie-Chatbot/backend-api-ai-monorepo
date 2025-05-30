@@ -5,7 +5,7 @@ from chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
 from chains.policy_qa import policy_qa_chain, policy_qa_parser
-from chains.alert_dispatch import price_drop_chain, price_drop_parser
+from chains.alert_price_drop import price_drop_chain, price_drop_parser
 
 #from chains.alert_dispatch_router import alert_dispatch_router
 #from chains.weather_summary import weather_summary_chain, weather_parser
