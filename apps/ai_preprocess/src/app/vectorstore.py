@@ -122,3 +122,155 @@ def add_doc_to_FAISS(db: FAISS, new_docs, persist_directory="db_FAISS"):
     # 만들어져 있는 db에 새 docmunet 추가할 때 사용
     db.add_documents(new_docs)
     db.save_local(persist_directory)
+
+def delete_ids_FAISS(db: FAISS, ids, persist_directory="db_FAISS"):
+    # db에 해당 ids 가진 chunk들 모두 삭제
+    db.delete(ids=ids)
+    db.save_local(persist_directory)
+
+'''
+@router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
+async def chat_message(
+    data: MessageCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    1) LangChain → query_chain 호출
+    2) 결과를 DB에 저장
+    3) 전체 히스토리를 반환
+    """
+    # ── 1. LLM / 툴 호출 ───────────────────────────────────────────────
+    try:
+        payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
+            question=data.message,
+            user_id=data.user_id,
+            db=db
+        )
+        print(f"[DEBUG] query_chain 결과: {payload!r}")
+    except Exception as exc:
+        # 내부 예외를 502 Bad Gateway 로 래핑
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"AI 호출 실패: {exc!s}"
+        ) from exc
+
+    # ── 2. DB 저장 ───────────────────────────────────────────────────
+    db_msg = Message(
+        user_id=data.user_id,
+        message=data.message,
+        answer=payload.get("answer", ""),
+    )
+    db.add(db_msg)
+    db.commit()
+    db.refresh(db_msg)
+
+    # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
+    msgs = (
+        db.query(Message)
+          .filter(Message.user_id == data.user_id)
+          .order_by(Message.timestamp.asc())
+          .all()
+    )
+    return MessagesRead(
+        user_id=data.user_id,
+        messages=[MessageRead.from_orm(m) for m in msgs]
+    )
+
+여기서 2, 3 
+DB에 message를 user_id, message, answer에 따라 저장.
+metadata에 user_id를 통해 history 살펴보면 될듯
+'''
+#################################################################
+'''
+# context에 기존 대화 내역 추가하는 코드
+
+async def query_chain(user_id: int,
+                      question: str,
+                      db: Session) -> dict[str, Any]:
+    """
+    ① DB 에서 과거 대화 이력 조회
+    ② LangChain 분류 체인으로 IntentOnly 얻기
+    ③ Intent 라우터(chain) 실행 → 결과(Pydantic | dict | str)
+    ④ 언제나 JSON 직렬화 가능한 형태로 감싸서 JSONResponse 반환
+    """
+    # 지연 import – 순환 참조 방지
+    from api_server.models.chat_log import Message
+
+    print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question!r}")
+
+    # ── 1) 대화 이력 —————————————————————————————
+    history: list[tuple[str, Any]] = []
+    try:
+        chat_logs = (
+            db.query(Message)
+              .filter(Message.user_id == user_id)
+              .order_by(Message.timestamp.asc())
+              .all()
+        )
+    except Exception as e:
+        print(f"[WARN] DB 조회 실패: {e}")
+        chat_logs = []
+
+    for log in chat_logs:
+        # human
+        history.append(("human", _to_plain(log.message)))
+        # bot
+        try:
+            bot_payload = (
+                log.answer
+                if isinstance(log.answer, dict)
+                else json.loads(log.answer)
+            )
+        except Exception:
+            bot_payload = log.answer
+        history.append(("chatbot", _to_plain(bot_payload)))
+
+    print(f"[DEBUG] history 길이 = {len(history)}")
+
+    # ── 2) IntentOnly 분류 ——————————————————————————
+    intent_only: IntentOnly = await asyncio.get_event_loop().run_in_executor(
+        None,
+        classification_chain.invoke,
+        {
+            "question": question,
+            "format_instructions": intent_parser.get_format_instructions(),
+            "chat_history": history,
+        },
+    )
+    print(f"[DEBUG] IntentOnly = {intent_only}")
+
+    # ── 3) Intent 라우팅 체인 —————————————————————————
+    chain_output = await asyncio.get_event_loop().run_in_executor(
+        None,
+        router.invoke,
+        {
+            "intent_only": intent_only,
+            "question":    question,
+            "chat_history": history,
+        },
+    )
+
+    # ── 4) 결과 직렬화 & 응답 —————————————————————————
+    try:
+     # 3) 라우팅 후
+      if isinstance(chain_output, BaseModel):
+       chain_output = chain_output.model_dump(mode="python")
+
+       answer = {
+        "answer": {
+            "intent": intent_only.intent.value,
+            "contents": chain_output["contents"]   # 이미 dict
+        }
+    }
+    except Exception as err:
+        # 마지막 보루 – 문자열로라도 반환
+        print(f"[ERROR] 직렬화 실패: {err}")
+        answer = {
+            "answer": {
+                "intent": intent_only.intent.value,  # Intent 문자열로 변환
+                "contents": chain_output.contents,       # Pydantic 모델이나 dict
+            }
+        }
+    return answer
+    
+'''
