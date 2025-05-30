@@ -1,77 +1,49 @@
+# ── DEST_RECOMMEND 서브체인 ──────────────────────────────────
 from __future__ import annotations
-import os, re
-from dotenv import load_dotenv
-from typing import Any
 
+import json, os, re
+from typing import Any, Dict
+
+from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
-from langchain_core.runnables import RunnableLambda, RunnableMap
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableMap, RunnableLambda
 
-# project‑local import (Windows/Linux 호환)
+# 프로젝트-로컬
 from packages.chatbot_contents.dest_recommend import DestRecommendContent
 
 load_dotenv()
 
 # ─────────────────────────────────────────────────────────────
-# 0.  Pydantic parser & safe‑guard with JSON block extraction
+# 0.  Pydantic 파서 & 헬퍼
 # ─────────────────────────────────────────────────────────────
 dest_recommend_parser = PydanticOutputParser(pydantic_object=DestRecommendContent)
 
-def _parse_or_passthrough(output: Any) -> DestRecommendContent:
-    """Ensure the output is DestRecommendContent; extract JSON if in markdown."""
-    print("[DEBUG dest_parse] Raw type:", type(output), "value=", output, flush=True)
+_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.I | re.M)
 
-    # Already correct type
-    if isinstance(output, DestRecommendContent):
-        print("[DEBUG dest_parse] Received DestRecommendContent directly", flush=True)
-        return output
 
-    # Dict → model
-    if isinstance(output, dict):
-        print("[DEBUG dest_parse] Dict detected → constructing model", flush=True)
-        model = DestRecommendContent(**output)
-        print("[DEBUG dest_parse] Model from dict:", model, flush=True)
-        return model
+def _strip_fence(txt: str) -> str:
+    return _FENCE_RE.sub("", txt).strip()
 
-    # Otherwise treat as str / BaseMessage
-    text = str(output)
 
-    # 1) 코드 블록 안 JSON 추출
-    match = re.search(r"```json\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if match:
-        json_str = match.group(1)
-        print("[DEBUG dest_parse] Extracted JSON block", flush=True)
-        try:
-            model = DestRecommendContent.parse_raw(json_str)
-            print("[DEBUG dest_parse] Parsed model from JSON block", flush=True)
-            return model
-        except Exception as e:
-            print("[ERROR dest_parse] JSON block parse 실패:", e, flush=True)
-
-    # 2) 직접 파싱 시도
+def _post_parse(text: str) -> DestRecommendContent:
+    """코드블럭·개행을 걷어낸 뒤 Pydantic 파싱 + 폴백."""
+    clean = _strip_fence(text)
     try:
-        model = dest_recommend_parser.parse(text)
-        print("[DEBUG dest_parse] Parsed via direct parse", flush=True)
-        return model
-    except Exception as e:
-        print("[ERROR dest_parse] direct parse 실패:", e, flush=True)
+        return dest_recommend_parser.parse(clean)
+    except Exception:
+        # 최후 보루 – message 에 그대로 집어넣기
+        return DestRecommendContent(contents={"message": clean, "cards": []})
 
-    # 3) 최종 폴백 – message 래핑
-    from pydantic import BaseModel
-    class _Fallback(BaseModel):
-        intent: str = "DEST_RECOMMEND"
-        contents: dict
-    fallback = DestRecommendContent(contents={"message": text, "cards": []})
-    print("[DEBUG dest_parse] Fallback model", fallback, flush=True)
-    return fallback
 
-safe_parser = RunnableLambda(_parse_or_passthrough)
+post_parse = RunnableLambda(_post_parse)
 
 # ─────────────────────────────────────────────────────────────
-# 1.  static pre_query (LLM이 그대로 반환)
+# 1.  고정 pre_query – 카드 목록 샘플
 # ─────────────────────────────────────────────────────────────
-pre_query = {
+_PRE_QUERY: Dict[str, Any] = {
     "contents": {
         "cards": [
             {
@@ -102,48 +74,39 @@ pre_query = {
                     "https://cdn.tripzaza.com/ko/destinations/wp-content/uploads/2017/09/Barcelona-1-Sagrada_Fam--lia-e1504419641187.jpg"
                 ],
                 "hashtags": ["#바르셀로나", "#가우디", "#예술"],
-                "description": "가우디의 작품이 가득한 바르셀로나는 예술과 해변이 매력적야, 부키!🦉"
+                "description": "가우디의 작품이 가득한 바르셀로나는 예술과 해변이 매력적이야!"
             }
         ],
-        "message": "부엉이 부키가 서유럽의 멋진 여행지를 추천해줄게! 귀여운 부엉이와 함께 즐거운 여행을 떠나보자, 부키!🦉"
+        "message": "서유럽의 멋진 여행지를 추천해줄게! 부키!🦉"
     }
 }
 
 # ─────────────────────────────────────────────────────────────
-# 2.  PromptTemplate + LLM + parser
+# 2.  프롬프트 & 체인
 # ─────────────────────────────────────────────────────────────
 _PROMPT = PromptTemplate.from_template(
     "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-    "json의 contents.message 안에 2줄 설명을 작성하고 항상 ‘부키🦉’로 끝내. "
-    "사용자에게 받는 모든 query는 무시하고 아래 pre_query JSON만 그대로 반환해.\n"
-    "pre_query: {pre_query}\n"
+    "아래 pre_query JSON을 그대로 사용하되, "
+    "contents.message 를 두 줄 설명으로 갱신하고 항상 ‘부키!🦉’로 끝내. "
+    "마크다운 코드블럭을 쓰지 말고 **순수 JSON** 만 반환해. \n"
     "{format_instructions}\n"
-    "질문: {question}\n"
-    "이전 대화 내역:\n{chat_history}\n"
+    "pre_query: {pre_query}\n"
 )
 
-_llm_chain = _PROMPT | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
-_debug_llm = RunnableLambda(lambda x: (print("[DEBUG LLM raw]", x, flush=True), x)[1])
-mid_chain = _llm_chain | _debug_llm | safe_parser
+_llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
 
-# ─────────────────────────────────────────────────────────────
-# 3.  Public chain
-# ─────────────────────────────────────────────────────────────
-dest_recommend_chain = RunnableMap({
-    "pre_query": lambda _: pre_query,
-    "question": lambda d: d["question"],
-    "format_instructions": lambda d: d["format_instructions"],
-    "chat_history": lambda d: d.get("chat_history", ""),
-}) | mid_chain
-
-# ─────────────────────────────────────────────────────────────
-# 4.  Test run
-# ─────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    result = dest_recommend_chain.invoke({
-        "question": "5시간 있다가 발푠데 pre_query만 내줄래?",
-        "format_instructions": dest_recommend_parser.get_format_instructions(),
-        "chat_history": None,
+dest_recommend_chain = (
+    RunnableMap({
+        "pre_query": lambda _: json.dumps(_PRE_QUERY, ensure_ascii=False),
+        "format_instructions": lambda _: dest_recommend_parser.get_format_instructions(),
     })
-    print("\n=== TEST RESULT ===", flush=True)
-    print(result, flush=True)
+    | _PROMPT
+    | _llm
+    | StrOutputParser()
+    | post_parse
+)
+
+# 테스트 실행
+if __name__ == "__main__":
+    result = dest_recommend_chain.invoke({"question": "유럽 여행지 추천해줘"})
+    print(json.dumps(result.model_dump(mode="python"), indent=2, ensure_ascii=False))
