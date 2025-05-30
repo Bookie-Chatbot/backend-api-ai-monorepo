@@ -4,6 +4,8 @@ from langchain_core.runnables import RunnableLambda
 from chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
+from chains.policy_qa import policy_qa_chain, policy_qa_parser
+
 #from chains.alert_dispatch_router import alert_dispatch_router
 #from chains.weather_summary import weather_summary_chain, weather_parser
 from .mcp_sub_chains import MCP_INTENT_MAP    # ← NEW!
@@ -23,6 +25,7 @@ def fallback_run(question: str):
 INTENT_CHAIN_MAP = {
   #  Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
+     Intent.POLICY_QA:         (policy_qa_chain, policy_qa_parser)
 
 
 
