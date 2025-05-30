@@ -1,6 +1,7 @@
 # chains/intent_router.py
 
 from langchain_core.runnables import RunnableLambda
+<<<<<<< Updated upstream
 from chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
@@ -14,6 +15,14 @@ from .mcp_sub_chains import (
 )
 
 
+=======
+from packages.chatbot_contents.intents import IntentOnly, Intent
+# for window
+# from packages.chatbot_contents.intents import IntentOnly, Intent
+from apps.ai_service.src.app.chains.price_search import price_search_chain, price_search_parser
+from apps.ai_service.src.app.chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
+from apps.ai_service.src.app.chains.policy_qa import policy_qa_chain, policy_qa_parser
+>>>>>>> Stashed changes
 
 # 지원하지 않는 intent 대응
 def fallback_run(question: str):

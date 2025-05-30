@@ -1,13 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< Updated upstream:apps/api-server/workspace/fastapi-project/main.py
 from database import engine, SessionLocal, Base
 from models import user, hotel, flight, reservation, admin_settings, chat_log
 from routers import user_router, hotel_router, flight_router, reservation_router, chat_log
+=======
+from fastapi_project.database import engine, SessionLocal, Base
+from fastapi_project.models import user, hotel, flight, reservation, admin_settings, chat_log, price_track
+from fastapi_project.routers import user_router, hotel_router, flight_router, reservation_router, chat_log, price_track_router
+>>>>>>> Stashed changes:apps/api_server/workspace/fastapi_project/main.py
 import logging
 import os
 from dotenv import load_dotenv
 
+import sys
 
+# 루트 디렉토리 경로 추가
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
 load_dotenv()
 
 app = FastAPI()

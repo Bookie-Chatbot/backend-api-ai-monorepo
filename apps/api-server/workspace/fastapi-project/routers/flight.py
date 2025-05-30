@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from amadeus import Client, ResponseError
 import os
-from amadeus_client import amadeus
+from fastapi_project.amadeus_client import amadeus
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine
-from models import flight as models
-from schemas import flight as schemas
+from fastapi_project.database import SessionLocal, engine
+from fastapi_project.models import flight as models
+from fastapi_project.schemas import flight as schemas
 from typing import List, Optional
 
 router = APIRouter(

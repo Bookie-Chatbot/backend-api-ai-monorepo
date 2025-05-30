@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers.pydantic import PydanticOutputParser
-from chatbot_contents.intents import IntentOnly
+from packages.chatbot_contents.intents import IntentOnly
 from langchain_openai import ChatOpenAI
 import os
 from dotenv import load_dotenv

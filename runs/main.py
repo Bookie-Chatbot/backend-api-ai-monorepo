@@ -51,13 +51,20 @@ def _to_plain(obj: Any) -> Any:
 import subprocess
 import sys
 # Pydantic 모델 & 체인
+<<<<<<< Updated upstream
 from chatbot_contents.intents import IntentOnly, Intent
 from chains.classify_intent import classification_chain, intent_parser
 from chains.intent_router import router
 import os
+=======
+from packages.chatbot_contents.intents import IntentOnly, Intent
+from apps.ai_service.src.app.chains.classify_intent import classification_chain, intent_parser
+from apps.ai_service.src.app.chains.intent_router import router
+import os 
+>>>>>>> Stashed changes
 from dotenv import load_dotenv
 
-from database import Base, get_db
+from fastapi_project.database import Base, get_db
 load_dotenv()
 
 
@@ -206,6 +213,7 @@ def stop_amadeus(proc):
         pass
     proc.wait()
 
+<<<<<<< Updated upstream
 # ----------------------------------------------------------------------
 # query_chain  ──  LangChain → Intent 분류 → 서브체인 호출 → 결과 반환
 # ----------------------------------------------------------------------
@@ -213,6 +221,16 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, PlainTextResponse
 from chatbot_contents.intents import IntentOnly, Intent   # 타입 힌트용
 from sqlalchemy.orm import Session                       # DB 타입 힌트
+=======
+# ──────────────────────────────────────────────────────────
+# 4. LangChain → Intent 분류 & 라우팅 → Sub-chain
+# ──────────────────────────────────────────────────────────
+async def query_chain(user_id: int, question: str, db: any) -> JSONResponse:
+    # Message 모델 import 지연
+    from apps.api_server.workspace.fastapi_project.models.chat_log import Message
+    print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question}")
+    print("[DEBUG] DB 세션 열기 완료")
+>>>>>>> Stashed changes
 
 async def query_chain(user_id: int,
                       question: str,

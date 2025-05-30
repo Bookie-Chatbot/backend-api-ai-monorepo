@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
-from chatbot_contents.price_search import PriceSearchContent
+from packages.chatbot_contents.price_search import PriceSearchContent
 from langchain_core.runnables import RunnableLambda
 import os
 from dotenv import load_dotenv
