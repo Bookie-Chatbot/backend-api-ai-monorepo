@@ -1,6 +1,8 @@
 from __future__ import annotations
-import argparse, os
+import argparse, os, re
 from dotenv import load_dotenv
+from typing import Any
+from pprint import pprint         # ← 추가
 
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
@@ -10,7 +12,7 @@ from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain_community.vectorstores import FAISS
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_community.document_compressors import FlashrankRerank
-from typing import Any
+
 # project-local imports ---------------------------------------------------------
 from apps.ai_preprocess.src.app import config
 from packages.chatbot_contents.policy_qa import PolicyQAContent, ContentsList
@@ -20,33 +22,50 @@ load_dotenv()
 # -----------------------------------------------------------------------------
 # 0.  Pydantic parser & safe-guard
 # -----------------------------------------------------------------------------
-
 policy_qa_parser = PydanticOutputParser(pydantic_object=PolicyQAContent)
 
-def _parse_or_passthrough(output: Any) -> PolicyQAContent:
-    """Always return a PolicyQAContent instance, wrapping raw output if needed."""
-    # Already parsed model
-    if isinstance(output, PolicyQAContent):
-        return output
-    # If a dict comes through, construct model
-    if isinstance(output, dict):
+# -------------------------------------
+# utils/parsing.py  ―  개선 버전
+# -------------------------------------
+import re
+from langchain_core.messages import AIMessage
+from packages.chatbot_contents.policy_qa import PolicyQAContent, ContentsList
+from langchain.output_parsers.pydantic import PydanticOutputParser
+
+_FENCE_RE = re.compile(r"```(?:json)?\\s*(.*?)\\s*```", re.S | re.I)
+parser = PydanticOutputParser(pydantic_object=PolicyQAContent)
+
+def _parse_or_passthrough(output) -> PolicyQAContent:
+    # 1) AIMessage → text
+    if isinstance(output, AIMessage):
+        text = output.content
+    elif isinstance(output, dict):
         return PolicyQAContent(**output)
-    # Otherwise, assume LLM raw string
+    else:
+        text = str(output)
+
+    # 2) 코드펜스 제거
+    m = _FENCE_RE.search(text)
+    json_str = m.group(1) if m else text
+
+    # 3) 파싱 시도
     try:
-        return policy_qa_parser.parse(output)
-    except Exception:
-        # Fallback: wrap raw string into contents.message
-        return PolicyQAContent(contents=ContentsList(message=str(output), references=[]))
+        return parser.parse(json_str)
+    except Exception as e:
+        # 4) 실패하면 원본 포장
+        return PolicyQAContent(
+            contents=ContentsList(message=text, references=[])
+        )
+
 
 safe_parser = RunnableLambda(_parse_or_passthrough)
 
 # -----------------------------------------------------------------------------
 # 1.  PromptTemplate with context default
 # -----------------------------------------------------------------------------
-
 _PROMPT = PromptTemplate.from_template(
     "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-    "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
+    "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘. "
     "특정 항공사나 호텔 정책은 source가 해당 회사인 저장소에서 찾아줘. "
     "회사를 특정하지 않으면 항공 정책은 flight_policy.pdf, 호텔 정책은 hotel_policy.pdf에서 찾아줘.\n"
     "질문에 대해 아래 JSON Schema에 맞춰서 결과를 반환해줘.\n"
@@ -65,7 +84,6 @@ policy_qa_chain = (
 # -----------------------------------------------------------------------------
 # 2.  Helper to load FAISS vector DB
 # -----------------------------------------------------------------------------
-
 def load_vecdb(path: str) -> FAISS:
     embedder = config.Embedding_Model
     print(f"[INFO] Loading FAISS vectorstore from: {path}")
@@ -76,7 +94,6 @@ def load_vecdb(path: str) -> FAISS:
 # -----------------------------------------------------------------------------
 # 3.  Public factory: create_policy_chain()
 # -----------------------------------------------------------------------------
-
 def create_policy_chain() -> RunnableMap:
     parser = argparse.ArgumentParser(description="Policy QA RAG 테스트 (부엉이 부키 모드)")
     parser.add_argument("--db-path", default="db_FAISS", help="FAISS DB 경로")
@@ -109,7 +126,6 @@ def create_policy_chain() -> RunnableMap:
 # -----------------------------------------------------------------------------
 # 4.  CLI demo
 # -----------------------------------------------------------------------------
-
 if __name__ == "__main__":
     qa_chain = create_policy_chain()
     demo_result = qa_chain.invoke({
@@ -118,4 +134,5 @@ if __name__ == "__main__":
         "chat_history": None,
     })
     print("\n=== DEMO OUTPUT ===")
-    print(demo_result)
+    # ← 결과도 pprint!
+    pprint(demo_result)
