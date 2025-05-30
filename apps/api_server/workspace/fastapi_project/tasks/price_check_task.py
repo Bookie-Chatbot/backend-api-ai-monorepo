@@ -1,5 +1,5 @@
 from celery_app import celery_app
-from apps.api_server.workspace.fastapi_project.amadeus_client import search_flight_offers
+from amadeus_client import search_flight_offers
 from time import sleep
 import logging
 from utils.email_alert import send_email

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.price_track import PriceTrackRequestModel
 from schemas.price_track import PriceTrackCreate, PriceTrackResponse
-from apps.api_server.workspace.fastapi_project.tasks.price_check_task import check_price
+from tasks.price_check_task import check_price
 
 router = APIRouter()
 
