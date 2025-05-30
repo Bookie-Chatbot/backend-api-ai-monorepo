@@ -1,8 +1,8 @@
 # chatbot_contents/common.py
-from typing import List, Optional
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
-from datetime import datetime
+from datetime import datetime, date
+from typing import List, Optional, Dict, Any, Literal
+
 
 
 # ── PRICE_SEARCH ───────────────────────────────
@@ -15,14 +15,14 @@ class FlightOption(BaseModel):
     currency: str
     bookingUrl: Optional[str]
 
-class ContentsList(BaseModel):
+class PriceSearchContentsList(BaseModel):
     message: str
     flights: List[FlightOption]
 
 
 class PriceSearchContent(BaseModel):
     intent: Literal["PRICE_SEARCH"]
-    contents : ContentsList
+    contents : PriceSearchContentsList
 
 
 
@@ -36,9 +36,34 @@ class Quartile(BaseModel):
     quartileRanking: str
     amount: float
 
+#class PriceAnalysisContent(BaseModel):
+#    intent: Literal["PRICE_ANALYSIS"] = "PRICE_ANALYSIS"
+#    contents: dict                       # Amadeus 원본을 그대로 둠
+
+
+
+
+class PriceMetricsList(BaseModel):
+    quartileRanking: str
+    amount: float  # 소수점을 허용하도록 float로 변경
+
+class PriceAnalysisContentsList(BaseModel):
+    message: str
+    origin: str
+    destination: str
+    departureDate: str
+    currencyCode: str
+    oneWay: bool
+    priceMetrics: List[PriceMetricsList]
+
+
 class PriceAnalysisContent(BaseModel):
-    intent: Literal["PRICE_ANALYSIS"] = "PRICE_ANALYSIS"
-    contents: dict                       # Amadeus 원본을 그대로 둠
+    intent: Literal["PRICE_ANALYSIS"]= "PRICE_ANALYSIS"
+    contents: PriceAnalysisContentsList
+
+
+
+
 
 
 
@@ -51,14 +76,14 @@ class CheapDays(BaseModel):
     price: int
 
 
-class ContentsList(BaseModel):
+class CheapestDateContentsList(BaseModel):
     message: str
     cards: List[CheapDays]
 
 
 class CheapestDateContent(BaseModel):
     intent: Literal["CHEAPEST_DATE"] = Field(..., exclude=True)
-    contents: ContentsList
+    contents: CheapestDateContentsList
 
 
 # ── FLIGHT_DETAILS ────────────────────────────
