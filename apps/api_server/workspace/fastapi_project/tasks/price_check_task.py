@@ -17,7 +17,14 @@ if not logger.handlers:
 
 @celery_app.task
 def check_price(user_id: int, search_params: dict, threshold: int):
-    logger.info(f"[DEBUG] Received params: {search_params}")
+    formatted_params = {
+        "originLocationCode": search_params.get("origin"),
+        "destinationLocationCode": search_params.get("destination"),
+        "departureDate": search_params.get("departure_date"),
+        "adults": 1,
+        "currencyCode": "KRW"
+    }
+    logger.info(f"[DEBUG] Received params: {formatted_params}")
     logger.info(f"[📦 Celery Task] Checking price for user {user_id} with threshold {threshold}")
     print("🔥 1. Task START")
 
@@ -59,6 +66,5 @@ def check_price(user_id: int, search_params: dict, threshold: int):
         logger.info(f"{user_email}로 알림 전송 완료!")
     finally:
         db.close()
-
        
 
