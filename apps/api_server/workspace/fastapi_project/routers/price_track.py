@@ -20,11 +20,13 @@ def track_price(req: PriceTrackCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_track)
 
+    print("🔥 BEFORE TASK")
+    print(f"[DEBUG] Sending to task: user_id={new_track.user_id}, params={new_track.search_params}")
     check_price.delay(
         new_track.user_id,
         new_track.search_params,
         new_track.price_threshold
     )
-    
 
+    print("🔥 AFTER TASK")
     return new_track
