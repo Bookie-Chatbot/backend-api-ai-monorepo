@@ -58,6 +58,7 @@ def check_price(user_id: int, search_params: dict, threshold: int):
                     f"설정하신 항공권 가격이 {threshold}원 이하로 떨어졌습니다!\n"
                     f"- 출발지: {search_params['origin']}\n"
                     f"- 도착지: {search_params['destination']}\n"
+                    f"- 항공사: {flights[0]['validatingAirlineCodes'][0]}\n"
                     f"- 출발일: {search_params['departure_date']}\n"
                     f"- 현재 가격: {price}원\n\n"
                     f"지금 바로 예약하세요!\n\n"
