@@ -11,13 +11,11 @@ amadeus = Client(
 
 def search_flight_offers(params: dict):
     formatted_params = {
-        "originLocationCode": params.get("origin"),
-        "destinationLocationCode": params.get("destination"),
-        "departureDate": params.get("departure_date"),
+        "originLocationCode": params.get("originLocationCode"),
+        "destinationLocationCode": params.get("destinationLocationCode"),
+        "departureDate": params.get("departureDate"),
         "adults": 1,
-        "currencyCode": "KRW",
-        "nonStop": False,
-        "max": 5
+        "currencyCode": "KRW"
     }
     print(f"[DEBUG] Sending to Amadeus: {formatted_params}")  # 디버깅용
     response = amadeus.shopping.flight_offers_search.get(**formatted_params)

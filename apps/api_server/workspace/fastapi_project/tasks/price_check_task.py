@@ -30,41 +30,45 @@ def check_price(user_id: int, search_params: dict, threshold: int):
 
     db = SessionLocal()
     try:
-        print("🔥 2. Try block 진입")
-        ##user_email = get_user_email(db, user_id)
         user_email = "dokkang@sogang.ac.kr"
+        logger.info(f"email of {user_id} = {user_email}")
         if not user_email:
             logger.warning(f"User {user_id}: 이메일을 찾을수 없음")
             return
-        # print(search_params) 넣어서 실제 전달된 딕셔너리 확인해보세요
-        logger.info(f"search_params: {search_params}")
 
-        # search_params가 이중 딕셔너리로 올 경우 처리
-        if "origin" not in search_params and "search_params" in search_params:
-            search_params = search_params["search_params"]
+        while True:
+            logger.info(f"🔁 Checking price again for user {user_id}...")
+            logger.info(f"[DEBUG] Params to Amadeus: {formatted_params}")
+            for key, val in formatted_params.items():
+                if not val:
+                    logger.error(f"[ERROR] Missing required param: {key}")
+            flights = search_flight_offers(formatted_params)
+            if not flights:
+                logger.info("No flights found. Retrying in 30 minutes...")
+                sleep(1800)
+                continue
 
-        flights = search_flight_offers(search_params)
-        if not flights:
-            print("항공편 없음")
-            return
+            price = int(float(flights[0]["price"]["total"]))
+            logger.info(f"현재 가격: {price}원")
 
-        price = int(flights[0]["price"]["total"])
-        print(f"현재 가격: {price}원")
-        ##if price < threshold:
-        subject = "Bookie - 항공권 가격 하락 알림 ✈️"
-        body =  (
-                f"안녕하세요!\n\n"
-                f"설정하신 항공권 가격이 {threshold}원 이하로 떨어졌습니다!\n"
-                f"- 출발지: {search_params['origin']}\n"
-                f"- 도착지: {search_params['destination']}\n"
-                f"- 출발일: {search_params['departure_date']}\n"
-                f"- 현재 가격: {price}원\n\n"
-                f"지금 바로 예약하세요!\n\n"
-                f"감사합니다.\n"
-            )
-        send_email(user_email, subject, body)
-        logger.info(f"{user_email}로 알림 전송 완료!")
+            if price < threshold:
+                subject = "Bookie - 항공권 가격 하락 알림 ✈️"
+                body = (
+                    f"안녕하세요!\n\n"
+                    f"설정하신 항공권 가격이 {threshold}원 이하로 떨어졌습니다!\n"
+                    f"- 출발지: {search_params['origin']}\n"
+                    f"- 도착지: {search_params['destination']}\n"
+                    f"- 출발일: {search_params['departure_date']}\n"
+                    f"- 현재 가격: {price}원\n\n"
+                    f"지금 바로 예약하세요!\n\n"
+                    f"감사합니다.\n"
+                )
+                send_email(user_email, subject, body)
+                logger.info(f"{user_email}로 알림 전송 완료!")
+                break
+
+            logger.info("아직 임계값보다 가격이 높습니다. 30분 후 다시 확인합니다.")
+            sleep(1800)
     finally:
         db.close()
        
-
