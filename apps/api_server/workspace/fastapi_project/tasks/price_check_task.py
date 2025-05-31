@@ -30,7 +30,7 @@ def check_price(user_id: int, search_params: dict, threshold: int):
 
     db = SessionLocal()
     try:
-        user_email = "dokkang@sogang.ac.kr"
+        user_email = get_user_email(db, user_id)
         logger.info(f"email of {user_id} = {user_email}")
         if not user_email:
             logger.warning(f"User {user_id}: 이메일을 찾을수 없음")
