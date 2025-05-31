@@ -4,8 +4,8 @@ from email.mime.text import MIMEText
 def send_email(to_email: str, subject: str, body: str):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    sender_email = "loi97weewee@gmail.com"
-    sender_password = "Dontforget"  # Gmail은 앱 비밀번호 필요
+    sender_email = "bookie.tripplanner@gmail.com"
+    sender_password = "dvqt uxvf ihhy feva"  # Gmail은 앱 비밀번호 필요
 
     msg = MIMEText(body)
     msg["Subject"] = subject
