@@ -67,8 +67,8 @@ def check_price(user_id: int, search_params: dict, threshold: int):
                 logger.info(f"{user_email}로 알림 전송 완료!")
                 break
 
-            logger.info("아직 임계값보다 가격이 높습니다. 30분 후 다시 확인합니다.")
-            sleep(1800)
+            logger.info("아직 임계값보다 가격이 높습니다. 24시간 후 다시 확인합니다.")
+            sleep(86400)
     finally:
         db.close()
        
