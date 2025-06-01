@@ -6,7 +6,6 @@ from utils.email_alert import send_email
 from utils.get_email import get_user_email
 from database import SessionLocal
 from utils.airline_mapper import get_airline_name
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -71,11 +70,12 @@ def check_price(user_id: int, search_params: dict, threshold: int):
             else:
                 airline_name = get_airline_name(flights[0]['validatingAirlineCodes'][0])
                 subject = "🦉부키가 알려드려요!🦉"
+                change_rate = ((price - threshold) / threshold) * 100
                 body = (
                     f" 🛫 ${search_params['origin']} → 🛬{search_params['destination']}\n"
                     f"{airline_name} | {search_params['departure_date']}\n"
                     f"💸 현재가: {price}원으로, 🎯 목표가: {threshold}원\n"
-                    f"전일 대비 0%\n"
+                    f"임계치와 {change_rate}% 차이😢\n"
                     f"부키가 알려드리는 이 찬스를 놓치지 마세요!\n"  
                     f"지금 바로 👉 [예약 바로가기 링크]\n"  
                     f"부키와 함께 즐거운 여행 준비하세요!\n"
