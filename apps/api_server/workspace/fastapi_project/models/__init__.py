@@ -4,3 +4,4 @@ from .hotel import Hotel
 from .flight import Flight
 from .reservation import Reservation
 from .admin_settings import AdminSettings
+from .price_track import PriceTrackRequestModel
