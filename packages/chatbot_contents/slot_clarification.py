@@ -3,17 +3,20 @@ from typing import List, Optional, Dict, Any, Literal
 
 from pydantic import BaseModel, Field
 
-class SlotClarificationContent(BaseModel):
-    intent: Literal["SLOT_CLARIFICATION"]= Field(..., exclude=True)
+
+class ContentsList(BaseModel):
     message: str
     missingSlots: List[str]
 
+class SlotClarificationContent(BaseModel):
+    intent: Literal["SLOT_CLARIFICATION"]= "SLOT_CLARIFICATION"
+    contents: ContentsList
 
 
 {
   "intent": "SLOT_CLARIFICATION",
   "contents": {
-    "message": "어느 구간의 항공권을 찾으시나요?",
-    "missingSlots": ["origin","destination"]
+    "message": "출발 도시를 알려주세요! 예: 서울, 부산, 제주도",
+    "missingSlots": ["origin"]
   }
 }
