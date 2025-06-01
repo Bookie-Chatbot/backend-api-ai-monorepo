@@ -5,6 +5,7 @@ import logging
 from utils.email_alert import send_email
 from utils.get_email import get_user_email
 from database import SessionLocal
+from utils.airline_mapper import get_airline_name
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -52,24 +53,39 @@ def check_price(user_id: int, search_params: dict, threshold: int):
             logger.info(f"현재 가격: {price}원")
 
             if price < threshold:
-                subject = "Bookie - 항공권 가격 하락 알림 ✈️"
+                airline_name = get_airline_name(flights[0]['validatingAirlineCodes'][0])
+                subject = "🦉부키가 알려드려요!🦉"
                 body = (
-                    f"안녕하세요!\n\n"
-                    f"설정하신 항공권 가격이 {threshold}원 이하로 떨어졌습니다!\n"
-                    f"- 출발지: {search_params['origin']}\n"
-                    f"- 도착지: {search_params['destination']}\n"
-                    f"- 항공사: {flights[0]['validatingAirlineCodes'][0]}\n"
-                    f"- 출발일: {search_params['departure_date']}\n"
-                    f"- 현재 가격: {price}원\n\n"
-                    f"지금 바로 예약하세요!\n\n"
-                    f"감사합니다.\n"
+                    f"🎉 가격 임계치 도달! 🎉\n"
+                    f" 🛫 {search_params['origin']} → 🛬{search_params['destination']}\n"
+                    f"{airline_name} | {search_params['departure_date']}\n"
+                    f"💸 현재가: {price}원으로, 🎯 목표가: {threshold}원 이하로 내려왔어요!\n"
+                    f"부키가 알려드리는 이 찬스를 놓치지 마세요!\n"  
+                    f"지금 바로 👉 [예약 바로가기 링크]\n"  
+                    f"부키와 함께 즐거운 여행 준비하세요!\n"
+                    f"부키!🦉"   
                 )
                 send_email(user_email, subject, body)
                 logger.info(f"{user_email}로 알림 전송 완료!")
                 break
+            else:
+                airline_name = get_airline_name(flights[0]['validatingAirlineCodes'][0])
+                subject = "🦉부키가 알려드려요!🦉"
+                body = (
+                    f" 🛫 ${search_params['origin']} → 🛬{search_params['destination']}\n"
+                    f"{airline_name} | {search_params['departure_date']}\n"
+                    f"💸 현재가: {price}원으로, 🎯 목표가: {threshold}원\n"
+                    f"전일 대비 0%\n"
+                    f"부키가 알려드리는 이 찬스를 놓치지 마세요!\n"  
+                    f"지금 바로 👉 [예약 바로가기 링크]\n"  
+                    f"부키와 함께 즐거운 여행 준비하세요!\n"
+                    f"부키!🦉"   
+                )
+                send_email(user_email, subject, body)
+                logger.info(f"{user_email}로 알림 전송 완료!")
+                sleep(86400)
 
-            logger.info("아직 임계값보다 가격이 높습니다. 24시간 후 다시 확인합니다.")
-            sleep(86400)
+            
     finally:
         db.close()
        
