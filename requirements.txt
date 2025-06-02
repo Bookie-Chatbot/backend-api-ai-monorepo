@@ -40,7 +40,8 @@ mcp[cli]
 # langgraph>=0.3.21
 fastapi_mcp
 asyncio
-
+redis
+celery
 # pip install -r requirements.txt
 # 실행 cmd simplify용
 -e .

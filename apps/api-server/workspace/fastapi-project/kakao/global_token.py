@@ -1,6 +1,6 @@
 import time, json, os, requests
 from dotenv import load_dotenv
-from user_data import TOKEN
+from .user_data import TOKEN
 
 load_dotenv()
 

@@ -1,4 +1,4 @@
-from kakao_msg import send_friend_template
+from .kakao_msg import send_friend_template
 
 WELCOME_TMPL_ID  = "121168"
 SCHEDULE_TMPL_ID = "121173"
