@@ -1,6 +1,6 @@
 import json, requests
-from global_token import ensure_access_token
-from user_data     import EMAIL_UUID
+from .global_token import ensure_access_token
+from .user_data     import EMAIL_UUID
 
 KAPI = "https://kapi.kakao.com"
 

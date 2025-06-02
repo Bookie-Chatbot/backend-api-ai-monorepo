@@ -6,6 +6,22 @@ from utils.email_alert import send_email
 from utils.get_email import get_user_email
 from database import SessionLocal
 from utils.airline_mapper import get_airline_name
+from kakao import alert_api as api
+from kakao import global_token as gt
+import sys
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+# 저장된 토큰을 메모리로 불러오기
+gt.try_load()
+
+# .env에 설정한 이메일/UUID 정보
+USER_EMAIL = os.getenv("USER_EMAIL")
+if not USER_EMAIL:
+    print("ERROR: 환경 변수 USER_EMAIL이 설정되어 있지 않습니다.")
+    sys.exit(1)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -53,6 +69,22 @@ def check_price(user_id: int, search_params: dict, threshold: int):
 
             if price < threshold:
                 airline_name = get_airline_name(flights[0]['validatingAirlineCodes'][0])
+                PRICE_ARGS = {
+                    "ORIGIN": search_params['origin'],
+                    "DEST": search_params['destination'],
+                    "AIRLINE": airline_name,
+                    "DEPARTDATE": search_params['departure_date'],
+                    "TARGET_PRICE": threshold,
+                    "BOOK_URL": "https://chatbot-bookie.pages.dev"
+                }
+                logger.info("🅺카카오톡 알림 전송 중...")
+                response = api.send_price_alert(USER_EMAIL, PRICE_ARGS)
+                if response.get("successful_receiver_uuids"):
+                    logger.info("🅺카카오톡 알림 전송 성공")
+                else:
+                    logger.info("🅺카카오톡 알림 전송 실패")
+
+                
                 subject = "🦉부키가 알려드려요!🦉"
                 body = (
                     f"🎉 가격 임계치 도달! 🎉\n"
@@ -69,6 +101,23 @@ def check_price(user_id: int, search_params: dict, threshold: int):
                 break
             else:
                 airline_name = get_airline_name(flights[0]['validatingAirlineCodes'][0])
+                SCHEDULE_ARGS = {
+                    "ORIGIN": "서울",
+                    "DEST": "제주",
+                    "AIRLINE": "KAL",
+                    "DEPARTDATE": "2025.06.01",
+                    "TARGET_PRICE": "120000",
+                    "CURRENT_PRICE": "118500",
+                    "CHANGE_RATE": "-1.25",
+                    "BOOK_URL": "https://chatbot-bookie.pages.dev"
+                }
+                logger.info("🅺카카오톡 알림 전송 중...")
+                response = api.send_schedule(USER_EMAIL, SCHEDULE_ARGS)
+                if response.get("successful_receiver_uuids"):
+                    logger.info("🅺카카오톡 알림 전송 성공")
+                else:
+                    logger.info("🅺카카오톡 알림 전송 실패")
+
                 subject = "🦉부키가 알려드려요!🦉"
                 change_rate = ((price - threshold) / threshold) * 100
                 body = (
