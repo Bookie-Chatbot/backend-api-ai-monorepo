@@ -10,5 +10,14 @@ VIRTUAL_DB_DIR = os.getenv("VIRTUAL_DB_DIR", os.path.join("data", "db"))
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING")
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+<<<<<<< Updated upstream
 Embedding_Model = OpenAIEmbeddings(model = "text-embedding-3-small", )
 
+=======
+<<<<<<< HEAD
+Embedding_Model = OpenAIEmbeddings(model="text-embedding-3-small")
+=======
+Embedding_Model = OpenAIEmbeddings(model = "text-embedding-3-small", )
+
+>>>>>>> shin_
+>>>>>>> Stashed changes
