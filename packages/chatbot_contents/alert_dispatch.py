@@ -13,7 +13,7 @@ class PayloadList(BaseModel):
 
 
 class AlertDispatchContent(BaseModel):
-    intent: Literal["ALERT_DISPATCH"]= Field(..., exclude=True)
+    intent: Literal["ALERT_DISPATCH"]
     eventType: Literal["price_drop","wx_risk","cancel_deadline"]
     channel: Literal["email","kakao"]
     message: str
