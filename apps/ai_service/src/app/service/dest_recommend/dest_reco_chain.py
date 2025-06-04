@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from app.service.dest_recommend.place_tools import SearchPlaceId, GetDestinationPhotos
-from app.service.dest_recommend.hashtag_catalog import HASHTAGS
+from app_service.service.dest_recommend.place_tools import SearchPlaceId, GetDestinationPhotos
+from app_service.service.dest_recommend.hashtag_catalog import HASHTAGS
 from langchain_core.tools import tool
 from typing import Any
 import random, datetime as dt

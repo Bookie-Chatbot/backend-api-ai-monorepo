@@ -14,7 +14,7 @@ class ContentsList(BaseModel):
 
 
 class DestRecommendContent(BaseModel):
-    intent: Literal["DEST_RECOMMEND"] = Field(..., exclude=True)
+    intent: Literal["DEST_RECOMMEND"] = "DEST_RECOMMEND"
     contents: ContentsList
 
 # 예시

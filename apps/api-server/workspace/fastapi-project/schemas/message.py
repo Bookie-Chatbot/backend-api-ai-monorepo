@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Any
 from datetime import datetime
 
@@ -10,10 +10,10 @@ class MessageCreate(BaseModel):
 class MessageRead(BaseModel):
     session_id: int
     user_id: int
-    message: str
+   # message: str
+    message: str = Field(strip_whitespace=True)
     answer: Any
     timestamp: datetime
-
     class Config:
         from_attributes = True  # FastAPI V2에서 'orm_mode' 대신 사용
 

@@ -2,9 +2,9 @@ from typing import Union
 from pydantic import BaseModel, Field
 
 # import intents and individual content models
-from .price_search import PriceSearchContent
-from .price_prediction import PricePredictionContent
-from .price_analysis import PriceAnalysisContent
+#from .price_search import PriceSearchContent
+#from .price_prediction import PricePredictionContent
+#from .price_analysis import PriceAnalysisContent
 from .policy_qa import PolicyQAContent
 from .dest_recommend import DestRecommendContent
 from .hotel_summary import HotelSummaryContent
@@ -13,6 +13,7 @@ from .alert_dispatch import AlertDispatchContent
 from .general_chat import GeneralChatContent
 from .intent_fallback import IntentFallbackContent
 from .slot_clarification import SlotClarificationContent
+from .common import  ( PriceSearchContent,PriceAnalysisContent,CheapestDateContent,WeatherSummaryContent )
 #from .session import SessionNewContent, SessionContinueContent
 from .intents import Intent
 
@@ -21,7 +22,7 @@ class ChatbotMessage(BaseModel):
     intent: Intent = Field(..., description="어떤 Intent인지")
     contents: Union[
         PriceSearchContent,
-        PricePredictionContent,
+       # PricePredictionContent,
         PriceAnalysisContent,
         PolicyQAContent,
         DestRecommendContent,
