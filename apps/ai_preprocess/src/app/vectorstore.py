@@ -130,6 +130,20 @@ def delete_ids_FAISS(db: FAISS, ids, persist_directory="db_FAISS"):
     db.save_local(persist_directory)
 
 def add_query(message, persist_directory="db_query"):
+    '''
+    message로 받은 query를 persist_directory에 저장하는 함수.
+
+    현재는 인자로 user query를 string으로 받으면
+    정해진 userID, time, llm answer를 metadata로 저장하고 있습니다.
+    추후에 message를 json으로 바꿔서 add_text 함수에 들어가는 내용, metadata들을 바꿀 수 있습니다.
+
+    Args :
+        message (str) :
+            user query에 대한 문자열.
+        persist_directory (str) :
+            path to query vector DB
+
+    '''
     db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
 
     # FAISS 저장 시에 각 query마다 고유값으로 붙는 ids라는 arg가 따로 있습니다.
@@ -142,11 +156,50 @@ def add_query(message, persist_directory="db_query"):
     db.save_local(persist_directory)
 
 def find_similar_history(message, persist_directory="db_query"):
+    '''
+    persist_directory의 vector DB에서 message로 받은 query에 대해 해당 query와
+    유사도가 제일 큰 k개의 document를 반환. filter로 원하는 userID를 골라서 추출 가능
+    반환시 최신 내용부터 출력되도록 sort
+
+    마찬가지로 인자로 user query에 대한 문자열을 받고 있으나 추후 json으로 받고
+    거기에서 user query만 따로 추출해서 message 부분에 넣어도 무관합니다.
+
+    Args :
+        message (str) :
+            user query에 대한 문자열.
+        persist_directory (str) :
+            path to query vector DB
+    
+    Hyperparameter :
+        k (int) :
+            유사도 측정할 때 최대 몇 개의 document를 반환할지 정의            
+            
+    Return :
+        sim (List[Document]) :
+            message와의 유사도가 제일 큰 k개의 user History에 대한 list.
+
+    '''
     db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
 
     sim = db.similarity_search(message, k=3, filter={"userID": 8462})
 
+    sim.sort(key=lambda x: -x.metadata["time"])
+
     return sim
+
+def initialize_vectorDB(persist_directory):
+    '''
+    persist_dirctory에 있는 FAISS DB 초기화.
+    내부 데이터 전부 삭제. 주의해서 사용
+    
+    Args :
+        persist_directory (str) :
+            초기화 할 vector DB file path
+
+    '''
+    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+    db.delete(db.index_to_docstore_id.values())
+    db.save_local(persist_directory)
 
 if __name__=="__main__" :
     db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
@@ -154,13 +207,16 @@ if __name__=="__main__" :
     # add_query("서유럽 가기 좋은 나라 추천")
     # add_query("서유럽 가는 가장 싼 항공편 알려줘")
     # add_query("열대지방에서 제일 맛있는 과일 추천해줘")
-    sim = db.similarity_search("디저트로 먹을게 뭐가 있을까",
-                         k=2, filter={"userID": 8462})
+    # sim = db.similarity_search("디저트로 먹을게 뭐가 있을까",
+    #                      k=2, filter={"userID": 8462})
     
-    print(type(sim))
-    sim.sort(key=lambda x: -x.metadata["time"])
-    print(sim)
-    print(db.docstore.__dict__)
+    # print(type(sim))
+    # print(sim)
+    
+    # print(db.index_to_docstore_id)
+    # print(list(db.index_to_docstore_id.values()))
+    # print(db.docstore.__dict__)
+
 
 
 '''
