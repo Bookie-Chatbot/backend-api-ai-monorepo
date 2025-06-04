@@ -3,6 +3,7 @@ from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 import utils
+import config
 
 def create_file_vectorstore(file_path):
     docs = loader.load_pdf_plumber(file_path)
@@ -51,7 +52,7 @@ if __name__ == "__main__":
 
 
     ###### FAISS DB load start ######
-    _, embedder = embedding.embed_document_openai([])
+    embedder = config.Embedding_Model
     db=FAISS.load_local("db_FAISS/", embeddings=embedder,
                         allow_dangerous_deserialization=True)
     print('load한 vectorspace의 총 chunk 수 : ', len(db.index_to_docstore_id))        # 총 FAISS chunk수

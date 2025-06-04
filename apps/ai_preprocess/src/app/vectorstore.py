@@ -6,6 +6,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
 from dotenv import load_dotenv
 import warnings
+import config
 
 '''
     db = Chroma.from_documents(
@@ -127,6 +128,40 @@ def delete_ids_FAISS(db: FAISS, ids, persist_directory="db_FAISS"):
     # db에 해당 ids 가진 chunk들 모두 삭제
     db.delete(ids=ids)
     db.save_local(persist_directory)
+
+def add_query(message, persist_directory="db_query"):
+    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+
+    # FAISS 저장 시에 각 query마다 고유값으로 붙는 ids라는 arg가 따로 있습니다.
+    # user id와는 다른 argument이니 조심해야 합니다
+    db.add_texts([message], 
+                 metadatas=[{"userID": 8462,
+                             "time": 20250602150030,
+                             "answer": "노르웨이, 스웨덴, 핀란드가 있습니다."}])
+
+    db.save_local(persist_directory)
+
+def find_similar_history(message, persist_directory="db_query"):
+    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+
+    sim = db.similarity_search(message, k=3, filter={"userID": 8462})
+
+    return sim
+
+if __name__=="__main__" :
+    db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
+    print(len(db.index_to_docstore_id))
+    # add_query("서유럽 가기 좋은 나라 추천")
+    # add_query("서유럽 가는 가장 싼 항공편 알려줘")
+    # add_query("열대지방에서 제일 맛있는 과일 추천해줘")
+    sim = db.similarity_search("디저트로 먹을게 뭐가 있을까",
+                         k=2, filter={"userID": 8462})
+    
+    print(type(sim))
+    sim.sort(key=lambda x: -x.metadata["time"])
+    print(sim)
+    print(db.docstore.__dict__)
+
 
 '''
 @router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
