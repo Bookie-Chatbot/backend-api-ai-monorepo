@@ -98,13 +98,6 @@ def create_policy_chain():
 
 
 if __name__ == "__main__" :
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-
-=======
->>>>>>> shin_
->>>>>>> Stashed changes
     # vecstore = load_vecDB("db_FAISS/")
     chain = create_policy_chain()
     print(chain.invoke({
@@ -113,15 +106,3 @@ if __name__ == "__main__" :
         "chat_history": None
     }))
     
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-
-
-    
-
-
-
-=======
->>>>>>> shin_
->>>>>>> Stashed changes

@@ -42,26 +42,3 @@ if __name__ == "__main__":
     
     content = AlertDispatchContent.model_validate(raw)
     print(content.payload)  
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-
-
-
-# class PriceDropPayload(BaseModel):
-#     route: str               # ex. "ICN→LAX"
-#     oldPrice: float          # 기존 가격
-#     newPrice: float          # 현재(혹은 목표) 가격
-#     currency: str            # ex. "KRW"
-#     dropPercent: float       # ex. 7.7
-
-# class AlertDispatchPriceDrop(BaseModel):
-#     intent: Literal["ALERT_DISPATCH_PRICE_DROP"] = Field(..., exclude=True)
-#     channel: Literal["email", "kakao"]
-#     userId: str
-#     message: str
-#     payload: PriceDropPayload
-
-=======
->>>>>>> shin_
->>>>>>> Stashed changes

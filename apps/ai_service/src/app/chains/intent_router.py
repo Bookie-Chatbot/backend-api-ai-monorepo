@@ -6,30 +6,8 @@ from langchain_core.runnables import RunnableLambda
 from packages.chatbot_contents.intents import IntentOnly, Intent
 from chains.price_search import price_search_chain, price_search_parser
 from chains.dest_recommend import dest_recommend_chain, dest_recommend_parser
-<<<<<<< Updated upstream
 from chains.policy_qa import create_policy_chain, policy_qa_parser
 from chains.alert_dispatch import price_drop_chain, price_drop_parser
-=======
-<<<<<<< HEAD
-from chains.policy_qa import policy_qa_chain, policy_qa_parser
-from chains.alert_price_drop import price_drop_chain, price_drop_parser
-
-#from chains.alert_dispatch_router import alert_dispatch_router
-#from chains.weather_summary import weather_summary_chain, weather_parser
-from .mcp_sub_chains import MCP_INTENT_MAP    # ← NEW!
-from .mcp_sub_chains import (
-    price_analysis_parser,
-    cheapest_date_parser,
-    weather_parser,
-)
-
-
-
-=======
-from chains.policy_qa import create_policy_chain, policy_qa_parser
-from chains.alert_dispatch import price_drop_chain, price_drop_parser
->>>>>>> shin_
->>>>>>> Stashed changes
 # 지원하지 않는 intent 대응
 def fallback_run(question: str):
     return {"message": "죄송해요, 아직 지원하지 않는 기능입니다."}
@@ -38,21 +16,8 @@ def fallback_run(question: str):
 INTENT_CHAIN_MAP = {
     Intent.PRICE_SEARCH:   (price_search_chain,   price_search_parser),
     Intent.DEST_RECOMMEND: (dest_recommend_chain, dest_recommend_parser),
-<<<<<<< Updated upstream
     Intent.POLICY_QA:      (create_policy_chain, policy_qa_parser),
     Intent.ALERT_DISPATCH: (price_drop_chain, price_drop_parser),
-=======
-<<<<<<< HEAD
-     Intent.POLICY_QA:         (policy_qa_chain, policy_qa_parser),
-    Intent.ALERT_DISPATCH: (price_drop_chain, price_drop_parser),
-
-
-
-=======
-    Intent.POLICY_QA:      (create_policy_chain, policy_qa_parser),
-    Intent.ALERT_DISPATCH: (price_drop_chain, price_drop_parser),
->>>>>>> shin_
->>>>>>> Stashed changes
 }
 
 def route_and_run(inputs: dict) -> any:
