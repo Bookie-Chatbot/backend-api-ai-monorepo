@@ -187,7 +187,7 @@ def find_similar_history(message, persist_directory="db_query"):
 
     return sim
 
-def initialize_vectorDB(persist_directory):
+def initialize_FAISS(persist_directory):
     '''
     persist_dirctory에 있는 FAISS DB 초기화.
     내부 데이터 전부 삭제. 주의해서 사용
