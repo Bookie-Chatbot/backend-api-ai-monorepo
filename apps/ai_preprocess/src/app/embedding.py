@@ -5,6 +5,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 import os
 from dotenv import load_dotenv
+import config
 
 # cacheback은 사용 안했음
 '''
@@ -20,10 +21,7 @@ from dotenv import load_dotenv
 def embed_document_openai(doc):
     # List[str] input을 OpneAIEmbedding 사용해서 embed하는 메소드. doc type이어야됨
     load_dotenv()
-    embedder = OpenAIEmbeddings(
-        model = "text-embedding-3-small",
-        dimensions=1024,  # 1024차원
-    )
+    embedder = config.Embedding_Model
 
     doc_embed = embedder.embed_documents(doc)
     return doc_embed, embedder
@@ -56,7 +54,7 @@ def embed_document_openai(doc):
 def embed_document_huggingface(doc):
     # List[str] input을 HuggingFaceEmbedding 사용해서 embed하는 메소드. List[str] type이어야됨
     load_dotenv()
-    os.environ["HF_HOME"]="./cache"
+    # os.environ["HF_HOME"]="./cache"
     embedder = HuggingFaceEmbeddings(
         model_name = "intfloat/multilingual-e5-large-instruct",
     )
@@ -66,3 +64,27 @@ def embed_document_huggingface(doc):
 
 
 
+if __name__ == "__main__" :
+    import json
+    import requests
+    
+    kcreds = {"access_token" :"Lq4X_z2QHvANAdxulavvaBFikDOomWo9AAAAAQoNGZAAAAGXLyNIE9EMsmlHt4Ko"}
+    kheaders = {"Authorization": "Bearer " + kcreds.get('access_token')} # 이건 바꾸는거 아님.
+
+    url_mine = "https://kapi.kakao.com/v2/api/talk/memo/default/send" # 나에게 보내기
+    url = "https://changsroad.tistory.com/366"
+
+    # 메세지 템플릿(자신이 원하는 형식으로 보낼 수 있음)
+    content  = f"""\
+    Hello From Bookie!!
+    """
+    template = {"object_type": "text","text": content ,
+                "link": {"web_url": url_mine,"mobile_web_url": url_mine},
+                "button_title": "확인 클릭"}
+                
+    data = {"template_object" : json.dumps(template)}
+    
+    res = requests.post(url_mine, data=data, headers=kheaders)
+    print(res)
+    # if res.json().get('result_code') == 0: print('나에게 전송 성공.')
+    # else: print('나에게 전송 실패. Error : ' + str(res.json()))
