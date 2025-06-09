@@ -106,6 +106,7 @@ async def chat_message(
     """
     # ── 1. LLM / 툴 호출 ───────────────────────────────────────────────
     try:
+	#from runs.main import query_chain
         payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
             question=data.message,
             user_id=data.user_id,

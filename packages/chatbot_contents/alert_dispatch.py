@@ -20,7 +20,7 @@ class ContentList(BaseModel):
     payload: PayloadList
 
 class AlertDispatchContent(BaseModel):
-    intent: Literal["ALERT_DISPATCH"]= Field(..., exclude=True)
+    intent: Literal["ALERT_DISPATCH"]
     contents: ContentList
 
 
