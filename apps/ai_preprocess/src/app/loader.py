@@ -2,7 +2,6 @@ from langchain_community.document_loaders import UnstructuredPDFLoader, PDFPlumb
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document
 import warnings
-import os
 
 def load_pdf_unstructured(file_path: str):
     # 비정형 데이터를 다루기 위한 공동 인터페이스 지원. metadata 많음
@@ -16,15 +15,7 @@ def load_pdf_plumber(file_path: str):
     # 한글 인코딩 처리 좋음. metadata 많음
     loader = PDFPlumberLoader(file_path=file_path)
 
-    doc = loader.load()
-
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-
-    for d in doc:
-        d.metadata["source"] = base_name
-        # d.metadata["test"] = "test_metadata"
-
-    return doc
+    return loader.load()
 
 warnings.filterwarnings("ignore", message=".*Advanced encoding*")
 
@@ -41,13 +32,13 @@ def load_pdf_from_dir(dir_path: str):
 # docs 에 document type으로 pdf 내용 load 가능.
 
 
-if __name__ == "__main__" :
-    plumber_doc = load_pdf_plumber("./root_data/koreanair.pdf")
-    print(len(plumber_doc))
-    # unst_doc = load_pdf_unstructured("../data/un_db/dom_trans_kr.pdf")
-    # print(len(unst_doc))
 
-    # docs=load_pdf_from_dir("../data/un_db/")
+# plumber_doc = load_pdf_plumber("../data/un_db/dom_trans_kr.pdf")
+# print(len(plumber_doc))
+# unst_doc = load_pdf_unstructured("../data/un_db/dom_trans_kr.pdf")
+# print(len(unst_doc))
 
-    print(plumber_doc[0].metadata)
-    print(plumber_doc[0].page_content)
+# docs=load_pdf_from_dir("../data/un_db/")
+
+# print(docs[10].page_content)
+# print(docs[33].page_content)
