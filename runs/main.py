@@ -320,7 +320,7 @@ def main():
     print("[INFO] 메인 시작: API 서버, MCP 서버, Launcher 기동")
     api_proc = start_api_server()
     time.sleep(1)
-    wait_port("127.0.0.1", 8000)
+    wait_port("0.0.0.0", 8000)
     print("[INFO] API 서버 준비 완료")
 
     weather_proc = start_weather()
