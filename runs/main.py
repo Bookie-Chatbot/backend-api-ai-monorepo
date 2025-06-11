@@ -337,8 +337,8 @@ def main():
         sys.exit(1)
 
     try:
-        wait_port("127.0.0.1", WEATHER_PORT)
-        wait_port("127.0.0.1", AMADEUS_PORT)
+        wait_port("0.0.0.0", WEATHER_PORT)
+        wait_port("0.0.0.0", AMADEUS_PORT)
     except Exception as e:
         print(f"[ERROR] 포트 대기 실패: {e}")
         stop_amadeus(amadeus_proc)
@@ -362,23 +362,7 @@ def main():
     loop = asyncio.get_event_loop()
     try:
         while True:
-            print("[DEBUG] 사용자 입력 대기 중… (빈 줄 입력 시 종료)")
-            q = input("You: ").strip()
-            if not q:
-                print("[DEBUG] 빈 입력 감지 — 종료 루프")
-                break
-            print(f"[DEBUG] 입력 값 = {q}")
-            try:
-                with get_db_ctx() as db:
-                    answer = loop.run_until_complete(query_chain(
-                        user_id=1,
-                        question=q,
-                        db=db  # FastAPI 의존성 주입
-                    ))
-                print(f"[DEBUG] query_chain 반환 타입 = {type(answer)}")
-                print(f"[BUKI 응답] {answer['answer']['contents']}")
-            except Exception as e:
-                print(f"[ERROR] query_chain 실행 중 예외: {e}")
+                loop.run_until_complete(asyncio.sleep(3600))
     finally:
         print("[INFO] 메인 루프 종료 — 종료 핸들러 실행")
         shutdown(None, None)
