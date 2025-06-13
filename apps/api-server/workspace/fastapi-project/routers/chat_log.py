@@ -13,6 +13,7 @@ import re,json
 from typing import List, Any, Union
 from pydantic import BaseModel
 from langchain_core.messages import AIMessage
+from ai_preprocess.src.app.vectorstore import add_query
 
 router = APIRouter(prefix="/chat")
 
@@ -129,6 +130,10 @@ async def chat_message(
     db.commit()
     db.refresh(db_msg)
 
+    # vectorstore db_query 저장
+    add_query(data.message, data.user_id, Message.timestamp, 
+              payload.get("answer", ""), )
+    
     # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
     msgs = (
         db.query(Message)
