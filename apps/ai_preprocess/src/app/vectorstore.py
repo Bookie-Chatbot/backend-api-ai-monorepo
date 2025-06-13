@@ -6,6 +6,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 import os
 from dotenv import load_dotenv
 import warnings
+import config
+import datetime
 
 '''
     db = Chroma.from_documents(
@@ -39,13 +41,13 @@ def create_doc_Chroma(split_doc, persist_directory="db_Chroma"):
     # split doc들로 Chroma DB를 생성하는 메소드. 해당 데이터는 persist_directory 폴더에 저장
 
     DB_PATH = "./chroma_db"
-    # embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
-    embedder = HuggingFaceEmbeddings(
-        model_name = "intfloat/multilingual-e5-large-instruct",
-        # task= "feature-extraction",
-        # huggingfacehub_api_token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
-        # model_kwargs={"device": "cpu"},
-    )
+    embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
+    # embedder = HuggingFaceEmbeddings(
+    #     model_name = "intfloat/multilingual-e5-large-instruct",
+    #     # task= "feature-extraction",
+    #     # huggingfacehub_api_token=os.environ["HUGGINGFACEHUB_API_TOKEN"],
+    #     # model_kwargs={"device": "cpu"},
+    # )
     db = Chroma.from_documents(
         split_doc, embedder,
         persist_directory=persist_directory,
@@ -74,6 +76,10 @@ def add_doc_to_Chroma(db: Chroma, new_docs):
         embedding=embedder,
 
     ) <- FAISS 벡터 저장소 생성
+    
+    in db_FAISS
+    > index.faiss : 벡터 인덱스
+    > index.pkl : 메타데이터(문서, id 등)
 
     db.add_documents([Document], ids=["new_id"])
     db.delete(ids)
@@ -97,16 +103,16 @@ def add_doc_to_Chroma(db: Chroma, new_docs):
 '''
 
 warnings.filterwarnings("ignore")
-os.environ["HF_HOME"] = "./cache/"
+# os.environ["HF_HOME"] = "./cache/"
 # filterwarnings("module") 실제 운영 환경에서 이게 더 안전
 
 def create_doc_FAISS(split_doc, persist_directory="db_FAISS"):
     # split doc들로 FAISS DB를 생성하는 메소드. persist_directory 폴더에 저장
 
-    # embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
-    embedder = HuggingFaceEmbeddings(
-        model_name= "intfloat/multilingual-e5-large-instruct",
-    )
+    embedder = OpenAIEmbeddings(model = "text-embedding-3-small", )
+    # embedder = HuggingFaceEmbeddings(
+    #     model_name= "intfloat/multilingual-e5-large-instruct",
+    # )
     db = FAISS.from_documents(
         split_doc, embedder,
     )
@@ -118,25 +124,42 @@ def add_doc_to_FAISS(db: FAISS, new_docs, persist_directory="db_FAISS"):
     # 만들어져 있는 db에 새 docmunet 추가할 때 사용
     db.add_documents(new_docs)
     db.save_local(persist_directory)
-<<<<<<< Updated upstream
-=======
 
-def delete_ids_FAISS(db: FAISS, ids, persist_directory="db_FAISS"):
-    # db에 해당 ids 가진 chunk들 모두 삭제
+def delete_ids_FAISS(del_key, del_value, persist_directory="db_FAISS"):
+    # db에 해당 del_value 가진 chunk들 모두 삭제
+    db=FAISS.load_local(persist_directory, config.Embedding_Model,
+                        allow_dangerous_deserialization=True)
+    ids = []
+    print(f"[DEBUG] Delete chunks in FAISS {persist_directory}")
+    for key in db.docstore.__dict__['_dict']:
+        msource = db.docstore.__dict__['_dict'][key].metadata[del_key]
+        if msource == del_value:        # 삭제할 소스 입력
+            ids.append(key)
+
     db.delete(ids=ids)
     db.save_local(persist_directory)
 
-def add_query(message, persist_directory="db_query"):
+def add_query(message, user_id, time, answer, persist_directory="db_query"):
     '''
     message로 받은 query를 persist_directory에 저장하는 함수.
 
     현재는 인자로 user query를 string으로 받으면
-    정해진 userID, time, llm answer를 metadata로 저장하고 있습니다.
+    정해진 userID, time, LLM answer를 metadata로 저장하고 있습니다.
     추후에 message를 json으로 바꿔서 add_text 함수에 들어가는 내용, metadata들을 바꿀 수 있습니다.
+    [Update] ->
+    인자로 message외에도 user_id, time, answer를 받아서 각 metadata에 저장.
 
     Args :
         message (str) :
             user query에 대한 문자열.
+        user_id (int) :
+            user id에 대한 int값.
+        time (Column[datetime]) :
+            질문이 이뤄진 time에 대한 인자.
+        answer (Dict[str]) :
+            LLM의 응답에 대한 dictionary.
+            구조 -> answer = {'answer': {'intent': ,
+                                         'contents': }}
         persist_directory (str) :
             path to query vector DB
 
@@ -146,13 +169,13 @@ def add_query(message, persist_directory="db_query"):
     # FAISS 저장 시에 각 query마다 고유값으로 붙는 ids라는 arg가 따로 있습니다.
     # user id와는 다른 argument이니 조심해야 합니다
     db.add_texts([message], 
-                 metadatas=[{"userID": 8462,
-                             "time": 20250602150030,
-                             "answer": "노르웨이, 스웨덴, 핀란드가 있습니다."}])
+                 metadatas=[{"userID": user_id,
+                             "time": time,
+                             "answer": answer}])
 
     db.save_local(persist_directory)
 
-def find_similar_history(message, persist_directory="db_query"):
+def find_similar_history(message, user_id, persist_directory="db_query"):
     '''
     persist_directory의 vector DB에서 message로 받은 query에 대해 해당 query와
     유사도가 제일 큰 k개의 document를 반환. filter로 원하는 userID를 골라서 추출 가능
@@ -164,6 +187,8 @@ def find_similar_history(message, persist_directory="db_query"):
     Args :
         message (str) :
             user query에 대한 문자열.
+        user_id (int) :
+            user id에 대한 int값.
         persist_directory (str) :
             path to query vector DB
     
@@ -178,7 +203,7 @@ def find_similar_history(message, persist_directory="db_query"):
     '''
     db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
 
-    sim = db.similarity_search(message, k=3, filter={"userID": 8462})
+    sim = db.similarity_search(message, k=5, filter={"userID": user_id})
 
     sim.sort(key=lambda x: -x.metadata["time"])
 
@@ -199,20 +224,30 @@ def initialize_FAISS(persist_directory):
     db.save_local(persist_directory)
 
 if __name__=="__main__" :
+    initialize_FAISS("db_query")
     db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
     print(len(db.index_to_docstore_id))
     # add_query("서유럽 가기 좋은 나라 추천")
     # add_query("서유럽 가는 가장 싼 항공편 알려줘")
     # add_query("열대지방에서 제일 맛있는 과일 추천해줘")
     # sim = db.similarity_search("디저트로 먹을게 뭐가 있을까",
-    #                      k=2, filter={"userID": 8462})
-    
+    #                      k=2, filter={"userID": 2183})
+
     # print(type(sim))
     # print(sim)
-    
+    # add_query("서유럽 가기 좋은 나라 추천", 2183, datetime.datetime.now()
+    #           , "프랑스, 포르투갈, 스페인")
+    # add_query("아시아권 가기 좋은 나라", 2183, datetime.datetime.now()
+    #           , "한국, 일본, 대만")
+    # add_query("오늘 날씨 어때?", 2183, datetime.datetime.now()
+    #           , "맑고 화창")
+    # add_query("저메추", 2183, datetime.datetime.now()
+    #           , "마라탕, 떡볶이, 파스타, 피자")
+
+    # db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
     # print(db.index_to_docstore_id)
     # print(list(db.index_to_docstore_id.values()))
-    print(db.docstore.__dict__)
+    # print(db.docstore.__dict__)
 
 
 
@@ -362,4 +397,3 @@ async def query_chain(user_id: int,
     return answer
     
 '''
->>>>>>> Stashed changes
