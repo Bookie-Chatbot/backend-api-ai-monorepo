@@ -3,11 +3,13 @@ from langchain_community.vectorstores import FAISS
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.embeddings import HuggingFaceEmbeddings
+import faiss
 import os
+from dateutil.parser import parse
 from dotenv import load_dotenv
 import warnings
 import config
-import datetime
+from datetime import datetime
 
 '''
     db = Chroma.from_documents(
@@ -205,8 +207,16 @@ def find_similar_history(message, user_id, persist_directory="db_query"):
 
     sim = db.similarity_search(message, k=5, filter={"userID": user_id})
 
-    sim.sort(key=lambda x: -x.metadata["time"])
+    for d in sim:
+        metadata = d.metadata
+        # time 필드가 문자열이면 datetime 객체로 변환
+        raw_time = metadata.get("time")
+        try:
+            time_obj = raw_time if isinstance(raw_time, datetime) else dateutil.parser.parse(str(raw_time))
+        except Exception:
+            time_obj = datetime.min  # 파싱 실패 시 가장 오래된 시간으로 처리
 
+    sim.sort(key=lambda x: parse(str(x.metadata["time"])), reverse=True)
     return sim
 
 def initialize_FAISS(persist_directory):
@@ -227,23 +237,20 @@ if __name__=="__main__" :
     initialize_FAISS("db_query")
     db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
     print(len(db.index_to_docstore_id))
-    # add_query("서유럽 가기 좋은 나라 추천")
-    # add_query("서유럽 가는 가장 싼 항공편 알려줘")
-    # add_query("열대지방에서 제일 맛있는 과일 추천해줘")
-    # sim = db.similarity_search("디저트로 먹을게 뭐가 있을까",
-    #                      k=2, filter={"userID": 2183})
-
     # print(type(sim))
     # print(sim)
-    # add_query("서유럽 가기 좋은 나라 추천", 2183, datetime.datetime.now()
+    # add_query("서유럽 가기 좋은 나라 추천", 2183, datetime.now()
     #           , "프랑스, 포르투갈, 스페인")
-    # add_query("아시아권 가기 좋은 나라", 2183, datetime.datetime.now()
+    # add_query("아시아권 가기 좋은 나라", 2183, datetime.now()
     #           , "한국, 일본, 대만")
-    # add_query("오늘 날씨 어때?", 2183, datetime.datetime.now()
+    # add_query("오늘 날씨 어때?", 2183, datetime.now()
     #           , "맑고 화창")
-    # add_query("저메추", 2183, datetime.datetime.now()
+    # add_query("저메추", 2183, datetime.now()
     #           , "마라탕, 떡볶이, 파스타, 피자")
 
+    # msgs = find_similar_history("오늘 어디 갈까?", 2183)
+    # for m in msgs:
+    #     print(m.page_content) 
     # db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
     # print(db.index_to_docstore_id)
     # print(list(db.index_to_docstore_id.values()))

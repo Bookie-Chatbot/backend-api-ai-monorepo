@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models.chat_log import ChatLog
+from models.chat_log import ChatLog, Message
 from schemas.chat_log import ChatLogCreate, ChatLogRead
-from models.chat_log import Message
 from schemas.message import MessageCreate, MessageRead, MessagesRead
 from models.ai_response import AI_Response
 from schemas.ai_response import ai_responseCreate
@@ -13,7 +12,8 @@ import re,json
 from typing import List, Any, Union
 from pydantic import BaseModel
 from langchain_core.messages import AIMessage
-
+from ai_preprocess.src.app.vectorstore import add_query, find_similar_history
+from dateutil.parser import parse
 router = APIRouter(prefix="/chat")
 
 @router.post("/log")
@@ -94,6 +94,14 @@ from sqlalchemy.orm import Session
 
 router = APIRouter()
 
+class DocumentAdapter:
+    def __init__(self, doc):
+        self.message = doc.page_content
+        self.user_id = doc.metadata.get("userID")
+        self.time = parse(str(doc.metadata.get("time")))
+        self.answer = doc.metadata.get("answer")
+
+
 @router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
 async def chat_message(
     data: MessageCreate,
@@ -128,17 +136,21 @@ async def chat_message(
     db.add(db_msg)
     db.commit()
     db.refresh(db_msg)
+    
+    add_query(data.message, data.user_id, Message.timestamp, payload.get("answer", ""),)
 
     # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
-    msgs = (
-        db.query(Message)
-          .filter(Message.user_id == data.user_id)
-          .order_by(Message.timestamp.asc())
-          .all()
-    )
+    # msgs = (
+    #     db.query(Message)
+    #       .filter(Message.user_id == data.user_id)
+    #       .order_by(Message.timestamp.asc())
+    #       .all()
+    # )
+    msgs = find_similar_history(data.message, data.user_id)
     return MessagesRead(
         user_id=data.user_id,
-        messages=[MessageRead.from_orm(m) for m in msgs]
+        # messages=[MessageRead.from_orm(m) for m in msgs]
+        messages=[MessageRead.from_orm(DocumentAdapter(m)) for m in msgs]
     )
 
 
