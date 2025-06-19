@@ -122,9 +122,7 @@ async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
     ]
 
     try:
-	#from runs.main import query_chain
-        payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
-            question=data.message,
+        payload = await query_chain(
             user_id=data.user_id,
             question=data.message,
             db=db,

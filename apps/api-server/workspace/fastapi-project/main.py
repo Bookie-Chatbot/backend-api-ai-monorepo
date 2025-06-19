@@ -69,7 +69,7 @@ app.include_router(user_router)
 app.include_router(hotel_router)
 app.include_router(flight_router)
 app.include_router(reservation_router)
-app.include_router(chat_log.router, prefix="/chat")
+app.include_router(chat_log.router)
 app.include_router(price_track_router)
 
 @app.get("/")
