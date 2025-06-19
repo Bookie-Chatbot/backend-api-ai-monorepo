@@ -65,6 +65,7 @@ reformat_prompt = PromptTemplate.from_template(
     "raw_json 안의 cards·message 를 그대로 유지하되, "
     "contents.message 를 두 줄 한국어 설명으로 갱신하고 항상 ‘부키!🦉’로 끝내. "
     "마크다운 코드블럭 없이 순수 JSON만 반환해.\n"
+    ""
     "{format_instructions}\n"
     "질문: {question}\n"
     "이전 대화:\n{chat_history}\n"
