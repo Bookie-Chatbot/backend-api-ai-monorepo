@@ -12,7 +12,7 @@ import re,json
 from typing import List, Any, Union
 from pydantic import BaseModel
 from langchain_core.messages import AIMessage
-from ai_preprocess.src.app.vectorstore import add_query, find_similar_history
+from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history
 from dateutil.parser import parse
 router = APIRouter(prefix="/chat")
 
