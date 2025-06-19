@@ -8,6 +8,8 @@ AIRLINE_CODE_TO_NAME = {
     "AA": "American Airlines",
     "UA": "United Airlines",
     "DL": "Delta Air Lines",
+    "OD": "Batik Air Malaysia",
+    "TW": "Tway Airline"
     # 필요한 만큼 추가
 }
 
