@@ -11,7 +11,7 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 공용 패키지(`packages/core-backend`)에는 도메인 모델, Amadeus·OpenWeather(MCP) 클라이언트, 알림 템플릿이 포함돼 있어 **하나의 레포만으로 개발-테스트-배포**가 가능합니다.
 
 <p align="center">
-  ![image](https://github.com/user-attachments/assets/330f8a30-6691-43c9-a97d-4c3bf6ed0f00)
+  ![image](https://github.com/user-attachments/assets/330f8a30-6691-43c9-a97d-4c3bf6ed0f00.png)
 </p>
 
 ## 0. 아키텍처 구성
