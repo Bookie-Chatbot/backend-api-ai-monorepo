@@ -12,10 +12,12 @@ import re,json
 from typing import List, Any, Union
 from pydantic import BaseModel
 from langchain_core.messages import AIMessage
-from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history
+from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history,delete_ids_FAISS
 from dateutil.parser import parse
 import logging
 from datetime import datetime
+from models.user import User
+
 
 logger = logging.getLogger("uvicorn.error")   # uvicorn 콘솔로 바로 출력
 
@@ -121,10 +123,16 @@ async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
         )
     ]
 
+    # 2) 사용자 e-mail 조회 -----------------------------------
+    user = db.query(User).filter(User.id == data.user_id).first()
+    email = user.email if user else ""
+
+
     try:
         payload = await query_chain(
             user_id=data.user_id,
             question=data.message,
+            email=email,
             db=db,
             chat_history=history,
         )
@@ -185,6 +193,7 @@ async def delete_message(
     try:
         db.query(Message).filter(Message.user_id == user_id, Message.session_id == session_id).delete()
         db.commit()
+
         return {"message": "Message deleted successfully"}
     except Exception as e:
         db.rollback()
@@ -200,6 +209,7 @@ async def delete_messages(
     try:
         db.query(Message).filter(Message.user_id == user_id).delete()
         db.commit()
+        delete_ids_FAISS('userID', user_id, "db_query")  # FAISS에서 해당 user_id의 메시지 삭제
         return {"message": "Messages deleted successfully"}
     except Exception as e:
         db.rollback()
