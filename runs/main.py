@@ -234,6 +234,7 @@ async def query_chain(user_id: int,
     from api_server.models.chat_log import Message
 
     print(f"[DEBUG] query_chain: 시작 user_id={user_id}, question={question!r}")
+    print(f"[DEBUG] query_chain: chat_history = {chat_history}")
 
     # ── 1) 대화 이력 ----------------------------------------------------------
     history: list[tuple[str, Any]] = []
@@ -262,7 +263,7 @@ async def query_chain(user_id: int,
        #     )
        # except Exception:
        #     bot_payload = log.answer
-        history.append(("history", _to_plain(chat_history)))
+       # history.append(("history",chat_history))
     print(f"[DEBUG] history = {history}")
 
     print(f"[DEBUG] history 길이 = {len(history)}")
@@ -274,7 +275,7 @@ async def query_chain(user_id: int,
         {
             "question": question,
             "format_instructions": intent_parser.get_format_instructions(),
-            "chat_history": history,
+            "chat_history": chat_history or [],
         },
     )
     print(f"[DEBUG] IntentOnly = {intent_only}")
@@ -286,7 +287,7 @@ async def query_chain(user_id: int,
         {
             "intent_only": intent_only,
             "question":    question,
-            "chat_history": history,
+            "chat_history": chat_history or [],
         },
     )
 
@@ -381,19 +382,21 @@ def main():
                 with get_db_ctx() as db:
                     # ① 유사한 과거 대화 5개 검색
                     sim_docs = find_similar_history(q, user_id=1)
+                    print(f"[DEBUG] 유사 문서 개수 = {len(sim_docs)}")
+                    print(f"[DEBUG] 유사 문서 내용 = {[doc.page_content for doc in sim_docs]}")
 
                     # ② LangChain 이 기대하는 튜플 형식으로 변환
-                    history: list[tuple[str, Any]] = []
-                    for doc in sim_docs:
-                        history.append(("history", doc))
-                       # history.append(("chatbot", doc.metadata.get("answer", "")))
+                    #history: list[tuple[str, Any]] = []
+                    # for doc in sim_docs:
+                    #     history.append(("history", doc))
+                    #     history.append(("chatbot", doc.metadata.get("answer", "")))
 
                     # ③ query_chain 호출
                     answer = loop.run_until_complete(
                         query_chain(
                             user_id=1,
                             question=q,
-                            chat_history=history,   # 🔸 새 인자
+                            chat_history=sim_docs,   # 🔸 새 인자
                             db=db
                         )
                     )
