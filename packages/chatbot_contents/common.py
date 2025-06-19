@@ -93,9 +93,12 @@ class FlightDetailsContent(BaseModel):
 
 
 
-class WeatherContentsList(BaseModel):
-    message: str
+class WeatherContent(BaseModel):
+    date: str
+    weather: str
 
+class WeatherContentsList(BaseModel):
+    items: List[WeatherContent]
 
 # ── WEATHER_SUMMARY ───────────────────────────
 class WeatherSummaryContent(BaseModel):
