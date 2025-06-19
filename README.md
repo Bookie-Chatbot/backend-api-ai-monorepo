@@ -1,5 +1,7 @@
 # backend-api-ai-monorepo
 
+<img src="https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45" width="400" height="400"/>
+
 **backend-api-ai-monorepo** 는 기존 **backend-api**(FastAPI)와 **backend-ai**(LangChain/LangGraph) 두 저장소를 `git-filter-repo`로 병합한 단일 모노레포입니다.
 
 API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는 LangGraph/LangChain 파이프라인으로 가격 추적·날씨 요약·추천·정책 QA 등을 처리합니다.
