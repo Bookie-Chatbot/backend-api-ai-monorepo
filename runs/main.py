@@ -371,39 +371,7 @@ def main():
     loop = asyncio.get_event_loop()
     try:
         while True:
-            print("[DEBUG] 사용자 입력 대기 중… (빈 줄 입력 시 종료)")
-            q = input("You: ").strip()
-            if not q:
-                print("[DEBUG] 빈 입력 감지 — 종료 루프")
-                break
-            print(f"[DEBUG] 입력 값 = {q}")
-
-            try:
-                with get_db_ctx() as db:
-                    # ① 유사한 과거 대화 5개 검색
-                    sim_docs = find_similar_history(q, user_id=1)
-                    print(f"[DEBUG] 유사 문서 개수 = {len(sim_docs)}")
-                    print(f"[DEBUG] 유사 문서 내용 = {[doc.page_content for doc in sim_docs]}")
-
-                    # ② LangChain 이 기대하는 튜플 형식으로 변환
-                    #history: list[tuple[str, Any]] = []
-                    # for doc in sim_docs:
-                    #     history.append(("history", doc))
-                    #     history.append(("chatbot", doc.metadata.get("answer", "")))
-
-                    # ③ query_chain 호출
-                    answer = loop.run_until_complete(
-                        query_chain(
-                            user_id=1,
-                            question=q,
-                            chat_history=sim_docs,   # 🔸 새 인자
-                            db=db
-                        )
-                    )
-                print(f"[DEBUG] query_chain 반환 타입 = {type(answer)}")
-                print(f"[BUKI 응답] {answer['answer']['contents']}")
-            except Exception as e:
-                print(f"[ERROR] query_chain 실행 중 예외: {e}")
+            time.sleep(3600)
     finally:
         print("[INFO] 메인 루프 종료 — 종료 핸들러 실행")
         shutdown(None, None)

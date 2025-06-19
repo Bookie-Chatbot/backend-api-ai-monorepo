@@ -3,8 +3,8 @@ from celery import Celery
 
 celery_app = Celery(
     "worker",
-    broker="redis://3.145.175.131:6379/0",
-    backend="redis://3.145.175.131:6379/0"
+    broker="redis://3.138.36.245:6379/0",
+    backend="redis://3.138.36.245:6379/0"
 )
 
 celery_app.conf.timezone = "Asia/Seoul"
