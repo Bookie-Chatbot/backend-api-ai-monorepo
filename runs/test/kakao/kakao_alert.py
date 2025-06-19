@@ -8,7 +8,7 @@ import os
 load_dotenv()
 
 # 저장된 토큰을 메모리로 불러오기
-gt.try_load()
+#gt.try_load()
 
 # .env에 설정한 이메일/UUID 정보
 USER_EMAIL = os.getenv("USER_EMAIL")

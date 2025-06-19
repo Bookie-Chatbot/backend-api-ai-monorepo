@@ -1,5 +1,17 @@
-import os, time
+# user_data.py
+from __future__ import annotations
+import os, logging
 from dotenv import load_dotenv
+
+# 매번 .env 를 다시 읽어 최신 값 반영
+def get_uuid(email: str) -> str:
+    load_dotenv(override=True)               # ← 핵심: override 로 재로딩
+    uuid = os.getenv("USER_UUID")
+    if not uuid:
+        raise ValueError("USER_UUID not set")
+    logging.debug("[user_data] email=%s → uuid=%s", email, uuid)
+    return uuid
+
 
 load_dotenv()
 
