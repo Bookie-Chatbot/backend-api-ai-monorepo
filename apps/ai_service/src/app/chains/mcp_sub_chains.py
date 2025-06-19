@@ -133,7 +133,7 @@ def _mk_chain(parser: PydanticOutputParser):
     reformat_prompt = PromptTemplate.from_template(
         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
         "json의 contents.message 안에 2줄 설명을 작성하고 항상 ‘부키!’로 끝내. "
-        "intent 가 WEATHER_SUMMARY 면 raw_json 의 긴 메시지도 생략하지 말고 그대로 넣어.\n"
+        "intent 가 WEATHER_SUMMARY 면 raw_json 의 긴 메시지도 생략하지 말고 그대로 넣어. 출력은 다음의 예시를 따라서 진행해줘. 예시 1. 부산의 날씨는 현재 비가 오고 있어. 오늘 저녁쯤엔 비가 그칠 예정이야. 현재 온도는 25.14도이고 습도는 81%야. 부키!. 예시 2. 일본 오사카의 날씨를 알려줄게. 오늘은 구름이 조금 있고 온도는 23.99도야. 내일은 구름이 조금 더 많아지면서 온도가 27.7도까지 올라갈 것으로 예상돼. 이번 주말에는 비가 오는 날이 있을 예정이니 우산을 챙기는 게 좋을거야. 부키!"
         "찾은 결과 : raw_json:을 가지고, 결과를 아래 JSON 스키마에 맞춰 반환해줘.\n"
         "{format_instructions}\n"
         "질문: {question}\n"
