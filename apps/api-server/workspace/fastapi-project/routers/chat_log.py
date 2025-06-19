@@ -15,6 +15,7 @@ from langchain_core.messages import AIMessage
 from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history
 from dateutil.parser import parse
 import logging
+from datetime import datetime
 
 logger = logging.getLogger("uvicorn.error")   # uvicorn 콘솔로 바로 출력
 
@@ -106,63 +107,59 @@ class DocumentAdapter:
         self.answer = doc.metadata.get("answer")
 
 
-@router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
+@router.post("/message", response_model=MessagesRead)
 async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
-
-    # 🔹 1) 과거 유사 대화 검색 ------------------------------------------
     sim_docs = find_similar_history(data.message, data.user_id)
-    logger.debug(f"[SIM] {len(sim_docs)=}")
+    logger.debug(f"[SIM] docs={len(sim_docs)}")
 
-    # 🔹 2) LLM이 이해하는 tuple(history)로 변환 ---------------------------
-    history: list[tuple[str, Any]] = []
-    for doc in sim_docs:
-        history.append(("human", doc.page_content))
-        history.append(("chatbot", _safe_json(doc.metadata.get("answer", ""))))
-
-    # 🔹 3) query_chain 호출 ----------------------------------------------
-    try:
-        payload: dict = await query_chain(
-            question=data.message,
-            user_id=data.user_id,
-            db=db,
-            chat_history=history,    # ← 올바른 형식 전달
+    history: list[tuple[str, Any]] = [
+        tup
+        for doc in sim_docs
+        for tup in (
+            ("human", doc.page_content),
+            ("chatbot", _safe_json(doc.metadata.get("answer", ""))),
         )
-        logger.debug(f"[LLM] payload keys={list(payload.keys())}")
-    except Exception as exc:
-        logger.exception("query_chain 실패")   # stack-trace 포함
+    ]
+
+    try:
+        payload = await query_chain(
+            user_id=data.user_id,
+            question=data.message,
+            db=db,
+            chat_history=history,
+        )
+        logger.debug(f"[LLM] keys={list(payload.keys())}")
+    except Exception:
+        logger.exception("query_chain 실패")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"AI 호출 실패: {exc!s}"
-        ) from exc
+            detail="AI 호출 실패"
+        )
 
-    # ── 2. DB 저장 ───────────────────────────────────────────────────
     db_msg = Message(
         user_id=data.user_id,
         message=data.message,
         answer=payload.get("answer", ""),
     )
-    db.add(db_msg)
-    db.commit()
-    db.refresh(db_msg)
+    db.add(db_msg); db.commit(); db.refresh(db_msg)
 
-    add_query(data.message, data.user_id,data.timestamp, payload.get("answer", ""),)
+    add_query(
+        message=data.message,
+        user_id=data.user_id,
+        time=datetime.now(),
+        answer=payload.get("answer", "")
+    )
 
-    # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
     msgs = (
-       db.query(Message)
-           .filter(Message.user_id == data.user_id)
-           .order_by(Message.timestamp.asc())
-           .all()
-     )
-    msgs = find_similar_history(data.message, data.user_id)
-    logger.debug(f"[SIM] {len(sim_docs)=}")
+        db.query(Message)
+          .filter(Message.user_id == data.user_id)
+          .order_by(Message.timestamp.asc())
+          .all()
+    )
     return MessagesRead(
         user_id=data.user_id,
         messages=[MessageRead.from_orm(m) for m in msgs]
-      # messages=[MessageRead.from_orm(DocumentAdapter(m)) for m in msgs]
     )
-
-
 
 @router.get("/messages/", response_model=MessagesRead)
 async def read_messages(
