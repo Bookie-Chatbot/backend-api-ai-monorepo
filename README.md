@@ -1,6 +1,6 @@
 # backend-api-ai-monorepo
 
-![image](https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45)
+<img src="https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45.png" width="400" height="400"/>
 
 **backend-api-ai-monorepo** 는 기존 **backend-api**(FastAPI)와 **backend-ai**(LangChain/LangGraph) 두 저장소를 `git-filter-repo`로 병합한 단일 모노레포입니다.
 
