@@ -114,12 +114,26 @@ async def chat_message(
     """
     # ── 1. LLM / 툴 호출 ───────────────────────────────────────────────
     try:
-        payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
-            question=data.message,
-            user_id=data.user_id,
-            db=db
-        )
-        print(f"[DEBUG] query_chain 결과: {payload!r}")
+
+        # 🔹 ①  Top-k 유사 문장 불러오기
+     sim_docs = find_similar_history(data.message, data.user_id)
+
+    # 🔹 ②  LLM 컨텍스트 형식으로 변환
+     history: list[tuple[str, Any]] = []
+     for doc in sim_docs:
+        history.append(("human", doc.page_content))            # 사용자가 했던 질문
+        history.append(("chatbot", _safe_json(doc.metadata.get("answer", ""))))  # 그때 LLM 답변
+
+
+
+
+     payload: dict = await query_chain(
+        question=data.message,
+        user_id=data.user_id,
+        db=db,
+        chat_history=history,     # ← 새 인자 전달
+    )
+     print(f"[DEBUG] query_chain 결과: {payload!r}")
     except Exception as exc:
         # 내부 예외를 502 Bad Gateway 로 래핑
         raise HTTPException(
@@ -136,21 +150,21 @@ async def chat_message(
     db.add(db_msg)
     db.commit()
     db.refresh(db_msg)
-    
-    add_query(data.message, data.user_id, Message.timestamp, payload.get("answer", ""),)
+
+    add_query(data.message, data.user_id,  db_msg.timestamp, payload.get("answer", ""),)
 
     # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
-    # msgs = (
-    #     db.query(Message)
-    #       .filter(Message.user_id == data.user_id)
-    #       .order_by(Message.timestamp.asc())
-    #       .all()
-    # )
+    msgs = (
+       db.query(Message)
+           .filter(Message.user_id == data.user_id)
+           .order_by(Message.timestamp.asc())
+           .all()
+     )
     msgs = find_similar_history(data.message, data.user_id)
     return MessagesRead(
         user_id=data.user_id,
-        # messages=[MessageRead.from_orm(m) for m in msgs]
-        messages=[MessageRead.from_orm(DocumentAdapter(m)) for m in msgs]
+        messages=[MessageRead.from_orm(m) for m in msgs]
+      # messages=[MessageRead.from_orm(DocumentAdapter(m)) for m in msgs]
     )
 
 

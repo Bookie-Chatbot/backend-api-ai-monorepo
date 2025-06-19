@@ -8,8 +8,9 @@ import os
 from dateutil.parser import parse
 from dotenv import load_dotenv
 import warnings
-import config
 from datetime import datetime
+import dateutil
+from .config import Embedding_Model
 
 '''
     db = Chroma.from_documents(
@@ -37,6 +38,7 @@ from datetime import datetime
     db.delete(ids=["삭제할id들 str list"])
 
 '''
+
 load_dotenv()
 
 def create_doc_Chroma(split_doc, persist_directory="db_Chroma"):
@@ -78,7 +80,7 @@ def add_doc_to_Chroma(db: Chroma, new_docs):
         embedding=embedder,
 
     ) <- FAISS 벡터 저장소 생성
-    
+
     in db_FAISS
     > index.faiss : 벡터 인덱스
     > index.pkl : 메타데이터(문서, id 등)
@@ -129,7 +131,7 @@ def add_doc_to_FAISS(db: FAISS, new_docs, persist_directory="db_FAISS"):
 
 def delete_ids_FAISS(del_key, del_value, persist_directory="db_FAISS"):
     # db에 해당 del_value 가진 chunk들 모두 삭제
-    db=FAISS.load_local(persist_directory, config.Embedding_Model,
+    db=FAISS.load_local(persist_directory, Embedding_Model,
                         allow_dangerous_deserialization=True)
     ids = []
     print(f"[DEBUG] Delete chunks in FAISS {persist_directory}")
@@ -166,11 +168,11 @@ def add_query(message, user_id, time, answer, persist_directory="db_query"):
             path to query vector DB
 
     '''
-    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+    db=FAISS.load_local(persist_directory, Embedding_Model, allow_dangerous_deserialization=True)
 
     # FAISS 저장 시에 각 query마다 고유값으로 붙는 ids라는 arg가 따로 있습니다.
     # user id와는 다른 argument이니 조심해야 합니다
-    db.add_texts([message], 
+    db.add_texts([message],
                  metadatas=[{"userID": user_id,
                              "time": time,
                              "answer": answer}])
@@ -193,19 +195,19 @@ def find_similar_history(message, user_id, persist_directory="db_query"):
             user id에 대한 int값.
         persist_directory (str) :
             path to query vector DB
-    
+
     Hyperparameter :
         k (int) :
-            유사도 측정할 때 최대 몇 개의 document를 반환할지 정의            
-            
+            유사도 측정할 때 최대 몇 개의 document를 반환할지 정의
+
     Return :
         sim (List[Document]) :
             message와의 유사도가 제일 큰 k개의 user History에 대한 list.
 
     '''
-    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+    db=FAISS.load_local(persist_directory, Embedding_Model, allow_dangerous_deserialization=True)
 
-    sim = db.similarity_search(message, k=5, filter={"userID": user_id})
+    sim = db.similarity_search(message, k=2, filter={"userID": user_id})
 
     for d in sim:
         metadata = d.metadata
@@ -223,22 +225,22 @@ def initialize_FAISS(persist_directory):
     '''
     persist_dirctory에 있는 FAISS DB 초기화.
     내부 데이터 전부 삭제. 주의해서 사용
-    
+
     Args :
         persist_directory (str) :
             초기화 할 vector DB file path
 
     '''
-    db=FAISS.load_local(persist_directory, config.Embedding_Model, allow_dangerous_deserialization=True)
+    db=FAISS.load_local(persist_directory, Embedding_Model, allow_dangerous_deserialization=True)
     db.delete(db.index_to_docstore_id.values())
     db.save_local(persist_directory)
 
 if __name__=="__main__" :
-    initialize_FAISS("db_query")
-    db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
+    # initialize_FAISS("db_query")
+    db=FAISS.load_local("db_query", Embedding_Model, allow_dangerous_deserialization=True)
     print(len(db.index_to_docstore_id))
-    # print(type(sim))
-    # print(sim)
+   # print(type(sim))
+    #print(sim)
     # add_query("서유럽 가기 좋은 나라 추천", 2183, datetime.now()
     #           , "프랑스, 포르투갈, 스페인")
     # add_query("아시아권 가기 좋은 나라", 2183, datetime.now()
@@ -248,13 +250,13 @@ if __name__=="__main__" :
     # add_query("저메추", 2183, datetime.now()
     #           , "마라탕, 떡볶이, 파스타, 피자")
 
-    # msgs = find_similar_history("오늘 어디 갈까?", 2183)
-    # for m in msgs:
-    #     print(m.page_content) 
-    # db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
-    # print(db.index_to_docstore_id)
-    # print(list(db.index_to_docstore_id.values()))
-    # print(db.docstore.__dict__)
+    msgs = find_similar_history("오늘 어디 갈까?", 2183)
+    for m in msgs:
+        print(m)
+    db=FAISS.load_local("db_query", Embedding_Model, allow_dangerous_deserialization=True)
+    print(db.index_to_docstore_id)
+    print(list(db.index_to_docstore_id.values()))
+    print(db.docstore.__dict__)
 
 
 
@@ -306,7 +308,7 @@ async def chat_message(
         messages=[MessageRead.from_orm(m) for m in msgs]
     )
 
-여기서 2, 3 
+여기서 2, 3
 DB에 message를 user_id, message, answer에 따라 저장.
 metadata에 user_id를 통해 history 살펴보면 될듯
 '''
@@ -402,5 +404,5 @@ async def query_chain(user_id: int,
             }
         }
     return answer
-    
+
 '''

@@ -9,6 +9,7 @@
 import asyncio, socket, sys, os, signal, subprocess, time, json
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import datetime
 
 from typing import Any
 # LangChain imports
@@ -23,6 +24,10 @@ import launch_api
 from contextlib import contextmanager
 from langchain_core.messages import AIMessage, BaseMessage
 from pydantic import BaseModel
+
+
+from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history
+from dateutil.parser import parse
 
 def _to_plain(obj: Any) -> Any:
     """
@@ -216,7 +221,9 @@ from sqlalchemy.orm import Session                       # DB 타입 힌트
 
 async def query_chain(user_id: int,
                       question: str,
-                      db: Session) -> dict[str, Any]:
+                      db: Session,
+                      chat_history: list[tuple[str, Any]] | None = None,
+                      ) -> dict[str, Any]:
     """
     ① DB 에서 과거 대화 이력 조회
     ② LangChain 분류 체인으로 IntentOnly 얻기
@@ -237,23 +244,26 @@ async def query_chain(user_id: int,
               .order_by(Message.timestamp.asc())
               .all()
         )
+
+
     except Exception as e:
         print(f"[WARN] DB 조회 실패: {e}")
         chat_logs = []
 
-    for log in chat_logs:
+  #  for log in chat_logs:
         # human
-        history.append(("human", _to_plain(log.message)))
+      #  history.append(("human", _to_plain(log.message)))
         # bot
-        try:
-            bot_payload = (
-                log.answer
-                if isinstance(log.answer, dict)
-                else json.loads(log.answer)
-            )
-        except Exception:
-            bot_payload = log.answer
-        history.append(("chatbot", _to_plain(bot_payload)))
+      #  try:
+       #     bot_payload = (
+       #         log.answer
+       #         if isinstance(log.answer, dict)
+       #         else json.loads(log.answer)
+       #     )
+       # except Exception:
+       #     bot_payload = log.answer
+        history.append(("history", _to_plain(chat_history)))
+    print(f"[DEBUG] history = {history}")
 
     print(f"[DEBUG] history 길이 = {len(history)}")
 
@@ -301,13 +311,11 @@ async def query_chain(user_id: int,
                 "contents": chain_output.contents,       # Pydantic 모델이나 dict
             }
         }
+    add_query(question, user_id,  datetime.now(), answer)
+
     return answer
 
-
-
-
-
-    # 3) contents 가 있으면 JSON, 아니면 문자열
+   # 3) contents 가 있으면 JSON, 아니면 문자열
    # if hasattr(raw, "contents"):
    # return str(raw)
 """"""
@@ -368,13 +376,27 @@ def main():
                 print("[DEBUG] 빈 입력 감지 — 종료 루프")
                 break
             print(f"[DEBUG] 입력 값 = {q}")
+
             try:
                 with get_db_ctx() as db:
-                    answer = loop.run_until_complete(query_chain(
-                        user_id=1,
-                        question=q,
-                        db=db  # FastAPI 의존성 주입
-                    ))
+                    # ① 유사한 과거 대화 5개 검색
+                    sim_docs = find_similar_history(q, user_id=1)
+
+                    # ② LangChain 이 기대하는 튜플 형식으로 변환
+                    history: list[tuple[str, Any]] = []
+                    for doc in sim_docs:
+                        history.append(("history", doc))
+                       # history.append(("chatbot", doc.metadata.get("answer", "")))
+
+                    # ③ query_chain 호출
+                    answer = loop.run_until_complete(
+                        query_chain(
+                            user_id=1,
+                            question=q,
+                            chat_history=history,   # 🔸 새 인자
+                            db=db
+                        )
+                    )
                 print(f"[DEBUG] query_chain 반환 타입 = {type(answer)}")
                 print(f"[BUKI 응답] {answer['answer']['contents']}")
             except Exception as e:
