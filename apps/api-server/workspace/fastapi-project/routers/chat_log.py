@@ -121,7 +121,8 @@ async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
 
     # 🔹 3) query_chain 호출 ----------------------------------------------
     try:
-        payload: dict = await query_chain(
+	#from runs.main import query_chain
+        payload: dict = await query_chain(          # ← JSONResponse 대신 dict!
             question=data.message,
             user_id=data.user_id,
             db=db,
