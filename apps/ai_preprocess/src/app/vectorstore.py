@@ -206,11 +206,11 @@ def find_similar_history(message, user_id, persist_directory="db_query"):
 
     '''
     db=FAISS.load_local(persist_directory, Embedding_Model, allow_dangerous_deserialization=True)
-    
+    if(not len(db.index_to_docstore_id)):
+        return []
+
     sim = db.similarity_search(message, k=2, filter={"userID": user_id})
 
-    if(len(sim) == 0):
-        return []
     
     for d in sim:
         metadata = d.metadata
