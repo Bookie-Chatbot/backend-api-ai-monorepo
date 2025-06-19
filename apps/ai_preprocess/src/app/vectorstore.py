@@ -209,8 +209,9 @@ def find_similar_history(message, user_id, persist_directory="db_query"):
     if(not len(db.index_to_docstore_id)):
         return []
 
-    sim = db.similarity_search(message, k=2, filter={"userID": user_id})
+    doc_scores = db.similarity_search_with_score(message, k=2, filter={"userID": user_id})
 
+    sim = [doc for doc, score in doc_scores if score>=0.8]
     
     for d in sim:
         metadata = d.metadata
@@ -241,6 +242,8 @@ def initialize_FAISS(persist_directory):
 if __name__=="__main__" :
     # initialize_FAISS("db_query")
     db=FAISS.load_local("db_query", Embedding_Model, allow_dangerous_deserialization=True)
+    # initialize_FAISS("db_FAISS")
+    db=FAISS.load_local("db_FAISS", config.Embedding_Model, allow_dangerous_deserialization=True)
     print(len(db.index_to_docstore_id))
    # print(type(sim))
     #print(sim)
@@ -260,6 +263,15 @@ if __name__=="__main__" :
     print(db.index_to_docstore_id)
     print(list(db.index_to_docstore_id.values()))
     print(db.docstore.__dict__)
+
+    # msgs = find_similar_history("오늘 어디 갈까?", 2183)
+    # for m in msgs:
+    #     print(m) 
+    # db=FAISS.load_local("db_query", config.Embedding_Model, allow_dangerous_deserialization=True)
+    # print(db.index_to_docstore_id)
+    # print(list(db.index_to_docstore_id.values()))
+    # print(db.docstore.__dict__)
+
 
 
 

@@ -100,7 +100,10 @@ def create_policy_chain() -> RunnableMap:
     args, _ = parser.parse_known_args()
 
     vectorstore = load_vecdb(args.db_path)
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+    retriever = vectorstore.as_retriever(
+                search_type="similarity_score_threshold",
+                search_kwargs={"k": 5, "score_threshold": 0.8},
+        )
     print("[INFO] Retriever created.")
 
     compressor = FlashrankRerank(model="ms-marco-MultiBERT-L-12")
