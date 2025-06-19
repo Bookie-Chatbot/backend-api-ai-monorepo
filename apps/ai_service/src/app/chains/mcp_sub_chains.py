@@ -90,7 +90,7 @@ def safe_dumps(obj: Any, *, label: str = "unknown") -> str:
 # ╭───────────────────────────╮
 # │   파서 인스턴스 미리 생성 │
 # ╰───────────────────────────╯
-price_search_parser:  PydanticOutputParser = PydanticOutputParser(pydantic_object=PriceSearchContent)
+#price_search_parser:  PydanticOutputParser = PydanticOutputParser(pydantic_object=PriceSearchContent)
 price_analysis_parser: PydanticOutputParser = PydanticOutputParser(pydantic_object=PriceAnalysisContent)
 cheapest_date_parser:  PydanticOutputParser = PydanticOutputParser(pydantic_object=CheapestDateContent)
 weather_parser:        PydanticOutputParser = PydanticOutputParser(pydantic_object=WeatherSummaryContent)
@@ -133,9 +133,9 @@ def _mk_chain(parser: PydanticOutputParser):
     reformat_prompt = PromptTemplate.from_template(
         "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
         "json의 contents.message 안에 2줄 설명을 작성하고 항상 ‘부키!’로 끝내. "
-        "intent 가 WEATHER_SUMMARY 면 raw_json 의 긴 메시지도 생략하지 말고 그대로 넣어. 출력은 다음의 예시를 따라서 진행해줘. 예시 1. 부산의 날씨는 현재 비가 오고 있어. 오늘 저녁쯤엔 비가 그칠 예정이야. 현재 온도는 25.14도이고 습도는 81%야. 부키!. 예시 2. 일본 오사카의 날씨를 알려줄게. 오늘은 구름이 조금 있고 온도는 23.99도야. 내일은 구름이 조금 더 많아지면서 온도가 27.7도까지 올라갈 것으로 예상돼. 이번 주말에는 비가 오는 날이 있을 예정이니 우산을 챙기는 게 좋을거야. 부키!"
+        "intent 가 WEATHER_SUMMARY 면 raw_json 의 긴 메시지를 줄바꿈 문자만 생략하고 그대로 넣어. 출력은 다음의 예시를 따라서 진행해줘. 예시 1. 부산의 날씨는 현재 비가 오고 있어. 오늘 저녁쯤엔 비가 그칠 예정이야. 현재 온도는 25.14도이고 습도는 81%야. 부키!. 예시 2. 일본 오사카의 날씨를 알려줄게. 오늘은 구름이 조금 있고 온도는 23.99도야. 내일은 구름이 조금 더 많아지면서 온도가 27.7도까지 올라갈 것으로 예상돼. 이번 주말에는 비가 오는 날이 있을 예정이니 우산을 챙기는 게 좋을거야. 부키!"
         "intent 가 CHEAPEST_DATE 면 다음의 예시를 따라서 출력해줘. 예시: 6월 19일에 ICN에서 LAX로 가는 OZ 항공사의 항공편이 1,574,200 KRW에 이용 가능해. 부키!"
-        "intent 가 PRICE_SEARCH 면 다음의 예시를 따라서 출력해줘. 예시: 2025년 7월 1일 ICN에서 LAX로 가는 편도 비행기는 최저 183,285.93 KRW에 이용할 수 있어. 가격 범위는 183,285.93 KRW부터 1,507,230.09 KRW까지야. 부키!"
+       # "intent 가 PRICE_SEARCH 면 다음의 예시를 따라서 출력해줘. 예시: 2025년 7월 1일 ICN에서 LAX로 가는 편도 비행기는 최저 183,285.93 KRW에 이용할 수 있어. 가격 범위는 183,285.93 KRW부터 1,507,230.09 KRW까지야. 부키!"
         "intent 가 PRICE_ANALYSIS 면 다음의 예시를 따라서 출력해줘. 예시: 2025년 7월 2일에 ICN에서 NRT로 가는 항공편의 편도 최저가는 39,594.26 KRW이고, 최고가는 238,377.82 KRW이에요. 부키!"
         "찾은 결과 : raw_json:을 가지고, 결과를 아래 JSON 스키마에 맞춰 반환해줘.\n"
         "{format_instructions}\n"
@@ -169,7 +169,7 @@ def _mk_chain(parser: PydanticOutputParser):
 # │   Intent → 체인 매핑      │
 # ╰───────────────────────────╯
 MCP_INTENT_MAP = {
-    Intent.PRICE_SEARCH:    (_mk_chain(price_search_parser),   price_search_parser),
+  #  Intent.PRICE_SEARCH:    (_mk_chain(price_search_parser),   price_search_parser),
     Intent.PRICE_ANALYSIS:  (_mk_chain(price_analysis_parser), price_analysis_parser),
     Intent.CHEAPEST_DATE:   (_mk_chain(cheapest_date_parser),  cheapest_date_parser),
     Intent.WEATHER_SUMMARY: (_mk_chain(weather_parser),        weather_parser),

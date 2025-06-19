@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from enum import Enum
 
 class Intent(str, Enum):
-    PRICE_SEARCH        = "PRICE_SEARCH"
+   # PRICE_SEARCH        = "PRICE_SEARCH"
    # PRICE_PREDICTION    = "PRICE_PREDICTION"
     PRICE_ANALYSIS      = "PRICE_ANALYSIS"
     POLICY_QA           = "POLICY_QA"
