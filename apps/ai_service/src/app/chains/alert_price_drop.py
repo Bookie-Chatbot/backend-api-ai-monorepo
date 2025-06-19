@@ -53,16 +53,14 @@ price_drop_chain = (
     | PromptTemplate.from_template(
        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
 "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
-"가장 최신 대화내역을 최대 5개까지 확인해서 사용자가 알림을 요청하는 항공편에 대해 알림 요청 처리해줘."
 "사용자가 본인이 원하는 price_threshold를 제시하지 않으면, selling_price에서 10% 할인된 가격을 100의 자리에서 내린 값을 default price_threshold로 생각해."
 "channel은 사용자의 query와 상관 없이 무조건 email이야."
-"사용자가 원하는 price_threshold보다 selling_price가 낮으면(if payload.price_threshold > payload.selling_price), 즉시 '해당 항공편은 이미 목표 가격 아래입니다. 바로 예약 진행할까요?' 로 message 출력해줘"
 "origin과 dest에는 공항 코드를 ICN / KIX / HND / LAX와 같이 제공해주고,"
-"selling_price에는 chat history에서, 가장 직전 쿼리에서 응답으로 온 항공권의 Price를 기입해줘."
-"price_threshold에는 사용자가 현재 question으로 준 임계치 가격을 추가해줘"
+"selling_price에는 만약, dest가 KUL이면, 168000원으로 해주고, KIX면, 37800원으로 고정해줘. chat history에서, 가장 최근 timestamp cheapest date intent 기록에서 응답으로 온 항공권의 price를 기입해줘"
+"price_threshold에는 사용자가 현재 question으로 준 임계치 가격을 추가해줘(예시 : 사용자 질문 : 7월 1일 오사카행 비행기가 3만원 이하로 떨어지면 알림해줘 ->  price_threshold는 30000원으로 설정한다."
 "departure_date는, 사용자가 question에서 준 data를 추가해줘 년도는 무조건 2025년이고 형식은 2025-MM-DD야"
         "{format_instructions}\n"
-        "질문: {question}\n"
+        "사용자의 현재 질문: {question}\n"
         "이전 대화 내역:\n{chat_history}\n"
     )
     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
