@@ -1,7 +1,7 @@
 from .kakao_msg import send_friend_template
 
 WELCOME_TMPL_ID  = "121168"
-SCHEDULE_TMPL_ID = "121173"
+SCHEDULE_TMPL_ID = "121664"
 PRICE_TMPL_ID    = "121171"
 
 def send_welcome(email: str):
