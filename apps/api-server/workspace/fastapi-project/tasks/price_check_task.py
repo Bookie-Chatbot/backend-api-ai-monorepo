@@ -11,8 +11,14 @@ from kakao import global_token as gt
 import sys
 from dotenv import load_dotenv
 import os
-
+from pathlib import Path
 load_dotenv()
+
+#실행 전 토큰 파일 삭제#
+token_file = Path("kakao_global_token.json")
+if token_file.exists():
+	token_file.unlink()
+#실행 전 토큰 파일 삭제#
 
 # 저장된 토큰을 메모리로 불러오기
 gt.try_load()
@@ -33,6 +39,13 @@ if not logger.handlers:
 
 @celery_app.task
 def check_price(user_id: int, search_params: dict, threshold: int):
+################
+    token_file = Path("kakao_global_token.json")
+    if token_file.exists():
+        token_file.unlink()
+
+    gt.try_load() 
+##########
     formatted_params = {
         "originLocationCode": search_params.get("origin"),
         "destinationLocationCode": search_params.get("destination"),
@@ -77,7 +90,7 @@ def check_price(user_id: int, search_params: dict, threshold: int):
                     "TARGET_PRICE": threshold,
                     "BOOK_URL": "https://chatbot-bookie.pages.dev"
                 }
-                logger.info("🅺카카오톡 알림 전송 중...")
+                logger.info("🅺카카오톡 알림 전송 중이에요...")
                 response = api.send_price_alert(USER_EMAIL, PRICE_ARGS)
                 if response.get("successful_receiver_uuids"):
                     logger.info("🅺카카오톡 알림 전송 성공")
@@ -111,7 +124,7 @@ def check_price(user_id: int, search_params: dict, threshold: int):
                     "CHANGE_RATE": ((price - threshold) / threshold) * 100,
                     "BOOK_URL": "https://chatbot-bookie.pages.dev"
                 }
-                logger.info("🅺카카오톡 알림 전송 중...")
+                logger.info("🅺카카오톡 알림 전송 중이에요...")
                 response = api.send_schedule(USER_EMAIL, SCHEDULE_ARGS)
                 if response.get("successful_receiver_uuids"):
                     logger.info("🅺카카오톡 알림 전송 성공")

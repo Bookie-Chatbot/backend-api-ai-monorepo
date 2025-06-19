@@ -334,7 +334,6 @@ async def query_chain(user_id: int,
 # ──────────────────────────────────────────────────────────
 def main():
     load_dotenv()
-
     print("[INFO] 메인 시작: API 서버, MCP 서버, Launcher 기동")
     api_proc = start_api_server()
     time.sleep(1)
@@ -363,7 +362,8 @@ def main():
         stop_weather(weather_proc)
         stop_api_server(api_proc)
         sys.exit(1)
-
+    for key in ["CLIENT_ID", "CLIENT_SECRET", "REFRESH_TOKEN"]:
+        print(f"{key} = {os.getenv(key)}")
     print("[INFO] 모든 MCP 서버 기동 완료 — 대화 대기 중…")
 
     # 시그널 핸들러 등록

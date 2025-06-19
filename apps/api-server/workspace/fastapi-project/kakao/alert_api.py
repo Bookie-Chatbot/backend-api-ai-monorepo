@@ -11,4 +11,4 @@ def send_schedule(email: str, arg_dict: dict):
     return send_friend_template(email, SCHEDULE_TMPL_ID, arg_dict)
 
 def send_price_alert(email: str, arg_dict: dict):
-    return send_friend_template(email, PRICE_TMPL_ID, arg_dict)
+    return send_friend_template(email, SCHEDULE_TMPL_ID, arg_dict)
