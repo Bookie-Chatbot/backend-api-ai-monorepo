@@ -86,6 +86,7 @@ def get_db_ctx():
         except StopIteration:
             pass
 
+
 def wait_port(host: str, port: int, timeout: float = 2000.0):
     """포트가 열릴 때까지 블로킹 대기"""
     print(f"[DEBUG] wait_port: start waiting {host}:{port} (timeout={timeout}s)")
@@ -221,6 +222,7 @@ from sqlalchemy.orm import Session                       # DB 타입 힌트
 
 async def query_chain(user_id: int,
                       question: str,
+                      email: str,
                       db: Session,
                       chat_history: list[tuple[str, Any]] | None = None,
                       ) -> dict[str, Any]:
@@ -291,11 +293,17 @@ async def query_chain(user_id: int,
         },
     )
 
+    print(f"[DEBUG] chain_output = {chain_output}")
+
     # ── 4) 결과 직렬화 & 응답 --------------------------------------------------
     try:
      # 3) 라우팅 후
       if isinstance(chain_output, BaseModel):
        chain_output = chain_output.model_dump(mode="python")
+       if intent_only.intent == Intent.ALERT_DISPATCH:
+             print(f"[DEBUG] ALERT_DISPATCH: chain_output = {chain_output}")
+             chain_output["contents"]["userId"]  = user_id
+             chain_output["contents"]["emailId"] = email
 
        answer = {
         "answer": {
@@ -312,6 +320,7 @@ async def query_chain(user_id: int,
                 "contents": chain_output.contents,       # Pydantic 모델이나 dict
             }
         }
+    print(f"[DEBUG] query_chain: 최종 answer = {answer}")
     add_query(question, user_id,  datetime.now(), answer)
 
     return answer
@@ -394,8 +403,9 @@ def main():
                     # ③ query_chain 호출
                     answer = loop.run_until_complete(
                         query_chain(
-                            user_id=1,
+                            user_id=5,
                             question=q,
+                            email="wldls317@naver.com",
                             chat_history=sim_docs,   # 🔸 새 인자
                             db=db
                         )

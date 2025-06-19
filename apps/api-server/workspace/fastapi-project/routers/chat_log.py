@@ -16,6 +16,8 @@ from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_histo
 from dateutil.parser import parse
 import logging
 from datetime import datetime
+from models.user import User
+
 
 logger = logging.getLogger("uvicorn.error")   # uvicorn 콘솔로 바로 출력
 
@@ -121,10 +123,16 @@ async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
         )
     ]
 
+    # 2) 사용자 e-mail 조회 -----------------------------------
+    user = db.query(User).filter(User.id == data.user_id).first()
+    email = user.email if user else ""
+
+
     try:
         payload = await query_chain(
             user_id=data.user_id,
             question=data.message,
+            email=email,
             db=db,
             chat_history=history,
         )
