@@ -21,15 +21,15 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 </p>
 
 <p align="center">
-  <img src="attachment:a189c284-d6ea-43e4-bd8d-73bc8b734c50:image.png" width="500", height="400"/>
+  <img src="attachment:a189c284-d6ea-43e4-bd8d-73bc8b734c50:image" width="500", height="400"/>
 </p>
 
 <p align="center">
-  <img src="1211075b-7008-4610-8825-61dda8d0f857:image.png" width="500", height="300"/>
+  <img src="1211075b-7008-4610-8825-61dda8d0f857:image" width="500", height="300"/>
 </p>
     
 <p align="center">
-  <img src="8a8af9f9-76e2-4272-9e48-7a2d5126fc9c:image.png" width="500", height="300"/>
+  <img src="8a8af9f9-76e2-4272-9e48-7a2d5126fc9c:image" width="500", height="300"/>
 </p>
 
 ## 0. 아키텍처 구성
