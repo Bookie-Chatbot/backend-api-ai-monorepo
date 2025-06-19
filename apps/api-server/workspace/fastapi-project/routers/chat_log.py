@@ -14,6 +14,10 @@ from pydantic import BaseModel
 from langchain_core.messages import AIMessage
 from apps.ai_preprocess.src.app.vectorstore import add_query, find_similar_history
 from dateutil.parser import parse
+import logging
+
+logger = logging.getLogger("uvicorn.error")   # uvicorn 콘솔로 바로 출력
+
 router = APIRouter(prefix="/chat")
 
 @router.post("/log")
@@ -29,9 +33,9 @@ def get_chat_logs(session_id: str, db: Session = Depends(get_db)):
              .filter(ChatLog.session_id == session_id)\
              .order_by(ChatLog.timestamp.asc())\
              .all()
-    print(f"▶️ 세션 ID: {session_id}에 대한 로그:")
+    logger.info(f"▶️ 세션 ID: {session_id}에 대한 로그:")
     for log in logs:
-        print(f"  - {log.timestamp}: {log.message} (role: {log.role})")
+        logger.info(f"  - {log.timestamp}: {log.message} (role: {log.role})")
     return logs
 
 from langchain_core.messages import BaseMessage   # 이미 있다면 생략
@@ -103,39 +107,29 @@ class DocumentAdapter:
 
 
 @router.post("/message", response_model=MessagesRead, status_code=status.HTTP_200_OK)
-async def chat_message(
-    data: MessageCreate,
-    db: Session = Depends(get_db)
-):
-    """
-    1) LangChain → query_chain 호출
-    2) 결과를 DB에 저장
-    3) 전체 히스토리를 반환
-    """
-    # ── 1. LLM / 툴 호출 ───────────────────────────────────────────────
+async def chat_message(data: MessageCreate, db: Session = Depends(get_db)):
+
+    # 🔹 1) 과거 유사 대화 검색 ------------------------------------------
+    sim_docs = find_similar_history(data.message, data.user_id)
+    logger.debug(f"[SIM] {len(sim_docs)=}")
+
+    # 🔹 2) LLM이 이해하는 tuple(history)로 변환 ---------------------------
+    history: list[tuple[str, Any]] = []
+    for doc in sim_docs:
+        history.append(("human", doc.page_content))
+        history.append(("chatbot", _safe_json(doc.metadata.get("answer", ""))))
+
+    # 🔹 3) query_chain 호출 ----------------------------------------------
     try:
-
-        # 🔹 ①  Top-k 유사 문장 불러오기
-     sim_docs = find_similar_history(data.message, data.user_id)
-
-    # 🔹 ②  LLM 컨텍스트 형식으로 변환
-     history: list[tuple[str, Any]] = []
-     for doc in sim_docs:
-        history.append(("human", doc.page_content))            # 사용자가 했던 질문
-        history.append(("chatbot", _safe_json(doc.metadata.get("answer", ""))))  # 그때 LLM 답변
-
-
-
-
-     payload: dict = await query_chain(
-        question=data.message,
-        user_id=data.user_id,
-        db=db,
-        chat_history=history,     # ← 새 인자 전달
-    )
-     print(f"[DEBUG] query_chain 결과: {payload!r}")
+        payload: dict = await query_chain(
+            question=data.message,
+            user_id=data.user_id,
+            db=db,
+            chat_history=history,    # ← 올바른 형식 전달
+        )
+        logger.debug(f"[LLM] payload keys={list(payload.keys())}")
     except Exception as exc:
-        # 내부 예외를 502 Bad Gateway 로 래핑
+        logger.exception("query_chain 실패")   # stack-trace 포함
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"AI 호출 실패: {exc!s}"
@@ -151,7 +145,7 @@ async def chat_message(
     db.commit()
     db.refresh(db_msg)
 
-    add_query(data.message, data.user_id,  db_msg.timestamp, payload.get("answer", ""),)
+    add_query(data.message, data.user_id,data.timestamp, payload.get("answer", ""),)
 
     # ── 3. 전체 히스토리 조회 & 반환 ─────────────────────────────────
     msgs = (
@@ -161,6 +155,7 @@ async def chat_message(
            .all()
      )
     msgs = find_similar_history(data.message, data.user_id)
+    logger.debug(f"[SIM] {len(sim_docs)=}")
     return MessagesRead(
         user_id=data.user_id,
         messages=[MessageRead.from_orm(m) for m in msgs]

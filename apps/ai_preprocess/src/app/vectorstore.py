@@ -236,7 +236,7 @@ def initialize_FAISS(persist_directory):
     db.save_local(persist_directory)
 
 if __name__=="__main__" :
-    # initialize_FAISS("db_query")
+    initialize_FAISS("db_query")
     db=FAISS.load_local("db_query", Embedding_Model, allow_dangerous_deserialization=True)
     print(len(db.index_to_docstore_id))
    # print(type(sim))
@@ -250,9 +250,9 @@ if __name__=="__main__" :
     # add_query("저메추", 2183, datetime.now()
     #           , "마라탕, 떡볶이, 파스타, 피자")
 
-    msgs = find_similar_history("오늘 어디 갈까?", 2183)
-    for m in msgs:
-        print(m)
+   # msgs = find_similar_history("오늘 어디 갈까?", 2183)
+   # for m in msgs:
+   #     print(m)
     db=FAISS.load_local("db_query", Embedding_Model, allow_dangerous_deserialization=True)
     print(db.index_to_docstore_id)
     print(list(db.index_to_docstore_id.values()))

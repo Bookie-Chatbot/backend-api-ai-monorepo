@@ -64,15 +64,15 @@ safe_parser = RunnableLambda(_parse_or_passthrough)
 # 1.  PromptTemplate with context default
 # -----------------------------------------------------------------------------
 _PROMPT = PromptTemplate.from_template(
-    "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-    "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘. "
-    "특정 항공사나 호텔 정책은 source가 해당 회사인 저장소에서 찾아줘. "
-    "회사를 특정하지 않으면 항공 정책은 flight_policy.pdf, 호텔 정책은 hotel_policy.pdf에서 찾아줘.\n"
-    "질문에 대해 아래 JSON Schema에 맞춰서 결과를 반환해줘.\n"
-    "{format_instructions}\n"
-    "질문: {question}\n"
-    "이전 대화 내역:\n{chat_history}\n"
-    "Context: {context}\n"
+     "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+        "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
+        "질문은 db_FAISS에 저장된 문서들만을 사용해서 찾아줘."
+        "특정 항공사 관한 정책 물어보면 metadata의 source 키값이 해당 회사 이름인 저장소에서 찾아줘."
+        "질문에 대해 아래 JSON Schema에 맞춰서 결과 반환해줘.\n"
+        "{format_instructions}\n"
+        "질문: {question}\n"
+        "이전 대화 내역:\n{chat_history}\n"
+        "Context: {context}\n"
 ).partial(context="")
 
 policy_qa_chain = (
