@@ -1,115 +1,138 @@
+from __future__ import annotations
+import argparse, os, re
+from dotenv import load_dotenv
+from typing import Any
+from pprint import pprint         # ← 추가
+
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain.output_parsers.pydantic import PydanticOutputParser
-# from chatbot_contents.policy_qa import PolicyQAContent
-# for window
-from packages.chatbot_contents.policy_qa import PolicyQAContent
-from dotenv import load_dotenv
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough, RunnableMap
+from langchain_core.runnables import RunnableLambda, RunnableMap
 
 from langchain_community.vectorstores import FAISS
-from apps.ai_preprocess.src.app import config
-import os
-import argparse
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_community.document_compressors import FlashrankRerank
 
+# project-local imports ---------------------------------------------------------
+from apps.ai_preprocess.src.app import config
+from packages.chatbot_contents.policy_qa import PolicyQAContent, ContentsList
+
 load_dotenv()
 
+# -----------------------------------------------------------------------------
+# 0.  Pydantic parser & safe-guard
+# -----------------------------------------------------------------------------
 policy_qa_parser = PydanticOutputParser(pydantic_object=PolicyQAContent)
 
-def parse_or_passthrough(text: str):
-    try:
-        return policy_qa_parser.parse(text)
-    except Exception:
-        return text
+# -------------------------------------
+# utils/parsing.py  ―  개선 버전
+# -------------------------------------
+import re
+from langchain_core.messages import AIMessage
+from packages.chatbot_contents.policy_qa import PolicyQAContent, ContentsList
+from langchain.output_parsers.pydantic import PydanticOutputParser
 
-safe_parser = RunnableLambda(parse_or_passthrough)
+_FENCE_RE = re.compile(r"```(?:json)?\\s*(.*?)\\s*```", re.S | re.I)
+parser = PydanticOutputParser(pydantic_object=PolicyQAContent)
+
+def _parse_or_passthrough(output) -> PolicyQAContent:
+    # 1) AIMessage → text
+    if isinstance(output, AIMessage):
+        text = output.content
+    elif isinstance(output, dict):
+        return PolicyQAContent(**output)
+    else:
+        text = str(output)
+
+    # 2) 코드펜스 제거
+    m = _FENCE_RE.search(text)
+    json_str = m.group(1) if m else text
+
+    # 3) 파싱 시도
+    try:
+        return parser.parse(json_str)
+    except Exception as e:
+        # 4) 실패하면 원본 포장
+        return PolicyQAContent(
+            contents=ContentsList(message=text, references=[])
+        )
+
+
+safe_parser = RunnableLambda(_parse_or_passthrough)
+
+# -----------------------------------------------------------------------------
+# 1.  PromptTemplate with context default
+# -----------------------------------------------------------------------------
+_PROMPT = PromptTemplate.from_template(
+    "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
+    "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘. "
+    "특정 항공사나 호텔 정책은 source가 해당 회사인 저장소에서 찾아줘. "
+    "회사를 특정하지 않으면 항공 정책은 flight_policy.pdf, 호텔 정책은 hotel_policy.pdf에서 찾아줘.\n"
+    "질문에 대해 아래 JSON Schema에 맞춰서 결과를 반환해줘.\n"
+    "{format_instructions}\n"
+    "질문: {question}\n"
+    "이전 대화 내역:\n{chat_history}\n"
+    "Context: {context}\n"
+).partial(context="")
 
 policy_qa_chain = (
-    PromptTemplate.from_template(
-        "당신은 ‘부엉이 부키’라는 귀여운 부엉이야. "
-        "json의 contents.message 안에 설명을 작성해주고, ‘부엉이 부키’라는 귀여운 부엉이처럼 대답하면서, 모든 답변 끝에 ‘부키!’를 붙여줘."
-        "특정 항공사나 호텔에 관한 정책은 source가 해당 회사 이름인 저장소에서 찾아줘."
-        "회사를 특정하지 않으면 항공 관련 정책 질의는 flight_policy.pdf에서, 호텔 관련 정책 질의는 hotel_policy.pdf에서 찾아줘."
-        "질문에 대해 아래 JSON Schema에 맞춰서 결과 반환해줘.\n"
-        "{format_instructions}\n"
-        "질문: {question}\n"
-        "이전 대화 내역:\n{chat_history}\n"
-        "Context: {context}\n"
-    )
+    _PROMPT
     | ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
     | safe_parser
 )
 
-def load_vecDB(path: str) -> FAISS:
+# -----------------------------------------------------------------------------
+# 2.  Helper to load FAISS vector DB
+# -----------------------------------------------------------------------------
+def load_vecdb(path: str) -> FAISS:
     embedder = config.Embedding_Model
-
-    # 상대경로로 vectorDB load. 
-    # 절대경로로 바꾸는 코드
-    # abs_path = os.path.abspath(path)
-    # store_dir = abs_path if os.path.isdir(abs_path) else os.path.dirname(abs_path)
-    # store_dir를 path대신 사용
     print(f"[INFO] Loading FAISS vectorstore from: {path}")
-    db = FAISS.load_local(path, embeddings=embedder,
-                          allow_dangerous_deserialization=True)
+    db = FAISS.load_local(path, embeddings=embedder, allow_dangerous_deserialization=True)
     print(f"[INFO] Vectorstore loaded: {type(db)}")
-    
     return db
 
-def create_policy_chain():
-    parser = argparse.ArgumentParser(
-        description='Policy-related 질문에 대해 PDF RAG를 테스트합니다. (귀여운 부엉이 모드)'
-    )
-    parser.add_argument(
-        '--db-path', default='db_FAISS',
-        help='FAISS DB 경로 (디렉터리 또는 index 파일의 경로)'
-    )
-    args = parser.parse_args()
+# -----------------------------------------------------------------------------
+# 3.  Public factory: create_policy_chain()
+# -----------------------------------------------------------------------------
+def create_policy_chain() -> RunnableMap:
+    parser = argparse.ArgumentParser(description="Policy QA RAG 테스트 (부엉이 부키 모드)")
+    parser.add_argument("--db-path", default="db_FAISS", help="FAISS DB 경로")
+    args, _ = parser.parse_known_args()
 
-    # 1. vectorstore load
-    vectorstore = load_vecDB(args.db_path)
-
-    # 2. Retriever 및 Reranker 생성
+    vectorstore = load_vecdb(args.db_path)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
     print("[INFO] Retriever created.")
-    
-    # 2.1. 문서 압축기 초기화
+
     compressor = FlashrankRerank(model="ms-marco-MultiBERT-L-12")
-    print("[INFO] Comperssor Created")
+    print("[INFO] Compressor created.")
 
-    # 2.2. 문맥 압축 검색기 초기화
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=retriever
+    comp_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor,
+        base_retriever=retriever,
     )
-    print("[INFO] Compression Retriever Initialize")
+    print("[INFO] Compression Retriever initialised.")
 
-    input_mapper = RunnableMap({
-        "context": lambda x: compression_retriever.invoke(x["question"]),
-        "question": lambda x: x["question"],
-        "format_instructions": lambda x: x["format_instructions"],
-        "chat_history": lambda x: x.get("chat_history", None),
+    mapper = RunnableMap({
+        "context": lambda d: comp_retriever.invoke(d["question"]),
+        "question": lambda d: d["question"],
+        "format_instructions": lambda d: d["format_instructions"],
+        "chat_history": lambda d: d.get("chat_history", ""),
     })
 
-    new_chain = input_mapper | policy_qa_chain
-    print("[INFO] New Chain Production")
+    chain = mapper | policy_qa_chain  # Note: no second safe_parser here
+    print("[INFO] Policy QA chain ready.")
+    return chain
 
-    return new_chain
-
-
-if __name__ == "__main__" :
-
-    # vecstore = load_vecDB("db_FAISS/")
-    chain = create_policy_chain()
-    print(chain.invoke({
+# -----------------------------------------------------------------------------
+# 4.  CLI demo
+# -----------------------------------------------------------------------------
+if __name__ == "__main__":
+    qa_chain = create_policy_chain()
+    demo_result = qa_chain.invoke({
         "question": "화물 수행인에 대해 설명해줘",
         "format_instructions": policy_qa_parser.get_format_instructions(),
-        "chat_history": None
-    }))
-    
-
-
-    
-
-
-
+        "chat_history": None,
+    })
+    print("\n=== DEMO OUTPUT ===")
+    # ← 결과도 pprint!
+    pprint(demo_result)
