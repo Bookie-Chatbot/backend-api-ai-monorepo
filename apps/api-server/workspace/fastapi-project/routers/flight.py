@@ -80,7 +80,7 @@ def search_flights(
             "destinationLocationCode": destination,
             "departureDate": departure_date,
             "adults": adults,
-            
+            "currencyCode": "KRW",
         }
         
         if return_date:
@@ -99,8 +99,6 @@ def search_flights(
             params["nonStop"] = "true" if non_stop else "false"
         if max is not None:
             params["max"] = max
-        if currency_code:
-            params["currencyCode"] = currency_code
 
         response = amadeus.shopping.flight_offers_search.get(**params)
         return response.data
