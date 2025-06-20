@@ -1,7 +1,7 @@
 # backend-api-ai-monorepo
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45" width="300" height="300"/>
+  <img src="https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45" width="400" height="300"/>
 </p>
 
 **backend-api-ai-monorepo** 는 기존 **backend-api**(FastAPI)와 **backend-ai**(LangChain/LangGraph) 두 저장소를 `git-filter-repo`로 병합한 단일 모노레포입니다.
@@ -10,8 +10,22 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 
 공용 패키지(`packages/core-backend`)에는 도메인 모델, Amadeus·OpenWeather(MCP) 클라이언트, 알림 템플릿이 포함돼 있어 **하나의 레포만으로 개발-테스트-배포**가 가능합니다.
 
+### 주요 구성 기능
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/b8440ae8-3661-4c19-bcb7-e43fe3912da5"/>
+  <img src="https://github.com/user-attachments/assets/330f8a30-6691-43c9-a97d-4c3bf6ed0f00"/>
+</p>
+
+### 실행 예시
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f086da4d-20f2-4434-a6b6-bd28d9a8122d" width="500", height="300"/>
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f701d87a-da6c-4dd3-afa6-15a064cc0df6" width="500", height="400"/>
+</p>
+    
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/781810e4-2e88-4ae6-8ff2-fef9a16e9655" width="500", height="600"/>
 </p>
 
 ## 0. 아키텍처 구성
