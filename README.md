@@ -15,7 +15,14 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
   <img src="https://github.com/user-attachments/assets/330f8a30-6691-43c9-a97d-4c3bf6ed0f00"/>
 </p>
 
-### 실행 예시
+### 실행 예시 
+
+#### 데모 영상
+[![Demo Video](https://img.youtube.com/vi/m6fngPmND2E/hqdefault.jpg)](https://www.youtube.com/watch?v=m6fngPmND2E "클릭하면 YouTube로 이동")
+
+
+
+#### 실행 예시 이미지
 <p align="center">
   <img src="https://github.com/user-attachments/assets/f086da4d-20f2-4434-a6b6-bd28d9a8122d" width="500", height="300"/>
 </p>
