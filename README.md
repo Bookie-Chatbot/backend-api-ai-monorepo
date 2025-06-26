@@ -4,38 +4,102 @@
   <img src="https://github.com/user-attachments/assets/99a1dcbf-05ec-4ab3-99f9-45abed127f45" width="400" height="300"/>
 </p>
 
-**backend-api-ai-monorepo** 는 기존 **backend-api**(FastAPI)와 **backend-ai**(LangChain/LangGraph) 두 저장소를 `git-filter-repo`로 병합한 단일 모노레포입니다.
+**backend-api-ai-monorepo** 는 **FastAPI API 서버**와 **LangChain/LangGraph AI 서비스**를 하나의 모노레포로 통합한 프로젝트입니다.  
+항공 가격 · 날씨 · 정책 · 추천 데이터를 LLM 파이프라인에 연결해 **대화형 원스톱 여행 플래너** 기능을 제공합니다.
 
-API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는 LangGraph/LangChain 파이프라인으로 가격 추적·날씨 요약·추천·정책 QA 등을 처리합니다.
+---
 
-공용 패키지(`packages/core-backend`)에는 도메인 모델, Amadeus·OpenWeather(MCP) 클라이언트, 알림 템플릿이 포함돼 있어 **하나의 레포만으로 개발-테스트-배포**가 가능합니다.
+## 📑 목차 <!-- omit in toc -->
+- [1. 서비스 기능 개요](#1-서비스-기능-개요)
+- [2. 데모](#2-데모)
+- [3. 팀원별 기여 현황](#3-팀원별-기여-현황)
+- [4. 구현 기능 관련](#4-구현-기능-관련)
+- [5. 아키텍처 구성](#5-아키텍처-구성)
+  - [5.1 High Level 아키텍처](#51-high-level-아키텍처)
+  - [5.2 기본 상세 아키텍처](#52-기본-상세-아키텍처)
+  - [5.3 intent 기반 아키텍처](#53-intent-기반-아키텍처)
+- [6. 레이어 구성](#6-레이어-구성)
+- [7. 프로젝트 구조](#7-프로젝트-구조)
+- [8. 설치 및 실행](#8-설치-및-실행-setup--cli)
+- [9. 테스트 스크립트](#9-테스트-스크립트-runstest)
+- [10. 브랜치 전략](#10-브랜치-전략)
+- [11. Conventional Commits 가이드](#11-conventional-commits-가이드)
 
-### 주요 구성 기능
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/330f8a30-6691-43c9-a97d-4c3bf6ed0f00"/>
-</p>
 
-### 실행 예시 
 
-#### 데모 영상
+---
+
+ ## 1. 서비스 기능 개요
+
+여행자는 노선·시즌·발권 시점·환불‧수수료 규정 등 수십 개 옵션을 직접 설정해야만 합리적인 결정을 내릴 수 있습니다.  
+기존 플랫폼은 이 복잡도를 그대로 노출해 ‘정보만 던져주는 리스트 UI’에 머무르기 때문에 ▲가격 변동 추적 부재 ▲약관 해석 난이도 ▲결정 피로도가 큰 문제가 됩니다.
+
+**backend-api-ai-monorepo**는 이러한 한계를 해결하기 위해 ―  
+1. **LLM 기반 Intent Router**로 사용자의 자연어 의도를 구분하고,  
+2. **7개의 체인**(가격·추천·날씨·정책·알림 등)으로 기능을 모듈화하며,  
+3. **Amadeus·OpenWeather MCP** + **PDF RAG** + **Celery 알림**을 결합해,  
+4. 챗(UI) 한 줄 ↔ 추천 → 예약 → 취소 → 알림까지 **원스톱 UX**를 제공합니다.
+
+아래 표는 각 Intent·체인·UI 컴포넌트가 어떻게 매핑되어 있는지 한눈에 정리한 것입니다.
+
+
+| 기능 분류 | Intent ID | LangChain / 백엔드 Chain | 외부 API | UI 컴포넌트 |
+|-----------|-----------|-------------------------|----------|-------------|
+| **요금 조회·추적** | `PRICE_SEARCH` | `price_search_chain` → *Amadeus Flight Offer Search → Cheapest N* | Amadeus MCP · Flight Offer Search | `FlightCardList` |
+| **가장 저렴한 가격** | `CHEAPEST_PRICE` | `cheapest_price_chain` → *min(price)* | Amadeus MCP | `BestDealCard` |
+| **가격 트래킹** | `PRICE_TRACKING` | Celery + Redis / `price_tracker` | Redis · Celery | `PriceTrendSection` |
+| **가격 분석** | `PRICE_ANALYSIS` | `price_analysis_chain` → Metrics 분석 | Amadeus MCP | `InsightBubble` |
+| **정책 Q&A** | `POLICY_QA` | `policy_qa_rag_chain` (PDFPlumber → Chroma → Reranker) | PDF Vector | `PolicyAnswerCard` |
+| **목적지 추천** | `DEST_RECOMMEND` | ReAct Agent + Google Places | Google Places | `RecoCarousel` |
+| **날씨 요약** | `WEATHER_SUMMARY` | `weather_summary_chain` (5-day forecast) | OpenWeather MCP | `WeatherStrip` |
+| **알림 문구** | `ALERT_DISPATCH` | `alert_dispatch_chain` → MySQL → Celery → Kakao/Email | – | `AlertModal` |
+| **일반 대화** | `GENERAL_CHAT` | `chat_fallback_chain` | – | `ChatBubble` |
+
+> **요약**  
+> *한 줄 대화*로 ▲항공권 탐색 ▲가격 알림 ▲날씨 위험 경고 ▲정책 FAQ ▲개인화 추천을 **실시간·능동형**으로 수행하며, 사용자는 복잡한 필터링 없이 “지금 예약할까?” 버튼만 누르면 됩니다.
+
+---
+
+## 2. 데모
+
+### 🎬 Demo Video
 [![Demo Video](https://img.youtube.com/vi/m6fngPmND2E/hqdefault.jpg)](https://www.youtube.com/watch?v=m6fngPmND2E "클릭하면 YouTube로 이동")
 
-
-
-#### 실행 예시 이미지
+### 📸 실행 스크린샷
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f086da4d-20f2-4434-a6b6-bd28d9a8122d" width="500", height="300"/>
+  <img src="https://github.com/user-attachments/assets/f086da4d-20f2-4434-a6b6-bd28d9a8122d" width="480"/>
+  <img src="https://github.com/user-attachments/assets/f701d87a-da6c-4dd3-afa6-15a064cc0df6" width="480"/>
+  <img src="https://github.com/user-attachments/assets/781810e4-2e88-4ae6-8ff2-fef9a16e9655" width="480"/>
 </p>
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/f701d87a-da6c-4dd3-afa6-15a064cc0df6" width="500", height="400"/>
-</p>
-    
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/781810e4-2e88-4ae6-8ff2-fef9a16e9655" width="500", height="600"/>
-</p>
+---
 
-## 0. 아키텍처 구성
+## 3. 팀원별 기여 현황
+
+| 이름 | 역할 | 핵심 기여 |
+|------|------|-----------|
+| **이지인** | 팀장 · LLM | Git 관리, 일정/경로 관리 · Intent Router · Pydantic 모델 · `dest_recommend_chain` · Kakao 알림 · Amadeus MCP · Sub-chain 병합 · LLM 평가 · 모노레포 통합 |
+| **신승철** | LLM | 정책 PDF 전처리 · Policy Vector DB · Weather MCP · RAG 체인 · Query Vector DB · Prompt 컨텍스트 보강 |
+| **김도의** | 백엔드 | FastAPI REST · Celery + Redis · MySQL ERD · Amadeus API 래퍼 · AWS 배포(HTTPS) |
+| **이신행** | 프론트 | React + Vite Chat UI · Intent별 컴포넌트 · 가격 알림/리마인드 UX · API 연동(fetch/axios) · Cloudflare 배포 · 스카이스캐너 딥링크 |
+
+---
+
+## 4. 구현 기능 관련
+
+| 구분 | 기능 | MVP | 구현 | 비고 |
+|------|------|-----|------|------|
+| A₁ | 실시간 날씨 반영 | ✔︎ | ✔︎ | OpenWeather MCP |
+| A₂ | 사용자 맞춤 정보 | ✔︎ | ✔︎ | 컨텍스트 기반 추천 |
+| A₃ | 항공권 가격 조회·알림 | ✔︎ | ✔︎ | Amadeus API + Celery |
+| A₄ | 여행지 옵션 추천 | ✔︎ | ✔︎ | 예산·날씨·취향 카드 |
+| A₅ | 항공 정책 Q&A | ✔︎ | ✔︎ | PDF RAG 요약 |
+| A₆ | 예약 딥링크 | ✔︎ | ✔︎ | 스카이스캐너 리다이렉트 |
+
+
+
+
+## 5. 아키텍처 구성
 ### High Level 아키텍처
 ![image](https://github.com/user-attachments/assets/85a5c331-b636-4689-a88e-467687f9516c)
 
@@ -47,7 +111,7 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 ![image](https://github.com/user-attachments/assets/fe02a6d0-486f-4677-ae3b-2a2c04576526)
 
 
-## 1. 레이어 구성
+ ## 6. 레이어 구성
 
 | 레이어 | 기술 스택 | 핵심 기능 |
 | --- | --- | --- |
@@ -55,7 +119,8 @@ API 서버는 MySQL CRUD·Amadeus 항공 검색을 제공하고, AI 서비스는
 | **AI Service**<br>`apps/ai-service` | LangGraph · OpenAI API · ChromaDB | 7개 RAG 파이프라인<br>· Flight Price Tracker<br>· Weather Summariser (MCP 연동)<br>· Destination Recommender (MCP 캐시 활용)<br>· Hotel Finder<br>· Air-Policy QA<br>· Redirect Service<br>· Alert Dispatcher(카카오·이메일) |
 | **Core 패키지**<br>`packages/core-backend` | Pydantic · 공용 유틸 | Amadeus 래퍼, MCP(OpenWeather) 클라이언트, 캐시 관련, 알림 템플릿 |
 
-# A. 프로젝트 구조
+## 7. 프로젝트 구조    
+
 **디렉토리 구조**
 아래는 실제 디렉터리 구조를 반영한 backend-api-ai-monorepo/의 구조입니다.
 ```
@@ -83,7 +148,7 @@ backend-api-ai-monorepo/
 
 ```
 
-## **설치 및 실행 방법**
+## 8. 설치 및 실행 (Setup & CLI)
 
 1.  파이썬 가상환경 생성 및 활성화
 - 가상환경 생성
@@ -146,7 +211,7 @@ backend-api-ai-monorepo/
 
 ---
 
-## 🚀 설치 및 실행 (Setup & CLI)
+### 🚀 설치 및 실행 (Setup & CLI)
 
 ```bash
 # 1. 프로젝트 루트에서 개발 모드로 설치
@@ -207,7 +272,7 @@ api-server      # uvicorn으로 FastAPI 앱 기동
 
   
 
-## 🧪 테스트 스크립트 (runs/test)
+ ## 9. 테스트 스크립트 (runs/test)
 
 `runs/test` 디렉터리안에 다음과 같은 스크립트를 배치해 두었습니다. 모두 `mcp-test`, `preprocess`, `bookie-chat` 등의 entry point로 쉽게 실행할 수 있습니다.
 
@@ -231,7 +296,8 @@ mcp-test
 
     
 
-## B. 브랜치 전략
+## 10. 브랜치 전략
+
 모노레포 환경에서 DB, 전처리·Preprocess, LLM 서비스 영역을 독립 개발하면서도 `develop` 브랜치에서 전체 통합 테스트를 수행하고, `main` 브랜치로 배포하는 단순화된 구조입니다.
 
 ### 1. 브랜치 개요
@@ -252,7 +318,7 @@ main → 실제 프로덕션 배포
 | └ `module/service`         | LLM 서비스(Price Tracker, QA 등) 개발 전용  |
           
 
-## C. 📦 Conventional Commits 가이드
+## 11. Conventional Commits 가이드
 아래 표를 참고하여, 커밋 메시지 앞에 접두사를 붙여 변경 의도를 명확히 관리할 수 있습니다.
 
 무조건 지켜야하는 것은 아니지만, “무엇을”과 “어떻게” 바꾼 것인지를 기준으로 일관성 있게 커밋들을 관리하는데 도움이 되고자 추가해보았습니다.
