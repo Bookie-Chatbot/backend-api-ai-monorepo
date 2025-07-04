@@ -135,8 +135,8 @@
 
 | 이름 | 역할 | 핵심 기여 |
 |------|------|-----------|
-| **이지인** | 팀장 · LLM | · RAG 체인  · Git 관리, 일정/경로 관리 · Intent Router · Pydantic 모델 · `dest_recommend_chain` · Kakao 알림 · Amadeus MCP · Sub-chain 병합 · LLM 평가 · 모노레포 통합 |
-| **신승철** | LLM | 정책 PDF 전처리 · Policy Vector DB · Weather MCP · Query Vector DB · Prompt 컨텍스트 보강 |
+| **이지인** | 팀장 · LLM | · RAG 체인  · Git 관리, 일정/경로 관리 ·message fastapi 구현 · Intent Router · Pydantic 모델 · `dest_recommend_chain` · Kakao 알림 · Amadeus MCP · Sub-chain 병합 · LLM 평가 · 모노레포 통합 |
+| **신승철** | LLM | 정책 PDF 전처리 · Policy Vector DB · Weather MCP · Query Vector DB · Pydantic 모델 · Prompt 컨텍스트 보강 |
 | **김도의** | 백엔드 | FastAPI REST · Celery + Redis · MySQL ERD · Amadeus API 래퍼 · AWS 배포(HTTPS) |
 | **이신행** | 프론트 | React + Vite Chat UI · Intent별 컴포넌트 · 가격 알림/리마인드 UX · API 연동(fetch/axios) · Cloudflare 배포 · 스카이스캐너 딥링크 |
 
