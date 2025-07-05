@@ -135,10 +135,10 @@
 
 | 이름 | 역할 | 핵심 기여 |
 |------|------|-----------|
-| **이지인** | 팀장 · LLM | · RAG 체인  · Git 관리, 일정/경로 관리 ·message fastapi 구현 · Intent Router · Pydantic 모델 · `dest_recommend_chain` · Kakao 알림 · Amadeus MCP · Sub-chain 병합 · LLM 평가 · 모노레포 통합 |
-| **신승철** | LLM | 정책 PDF 전처리 · Policy Vector DB · Weather MCP · Query Vector DB · Pydantic 모델 · Prompt 컨텍스트 보강 |
-| **김도의** | 백엔드 | FastAPI REST · Celery + Redis · MySQL ERD · Amadeus API 래퍼 · AWS 배포(HTTPS) |
-| **이신행** | 프론트 | React + Vite Chat UI · Intent별 컴포넌트 · 가격 알림/리마인드 UX · API 연동(fetch/axios) · Cloudflare 배포 · 스카이스캐너 딥링크 |
+| **이지인** | 팀장 · LLM | · RAG 체인  · Git 관리, 일정/경로 관리  <br>· message fastapi 구현 · Intent Router <br>· Pydantic 모델 · dest_recommend_chain <br>· Kakao 알림 · Amadeus MCP <br>· Sub-chain 병합 · LLM 평가 <br>· 모노레포 통합 |
+| **신승철** | LLM | · 정책 PDF 전처리 · Policy Vector DB <br>· Weather MCP · Query Vector DB <br>· Pydantic 모델 · Prompt 컨텍스트 보강 |
+| **김도의** | 백엔드 | · FastAPI REST · Celery + Redis <br>· MySQL ERD · Amadeus API 래퍼 <br>· AWS 배포(HTTPS) |
+| **이신행** | 프론트 | · React + Vite Chat UI · Intent별 컴포넌트 <br>· 가격 알림/리마인드 UX · API 연동(fetch/axios) <br>· Cloudflare 배포 · 스카이스캐너 딥링크 |
 
 ---
 
@@ -148,11 +148,10 @@
 |------|------|-----|------|------|
 | A₁ | 실시간 날씨 반영 | ✔︎ | ✔︎ | OpenWeather MCP |
 | A₂ | 사용자 맞춤 정보 | ✔︎ | ✔︎ | 컨텍스트 기반 추천 |
-| A₃ | 항공권 가격 조회·알림 | ✔︎ | ✔︎ | Amadeus API + Celery |
+| A₃ | 항공권 가격 조회·알림 | ✔︎ | ✔︎ | Amadeus MCP, API + Celery |
 | A₄ | 여행지 옵션 추천 | ✔︎ | ✔︎ | 예산·날씨·취향 카드 |
 | A₅ | 항공 정책 Q&A | ✔︎ | ✔︎ | PDF RAG 요약 |
 | A₆ | 예약 딥링크 | ✔︎ | ✔︎ | 스카이스캐너 리다이렉트 |
-
 
 
 
