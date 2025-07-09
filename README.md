@@ -135,8 +135,8 @@
 
 | 이름 | 역할 | 핵심 기여 |
 |------|------|-----------|
-| **이지인** | 팀장 · LLM | · RAG 체인  · Git 관리, 일정/경로 관리  <br>· message fastapi 구현 · Intent Router <br>· Pydantic 모델 · dest_recommend_chain <br>· Kakao 알림 · Amadeus MCP <br>· Sub-chain 병합 · LLM 평가 <br>· 모노레포 통합 |
-| **신승철** | LLM | · 정책 PDF 전처리 · Policy Vector DB, Policy 체인 <br>· Weather MCP · Query Vector DB <br>· Pydantic 모델 · Prompt 컨텍스트 보강 |
+| **이지인** | 팀장 · LLM | · 아키텍처 설계 · RAG 체인  · Git 관리, 일정/경로 관리  <br>· message fastapi 구현 · Intent Router <br>· Pydantic 모델 구상, 구현 · dest_recommend_chain <br>· Kakao 알림 · Amadeus MCP <br>· Sub-chain 병합 · LLM 평가 <br>· 모노레포 통합 |
+| **신승철** | LLM | · 정책 PDF 전처리 · Policy Vector DB, Policy 체인 <br>· Weather MCP · Query Vector DB <br>· Pydantic 모델 구현 · Prompt 컨텍스트 보강 |
 | **김도의** | 백엔드 | · FastAPI REST · Celery + Redis <br>· MySQL ERD · Amadeus API 래퍼 <br>· AWS 배포(HTTPS) |
 | **이신행** | 프론트 | · React + Vite Chat UI · Intent별 컴포넌트 <br>· 가격 알림/리마인드 UX · API 연동(fetch/axios) <br>· Cloudflare 배포 · 스카이스캐너 딥링크 |
 
@@ -261,9 +261,6 @@ backend-api-ai-monorepo/
       
 2. **환경변수 설정**
     - 프로젝트 루트에 `.env` 파일을 생성하고, `OPENAI_API_KEY` 및 `AMADEUS_CLIENT_ID/AMADEUS_CLIENT_SECRET` 등 필요한 환경변수를 설정합니다.
-
-
-아래 예시는 `README.md`에 추가할 수 있는 두 가지 주요 섹션입니다. 첫 번째는 `setup.py` + `pip install -e .`을 이용한 설치 및 CLI 실행 간소화 방법이고, 두 번째는 `runs/test` 폴더에 새로 추가된 테스트 스크립트들에 대한 간단한 설명입니다.
 
 ---
 
@@ -392,6 +389,8 @@ main → 실제 프로덕션 배포
 | `[ci/cd]`    | CI/CD 워크플로우·스크립트 설정 수정                            | - GitHub Actions·Jenkinsfile 추가/수정<br>- 배포 스크립트 변경<br>- 체크리스트 워크플로우 개선       | `ci: PR 린트·테스트 워크플로우 추가`<br>`ci/cd: 모델 재훈련 잡 스케줄링 설정` | 배포 자동화·검증 파이프라인만 변경될 때                                              |
 | `[chore]`    | 그 외 운영·관리 작업 (문서·의존성·도구 설정 등)                  | - 의존성 업그레이드<br>- 린트/포매터 설정<br>- GitHub badge 업데이트                              | `chore: requirements.txt 의존성 버전 업그레이드`<br>`chore: Prettier 설정 추가`  | 코드 로직·테스트·빌드·CI에 직접 영향 없는 잡무                                         |
 | `[revert]`   | 이전 커밋을 되돌릴 때 사용                                     | - 잘못된 변경 롤백<br>- 의도치 않은 병합 복구                                                   | `revert: feat(api): user-auth 엔드포인트 추가`                             | 되돌릴 커밋 메시지를 뒤에 괄호로 명시                                                    |
+
+## 12. Colab 연동 가이드 
 
 ---
 
