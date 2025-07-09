@@ -390,7 +390,6 @@ main → 실제 프로덕션 배포
 | `[chore]`    | 그 외 운영·관리 작업 (문서·의존성·도구 설정 등)                  | - 의존성 업그레이드<br>- 린트/포매터 설정<br>- GitHub badge 업데이트                              | `chore: requirements.txt 의존성 버전 업그레이드`<br>`chore: Prettier 설정 추가`  | 코드 로직·테스트·빌드·CI에 직접 영향 없는 잡무                                         |
 | `[revert]`   | 이전 커밋을 되돌릴 때 사용                                     | - 잘못된 변경 롤백<br>- 의도치 않은 병합 복구                                                   | `revert: feat(api): user-auth 엔드포인트 추가`                             | 되돌릴 커밋 메시지를 뒤에 괄호로 명시                                                    |
 
-## 12. Colab 연동 가이드 
 
 ---
 
