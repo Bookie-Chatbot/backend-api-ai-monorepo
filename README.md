@@ -44,17 +44,18 @@
 아래 표는 각 Intent·체인·UI 컴포넌트가 어떻게 매핑되어 있는지 한눈에 정리한 것입니다.
 
 
-| 기능 분류 | Intent ID | LangChain / 백엔드 Chain | 외부 API | UI 컴포넌트 |
-|-----------|-----------|-------------------------|----------|-------------|
-| **요금 조회·추적** | `PRICE_SEARCH` | `price_search_chain` → *Amadeus Flight Offer Search → Cheapest N* | Amadeus MCP · Flight Offer Search | `FlightCardList` |
-| **가장 저렴한 가격** | `CHEAPEST_PRICE` | `cheapest_price_chain` → *min(price)* | Amadeus MCP | `BestDealCard` |
-| **가격 트래킹** | `PRICE_TRACKING` | Celery + Redis / `price_tracker` | Redis · Celery | `PriceTrendSection` |
-| **가격 분석** | `PRICE_ANALYSIS` | `price_analysis_chain` → Metrics 분석 | Amadeus MCP | `InsightBubble` |
-| **정책 Q&A** | `POLICY_QA` | `policy_qa_rag_chain` (PDFPlumber → Chroma → Reranker) | PDF Vector | `PolicyAnswerCard` |
-| **목적지 추천** | `DEST_RECOMMEND` | ReAct Agent + Google Places | Google Places | `RecoCarousel` |
-| **날씨 요약** | `WEATHER_SUMMARY` | `weather_summary_chain` (5-day forecast) | OpenWeather MCP | `WeatherStrip` |
-| **알림 문구** | `ALERT_DISPATCH` | `alert_dispatch_chain` → MySQL → Celery → Kakao/Email | – | `AlertModal` |
-| **일반 대화** | `GENERAL_CHAT` | `chat_fallback_chain` | – | `ChatBubble` |
+| 기능 분류       | Intent ID       | 백엔드 Chain (LangChain)                                                                                                                                               | 외부/API 의존                                             | UI 컴포넌트            |
+| -------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------- |
+| 요금 조회·추적   | PRICE_SEARCH    | price search는 총 두 부분으로 나뉜다. 1번째는 기본 chat post api 호출을 통해, ‘price - search’ intent로 분류되는 llm 부분이다.<br>두 번째는, 백의 Amadeus Flight Offer Search 연동을 통한 프론트 - 백의 사용자가 설정한 필드 조건에 따른 항공권 결과 조회 리스트이다.<br>llm chain<br>price_search_chain– Amadeus Flight Offer Search → Cheapest N 추출 | 1: Amadeus MCP<br>2: amadeus flight offer search api 연동 | FlightCardList        |
+| 가장 저렴한 가격  | CHEAPEST_PRICE  | cheapest_price_chain<br>– Offer 리스트 중, 아마데우스 mcp 내 쿼리 아날라이저와 ,tool을 통해, → min price 선택 → 이를 해당 intent에 대한 chat post 응답으로 반환                                   | Amadeus MCP                                               | BestDealCard          |
+| 가격 트래킹      | PRICE_tracking  | price_tracke 클러리 특정 주기 단위 캐싱 → redis/clery → 이동평균·변동량 분석                                                                                                   | redis, clery                                              | PriceTrendSection     |
+| 가격 분석       | PRICE_ANALYSIS  | price_analysis_chain–  사용자 쿼리에 해당하는 날짜의 항공권 가격 기반으로 아마데우스 mcp 내 쿼리 아날라이저와 ,tool을 통해, Metrics 분석 후<br>프론트에 반환                                       | Amadeus MCP 서버                                          | InsightBubble         |
+| 정책 QA        | POLICY_QA       | policy_qa_rag_chainLoader (PDFPlumber) → Splitter (Recursive) → Chroma → Reranker (Cross-Encoder), 메타 데이터 활용 -> 항공기 기반 정책 qa                                                         | PDF 규정 벡터                                              | PolicyAnswerCard      |
+| 목적지 추천      | DEST_RECOMMEND  | create_react_agent 함수를 활용하여,<br>Web Search → ReAct 에이전트 → Google Places 툴 연동 -> 이에 대한 top-3 추천 목적지를 반환하는 카드 구성 -> 이를 chat post api의 response로 줌      | open a Web Search Google Places api 연동 진행             | RecoCarousel          |
+| 날씨 요약       | WEATHER_SUMMARY | weather_summary_chain<br>5-day forecast fetch → LLM                                                                                                                                       | OpenWeather<br>mcp 서버 활용                              | WeatherStrip          |
+| 알림 문구 생성    | ALERT_DISPATCH  | alert_dispatch_chain– threshold 저장(MySQL) → Celery → Kakao/Email                                                                                                               | MySQL<br>Celery<br>Kakao/Email                            | AlertModal            |
+| 일반 대화       | GENERAL_CHAT    | chat_fallback_chain                                                                                                                                                         | –                                                         | ChatBubble            |
+
 
 > **요약**  
 > *한 줄 대화*로 ▲항공권 탐색 ▲가격 알림 ▲날씨 위험 경고 ▲정책 FAQ ▲개인화 추천을 **실시간·능동형**으로 수행하며, 사용자는 복잡한 필터링 없이 “지금 예약할까?” 버튼만 누르면 됩니다.
